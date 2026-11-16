@@ -1,17 +1,18 @@
 """Request dependencies: the runtime, the verified user, access checks and safe reads.
 
 Every route needs a PlantCraft token with access to ``batchlens``
-(``plantcraft_sdk.server.access``). Viewers read the notes; editors write, change and delete them.
+(``plantcraft_sdk.server.access``). This slice only reads: viewers and editors see the same.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from plantcraft_sdk.server.access import Access, CurrentUser, runtime
 
 from batchlens.api.runtime import Runtime
+from batchlens.batches.models import BatchRecord
 from batchlens.i18n import t
 
 ACCESS = Access("Batchlens")
@@ -22,8 +23,8 @@ guarded = ACCESS.guarded
 __all__ = ["CurrentUser", "EditorUser", "RuntimeDep", "guarded"]
 
 
-def note_or_404(rt: Runtime, note_id: str) -> dict[str, Any]:
-    found = rt.notes.get(note_id)
+def batch_or_404(rt: Runtime, batch_id: str) -> BatchRecord:
+    found = rt.batches.get(batch_id)
     if found is None:
-        raise HTTPException(status_code=404, detail=t("Note not found."))
+        raise HTTPException(status_code=404, detail=t("Batch not found."))
     return found

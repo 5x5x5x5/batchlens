@@ -1,4 +1,4 @@
-"""Command line: ``batchlens serve`` and ``batchlens check``.
+"""Command line: ``batchlens serve``, ``batchlens check`` and ``batchlens seed-demo``.
 
 Settings come from the environment (``batchlens.config``).
 """
@@ -17,6 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--host", default=os.environ.get("BATCHLENS_HOST", "127.0.0.1"))
     serve.add_argument("--port", type=int, default=int(os.environ.get("BATCHLENS_PORT", "9100")))
     commands.add_parser("check", help="Check the app key and that PlantCraft answers.")
+    commands.add_parser("seed-demo", help="Load the four synthetic demo batches into the database.")
     args = parser.parse_args(argv)
     from plantcraft_sdk.server.logs import configure_logging
 
@@ -54,6 +55,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings.from_environment()
     runtime = Runtime(settings)
     try:
+        if args.command == "seed-demo":
+            from batchlens.demo.seed import seed_demo
+
+            print(json.dumps({"status": "ok", "batches": seed_demo(runtime.batches)}))
+            return 0
         if runtime.service_client is None:
             print(json.dumps({"status": "error", "error": "PLANTCRAFT_APP_KEY is not set."}))
             return 1
@@ -69,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
                     "status": "ok",
                     "assets": len(assets),
                     "signals": len(signals),
-                    "notes": len(runtime.notes.list()),
+                    "batches": len(runtime.batches.summaries()),
                 }
             )
         )

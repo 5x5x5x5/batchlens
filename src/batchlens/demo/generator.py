@@ -198,7 +198,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
             + (0.25 * (day - scenario.qp_shift_day) if late else 0.0),
             "titer": titer,
         }
-        collected = start + timedelta(days=day)
+        collected = start + timedelta(seconds=round(day * 86400))
         sample_id = f"{batch_id}-S{index + 1:02d}"
         samples.append(Sample(sample_id, batch_id, phases[0].phase_id, collected, provenance))
         for analyte, value in truth.items():
@@ -213,7 +213,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
                     round(measured, DECIMALS[analyte]),
                     UNITS[analyte],
                     METHODS[analyte],
-                    collected + timedelta(hours=hours),
+                    collected + timedelta(seconds=round(hours * 3600)),
                     "valid",
                     provenance,
                 )
@@ -238,7 +238,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
             "g/L",
             POOL_METHOD,
             measured_at,
-            measured_at + timedelta(hours=rng.uniform(2, 4)),
+            measured_at + timedelta(seconds=round(rng.uniform(2, 4) * 3600)),
             provenance,
         )
 
@@ -250,7 +250,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         Batch(batch_id, PRODUCT, scenario.is_reference, start, provenance),
         phases,
         tuple(samples),
-        tuple(results),
+        tuple(sorted(results, key=lambda result: result.result_id)),
         pools,
     )
     truth_out = GroundTruth(

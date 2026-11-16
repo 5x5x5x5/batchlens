@@ -3,6 +3,36 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: Phase 2, the object, the seed and the read API
+
+- **Planned:** replace the example object with `batches`, a seed loader with a CLI command,
+  five read routes, the synthetic plant served by the fake.
+- **Built:** `batches/store.py` (five tables) and `service.py`; `demo/seed.py` and
+  `batchlens seed-demo`; `api/plant.py` (reads as the person) and `api/routers/batches.py`;
+  `tests/plant.py` adds a `bioreactor` asset type with the roles `ph`, `do`, `temperature`
+  and `volume`, three assets and the four signals. `app.toml` reads `assets`, `signals`,
+  `series`. The example object, its router and `tests/test_notes.py` are gone (the kickoff's
+  "replace the example object"); the interface still shows the old page until Phase 3.
+- **Where the code disagreed with the kickoff:** nothing. Roles are free text per asset type,
+  so the asset's own `signals` map carries all four and no app-owned binding was needed.
+- **Rulings:**
+  - `as_of` is parsed strictly as ISO 8601 text. FastAPI's own `datetime` parameter read
+    `as_of=12` as twelve seconds after 1970, a silent wrong answer; it is now a 422.
+  - The samples route with `as_of` leaves out samples not yet collected, as well as results
+    not yet available.
+  - PlantCraft answering 404 or 502 becomes a reason on the metric or trend (`asset_not_found`,
+    `signal_not_found`, `series_unreadable`) with HTTP 200; 401 and 403 stay errors.
+  - The reference batch is compared under the same `as_of`, and not with itself.
+  - Batch detail also returns the pool measurements, so a pool mass can be traced to its inputs.
+  - List and detail answer the installation's time zone for the pages.
+  - A batch's stored instants are whole seconds, so a stored record reads back equal to the
+    generated one (the store keeps milliseconds).
+- **Failed, and how it was resolved:** a POST to a read-only path answers 404, not 405 (the
+  test accepts both); the translation check also reads docstrings, so the example in
+  `i18n.py` now quotes a string the app has.
+- **Final checks:** `make ci` exit 0: standard and strict translations pass, ruff clean (80 files),
+  Vitest 3 passed, pytest 106 passed, 2 skipped (browser journeys: Playwright not installed yet).
+
 ## 2026-11-15: Phase 1, calculations and synthetic data
 
 - **Planned:** the pure `calc` package with one result shape, the seeded generator with ground

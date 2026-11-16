@@ -7,6 +7,7 @@ invalid are left out, and ``as_of`` is passed on to every calculation.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from batchlens import calc
 from batchlens.batches.models import BatchRecord
@@ -93,3 +94,24 @@ def batch_metrics(
         calc.ratio_percent("harvest_to_load_yield", load, harvest),
         calc.ratio_percent("protein_a_recovery", eluate, load),
     ]
+
+
+def beside_reference(
+    results: list[calc.Result], reference: list[calc.Result] | None
+) -> list[dict[str, Any]]:
+    """Each result as plain data, with the reference batch's value of the same metric and the
+    difference (this batch minus the reference) when both have a value."""
+
+    by_metric = {result.metric: result for result in reference or []}
+    found = []
+    for result in results:
+        other = by_metric.get(result.metric)
+        both = other is not None and result.value is not None and other.value is not None
+        found.append(
+            {
+                **result.to_dict(),
+                "reference": {"value": other.value, "status": other.status} if other else None,
+                "difference": result.value - other.value if both else None,
+            }
+        )
+    return found

@@ -10,7 +10,8 @@ from pathlib import Path
 from plantcraft_sdk import apptest
 
 from batchlens.api.app import create_app
-from tests.conftest import client_for, make_runtime, note
+from batchlens.demo.seed import seed_demo
+from tests.conftest import client_for, make_runtime
 from tests.plant import make_fake
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,14 +80,12 @@ def test_every_api_route_answers_junk_without_a_server_error(tmp_path):
     fake = make_fake()
     runtime = make_runtime(tmp_path, fake)
     try:
+        seed_demo(runtime.batches)
         with client_for(runtime, fake, "admin") as client:
-            real = client.post("/api/notes", json=note()).json()
             failures, answered = apptest.hostile_failures(
                 client,
-                real={"note_id": real["note_id"]},
-                keep={real["note_id"]},
-                bodies=[note(text=""), note(asset_id="x" * 400), note(text="x" * 9000), {}],
-                queries=[{"asset": "nowhere"}],
+                real={"batch_id": "BL-0001"},  # a real batch, so validation past the lookup runs
+                queries=[{"as_of": "yesterday"}, {"as_of": "2026-13-45T00:00:00Z"}, {"as_of": ""}],
             )
     finally:
         runtime.shutdown()

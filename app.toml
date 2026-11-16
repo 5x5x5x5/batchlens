@@ -36,7 +36,7 @@ asset_types = []
 roles = {}
 
 [permissions]
-read = ["assets"]
+read = ["assets", "signals", "series"]
 write = ["audit"]
 plant_write = false
 outbound = []

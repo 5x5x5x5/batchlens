@@ -15,7 +15,7 @@ from plantcraft_sdk.auth import User
 from plantcraft_sdk.server import web
 
 from batchlens import APP_ID, __version__
-from batchlens.api.routers import notes
+from batchlens.api.routers import batches
 from batchlens.api.runtime import Runtime
 from batchlens.config import Settings
 from batchlens.meta import FILES
@@ -40,7 +40,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
         title="BatchlensCraft",
         version=__version__,
         files=FILES,
-        routers=(notes.router,),
+        routers=(batches.router,),
         ui=ui_folder(),
         me=me,
     )

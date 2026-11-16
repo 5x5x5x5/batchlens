@@ -1,4 +1,4 @@
-"""BatchlensCraft: the smallest app of the PlantCraft suite, a note on any asset."""
+"""BatchlensCraft: synthetic, non-GxP mAb batch analytics on the PlantCraft suite."""
 
 APP_ID = "batchlens"
 __version__ = "0.2.0"
