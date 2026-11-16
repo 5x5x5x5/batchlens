@@ -32,7 +32,7 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `calc/culture.py`, `calc/mass.py` | The formulas: IVCD, qP; harvest mass, pool mass, the ratios |
 | `calc/comparison.py` | A batch against the reference: where its titer left the reference's; a step recovery below it |
 | `batches/models.py` | The records: batch, phase execution, sample, assay result, pool measurement |
-| `batches/store.py` | `BatchStore`: five tables in the app's SQLite database |
+| `batches/store.py` | `BatchStore`: seven tables in the app's SQLite database |
 | `batches/service.py` | `BatchService`: the object's rules, without HTTP |
 | `demo/generator.py` | The seeded generator; observations and ground truth as separate objects |
 | `demo/seed.py` | `seed_demo`: loads the four demo batches into the store |

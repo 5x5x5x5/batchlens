@@ -17,7 +17,7 @@ export function tourSteps(): TourStep[] {
   return [
     {
       title: tt("Welcome to BatchLens"),
-      body: tt("BatchLens follows antibody batches from cell culture through purification to drug substance. Everything here is a demonstration: synthetic data, non-GxP."),
+      body: tt("BatchLens follows antibody batches from cell culture through purification to drug substance. Everything here is a demonstration."),
     },
     {
       path: "/",

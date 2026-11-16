@@ -46,13 +46,13 @@ const VIEWER: Me = { ...EDITOR, username: "operator", can_edit: false };
 const LIST: BatchList = {
   time_zone: "UTC",
   batches: [
-    { batch_id: "BL-0001", product: "mAb-X (synthetic)", is_reference: true, created_at: "2026-07-01T06:00:00.000Z", provenance: "synthetic-generator/1 seed=101", start: "2026-07-01T06:00:00.000Z", end: "2026-07-16T08:00:00.000Z", asset_id: "BR-2001", asset_name: "Production bioreactor 2000 L" },
-    { batch_id: "BL-0002", product: "mAb-X (synthetic)", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102", start: "2026-07-22T06:00:00.000Z", end: "2026-08-06T08:00:00.000Z", asset_id: "BR-2001", asset_name: null },
+    { batch_id: "BL-0001", product: "mAb-X", is_reference: true, created_at: "2026-07-01T06:00:00.000Z", provenance: "synthetic-generator/1 seed=101", start: "2026-07-01T06:00:00.000Z", end: "2026-07-16T08:00:00.000Z", asset_id: "BR-2001", asset_name: "Production bioreactor 2000 L" },
+    { batch_id: "BL-0002", product: "mAb-X", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102", start: "2026-07-22T06:00:00.000Z", end: "2026-08-06T08:00:00.000Z", asset_id: "BR-2001", asset_name: null },
   ],
 };
 const DETAIL: BatchDetail = {
   time_zone: "UTC",
-  batch: { batch_id: "BL-0002", product: "mAb-X (synthetic)", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102" },
+  batch: { batch_id: "BL-0002", product: "mAb-X", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102" },
   as_of: null, timeline: { start: "2026-07-22T06:00:00.000Z", end: "2026-08-06T10:00:00.000Z" },
   corrections: [{ correction_id: "c1", batch_id: "BL-0002", record_id: "BL-0002-S02", field: "collected_at", old_value: "2026-07-23T07:00:00.000Z", new_value: "2026-07-24T07:00:00.000Z", reason: "Keyed in with the previous sample's time.", corrected_by: "engineer", corrected_at: "2026-08-10T09:00:00.000Z" }],
   phases: [
@@ -166,7 +166,7 @@ describe("the batch list", () => {
     const rows = [...host.querySelectorAll("tbody tr")];
     expect(rows).toHaveLength(2);
     expect(rows[0].querySelector("a")?.getAttribute("href")).toBe("/batchlens/batches/BL-0001");
-    expect(rows[0].textContent).toContain("mAb-X (synthetic)");
+    expect(rows[0].textContent).toContain("mAb-X");
     expect(rows[0].textContent).toContain("Production bioreactor 2000 L");
     expect(rows[0].textContent).toContain("Reference");
     expect(rows[0].textContent).toContain("Jul 1, 2026, 6:00 AM UTC");

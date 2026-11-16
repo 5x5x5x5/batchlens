@@ -51,7 +51,7 @@ TAGS = {role: f"BIO.{BIOREACTOR}.{role.upper()}" for role in ONLINE_UNITS}
 # asset id -> (kind, name, parent). Roles are free text in PlantCraft's map, so the bioreactor
 # is plain equipment and no asset type has to be made before the import.
 ASSETS = {
-    UNIT: ("unit", "mAb drug substance (synthetic)", None),
+    UNIT: ("unit", "mAb drug substance", None),
     BIOREACTOR: ("equipment", "Production bioreactor 2000 L", UNIT),
     HARVEST_SKID: ("equipment", "Harvest clarification skid", UNIT),
     PROTEIN_A_SKID: ("equipment", "Protein A chromatography skid", UNIT),

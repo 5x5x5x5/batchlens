@@ -4,9 +4,10 @@ What the app does and the public sources it relies on (AGENTS.md, "Clean room").
 
 ## Purpose
 
-A synthetic-data-only, non-GxP demonstration of mAb manufacturing analytics: for four
-synthetic batches it shows the chain from viable cell density to Protein A recovery, with every
-number traceable to its inputs. It makes no release, disposition or control decision.
+A demonstration of mAb manufacturing analytics on generated data, not a GxP system: for six
+batches, five finished and one running, it shows the chain from viable cell density to drug
+substance, with every number traceable to its inputs. It makes no release, disposition or
+control decision.
 
 ## Who owns what
 
@@ -18,7 +19,7 @@ number traceable to its inputs. It makes no release, disposition or control deci
 
 ## Object
 
-One aggregate, the batch record (`src/batchlens/batches/models.py`), in five tables.
+One aggregate, the batch record (`src/batchlens/batches/models.py`), in six tables, with a seventh for corrections.
 
 | Record | Fields |
 |---|---|
@@ -42,7 +43,7 @@ write routes at the end of the table.
 
 | Route | Answers |
 |---|---|
-| `GET /api/batches` | The batches, with reference flag, window and bioreactor |
+| `GET /api/batches` | The batches, with reference flag, window and bioreactor; a batch still running has no end and `running: true` |
 | `GET /api/batches/{id}?as_of=` | One batch with its phase executions and pool measurements, and the span over which anything about it became known |
 | `GET /api/batches/{id}/samples?as_of=&align_to=` | Samples and assay results, both timestamps on each, and each sample's culture day; with `align_to`, also the instant of the same culture age on another batch's timeline |
 | `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference; and `findings` against the reference batch (titer divergence, and a shortfall of the harvest-to-load yield, the Protein A recovery and each later purification step's yield), each with an `observation` (a result object), a `consequence`, `evidence` and a `cause` that is always null; and `downstream`: each purification step's masses and yield beside the reference's, the recovery from harvest, and the pool genealogy with the mass balance of a merge |
@@ -57,7 +58,8 @@ yields, with statuses and reasons). Their answers say that the data is synthetic
 data and not instructions, and that no cause is attributed.
 
 `as_of` is an ISO 8601 instant (UTC without an offset): the answer holds only what was collected
-and available by then. Unknown batch 404; malformed `as_of` 422; no token 401; no access 403. A
+and available by then. A batch still running is never shown past now, whatever `as_of` asks.
+Unknown batch 404; malformed `as_of` 422; no token 401; no access 403. A
 missing asset, signal or series in PlantCraft is HTTP 200 with the metric or trend
 `insufficient` and a reason. Plus the standard `/healthz`, `/api/me`, `/api/meta`, `/api/help`.
 
@@ -67,8 +69,10 @@ outbound connection.
 ## Calculations
 
 IVCD, specific productivity, product mass at harvest, Protein A load and eluate masses,
-harvest-to-load yield, Protein A recovery, and where a batch's titer left the reference batch's: formulas, units, worked examples, statuses and
-every assumption are in [docs/scientific-assumptions.md](docs/scientific-assumptions.md).
+harvest-to-load yield, Protein A recovery, each later purification step's yield, the mass
+balance of merged pools, where a batch's titer left the reference batch's and where a step's
+recovery fell short of it: formulas, units, worked examples, statuses and every assumption
+are in [docs/scientific-assumptions.md](docs/scientific-assumptions.md).
 
 ## Sources
 

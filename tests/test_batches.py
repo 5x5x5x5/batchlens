@@ -86,7 +86,7 @@ def test_the_list_gives_each_batch_its_reference_flag_window_and_bioreactor(seed
     ]
     assert [row["is_reference"] for row in rows] == [True, False, False, False, False]
     first, record = rows[0], CAMPAIGN["BL-0001"].record
-    assert first["product"] == "mAb-X (synthetic)"
+    assert first["product"] == "mAb-X"
     assert instant(first["start"]) == record.phases[0].start
     assert instant(first["end"]) == record.phases[-1].end
     assert first["asset_id"] == BIOREACTOR

@@ -86,7 +86,30 @@ the test-first habit, the list of decisions that were not the agent's, and looki
 rendered page before calling a step done. Three of the night's fixes came from that last one
 (an as-of view that named samples not yet taken, phase ends that had not happened, and a demo
 database left stale by a change to the seeding rule). One decision was deliberately not taken:
-making the repository public, because it exposes the commit author's email address.
+making the repository public, which is the owner's.
+
+## The day after, with the owner watching
+
+The owner then opened the demo from another machine and steered for a day. What that found
+says more than the night's test counts:
+
+- **The app looked empty.** The owner's first report: "There is nothing to do or see except a
+  page listing batches." The batch ids were links drawn as plain text. 225 tests passed,
+  eight of them in a browser, and each clicked the link by its name; none asked whether a
+  person could tell it was one.
+- **The switcher did nothing.** Served to another machine, the app sat at a different origin
+  from the platform and its entry in the app switcher was dead. Every earlier check had
+  opened the app by its address.
+- **A rule that held.** The owner asked for the name "PlantCraft BatchLens". The platform's
+  own check refuses that name for an app outside the suite, and its trademark notice asks
+  first. The agent did not work around the check; it said so and offered the form the check
+  accepts.
+- **Too many disclaimers.** The owner asked why "synthetic" and "non-GxP" were everywhere.
+  The rule said never to let the demo be mistaken for a validated system; the agent had
+  applied it to every line instead of once where it cannot be missed.
+- **A direction the plan did not have.** Running the suite's modules beside the app showed
+  that five finished batches gave them nothing to show. The owner chose a live plant; the
+  agent built it by reusing the as-of filter and recorded the price in the gaps.
 
 ## Where the agent got it wrong
 
@@ -112,14 +135,14 @@ evidence of anything.
 
 | | |
 |---|---|
-| Python tests | 225 passing |
-| Interface tests | 28 passing |
+| Python tests | 236 passing |
+| Interface tests | 29 passing |
 | Browser journeys | 8 passing |
 | Benchmark | 380 seeded batches, 1,900 comparisons, a few seconds |
-| Pull requests | 13 merged, each with its devlog entry |
+| Pull requests | 21 merged; each of the first 13 with its own devlog entry, the later ones grouped |
 | Independent reviews | Two. First slice: 1 important finding and 4 minor (important fixed, 1 minor fixed since, 3 open). The night's work: 1 important and 7 minor, all fixed, each with a failing test first |
-| Decisions taken to the owner | 5, and 1 left for the owner (publication) |
-| Known gaps written down | 30, each with a state ([gaps.md](gaps.md)) |
+| Decisions taken to the owner | 5 in the first slice and the night, then the owner present for the rest; publication is the owner's |
+| Known gaps written down | 54, each with a state ([gaps.md](gaps.md)) |
 
 Not measured: how long the same work would have taken without an agent, or with an agent and
 no domain rules. An experiment comparing an agent with and without the bioprocess rules on the
