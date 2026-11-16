@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from batchlens.demo.generator import (
     BIOREACTOR,
     DOWNSTREAM,
+    FEED_TANK,
     HARVEST_SKID,
     LOOP_ROLES,
     ONLINE_UNITS,
@@ -87,6 +88,7 @@ ASSETS = {
         asset_id: ("equipment", f"Seed bioreactor {short} {litres:.0f} L", UNIT)
         for (_, asset_id, litres), short in zip(SEED_TRAIN, ("N-2", "N-1"))
     },
+    FEED_TANK: ("equipment", "Feed medium hold tank", UNIT),
     BIOREACTOR: ("equipment", "Production bioreactor 2000 L", UNIT),
     HARVEST_SKID: ("equipment", "Harvest clarification skid", UNIT),
     PROTEIN_A_SKID: ("equipment", "Protein A chromatography skid", UNIT),

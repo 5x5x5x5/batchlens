@@ -8,10 +8,10 @@ import { api } from "./api";
 import { ProcessTrain } from "./ProcessTrain";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
-import type { BatchDetail, Downstream, Evidence, Finding, Me, Metric, Metrics, Result, Sample, Samples, Trends } from "./types";
+import type { BatchDetail, Downstream, Evidence, Finding, Me, Metric, Metrics, Result, Sample, Samples, Transfer, Trends } from "./types";
 import { ErrorBox, Heading, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
-import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord } from "./words";
+import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord, transferName } from "./words";
 
 // Plotly is loaded only when a chart is drawn (@plantcraft/ui/plot).
 const TimeChart = lazy(() => import("@plantcraft/ui/plot").then((module) => ({ default: module.TimeChart })));
@@ -81,6 +81,7 @@ function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
         : group.at === "divergence"
         ? t("At the divergence: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })
         : t("At the last compared sample: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })}</h4>
+      {group.hours_since_feed != null && group.reference_hours_since_feed != null && <p className="muted">{t("Collected {hours} h after a feed; the reference sample {reference} h after one. Glucose and lactate move with every feed.", { hours: group.hours_since_feed.toFixed(0), reference: group.reference_hours_since_feed.toFixed(0) })}</p>}
       <DataTable rows={group.results} rowKey={(row) => row.result_id} label={t("Evidence")}
         columns={[
           { key: "analyte", label: t("Analyte"), render: (row) => analyteName(row.analyte) },
@@ -174,6 +175,23 @@ function DownstreamSection({ train }: { train: Downstream }) {
           : "") },
       ]} />
   </>;
+}
+
+/** What was moved into which vessel, and whether the vessel's volume signal agrees. */
+function Transfers({ transfers }: { transfers: Transfer[] }) {
+  return <DataTable rows={transfers} rowKey={(transfer) => transfer.transfer_id} label={t("Transfers")}
+    empty={t("No transfer recorded.")}
+    columns={[
+      { key: "transfer", label: t("Transfer"), render: (transfer) => <>{transferName(transfer.kind)}<small>{transfer.transfer_id}</small></> },
+      { key: "from", label: t("From"), render: (transfer) => transfer.from_asset_id },
+      { key: "to", label: t("To"), render: (transfer) => transfer.to_asset_id },
+      { key: "end", label: t("Ended"), render: (transfer) => (transfer.end ? when(transfer.end) : <span className="muted">{t("In progress")}</span>) },
+      { key: "volume", label: t("Recorded volume"), numeric: true, render: (transfer) => (transfer.volume === null ? "" : `${recorded(transfer.volume)} ${transfer.volume_unit}`) },
+      { key: "balance", label: t("Arrived, against the record"), numeric: true, render: (transfer) => (transfer.balance.value === null ? <span className="muted">{t("Not checked")}</span>
+        : `${transfer.balance.value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })} %`) },
+      { key: "status", label: t("Status"), render: (transfer) => <Pill status={statusTone(transfer.balance.status)} label={statusWord(transfer.balance.status)} /> },
+      { key: "why", label: t("Reasons"), phone: "hide", render: (transfer) => transfer.balance.reasons.filter((reason) => reason.code !== "transfer_balanced").map((reason, index) => <div key={index}>{reasonText(reason)}</div>) },
+    ]} />;
 }
 
 function Pools({ detail }: { detail: BatchDetail }) {
@@ -340,6 +358,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="downstream" title={t("Downstream recovery")} detail={t("Each purification step: the product mass that went in and came out, and what is left of the harvest. Where pools were merged, the merged mass is checked against the sum of its parts.")}><DownstreamSection train={metrics.downstream} /></Section>
+    <Section id="transfers" title={t("Transfers")} detail={t("What was moved into which vessel, as recorded, against the volume the vessel's own signal shows arriving. Where the two disagree the transfer is flagged; which of them is wrong is not decided.")}><Transfers transfers={metrics.transfers} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
     <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
     <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>

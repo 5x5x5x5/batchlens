@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from batchlens import calc
+from batchlens.analysis.transfers import hours_since_feed
 from batchlens.batches.models import BatchRecord, PoolMeasurement
 from batchlens.calc.comparison import DIVERGENCE_VERSION
 from batchlens.calc.mass import HARVEST_VERSION
@@ -204,6 +205,7 @@ def _evidence(
 
     own, other = usable(record), usable(reference)
     collected = {sample.sample_id: sample.collected_at for sample in record.samples}
+    reference_collected = {s.sample_id: s.collected_at for s in reference.samples}
     groups = []
     for at, result_id, reference_result_id in pairs:
         sample_id, reference_sample_id = (
@@ -234,6 +236,12 @@ def _evidence(
                 "sample_id": sample_id,
                 "reference_sample_id": reference_sample_id,
                 "culture_day": (collected[sample_id] - culture_start).total_seconds() / 86400,
+                # Glucose and lactate swing with every feed: how long after one each sample
+                # was taken says whether their difference means anything.
+                "hours_since_feed": hours_since_feed(record, collected[sample_id]),
+                "reference_hours_since_feed": hours_since_feed(
+                    reference, reference_collected[reference_sample_id]
+                ),
                 "results": rows,
             }
         )

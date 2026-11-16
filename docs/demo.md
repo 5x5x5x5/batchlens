@@ -134,7 +134,12 @@ batchlens benchmark --out docs/verification-report.md
    read 0.2 against 0.51, 61 % below, and beside it the last sample of the N-1 seed passage,
    1.07 against 3.18. In the metrics, the N-1 growth rate is 0.25 per day against 0.62, IVCD
    is lower and qP is the reference's. 9,392 g at harvest against 10,170 g.
-9. **A batch that is running.** `BL-0007` is in its production culture. The process train
+9. **Transfers.** On any batch, the Transfers section lists the seed passage moved on, the
+   inoculation and the ten feeds, each feed checked against the rise of the bioreactor's own
+   volume signal. On `BL-0005` one feed reads 6 L recorded against 60 L arrived: flagged,
+   and neither number is changed. The passage and the inoculation say why they were not
+   checked.
+10. **A batch that is running.** `BL-0007` is in its production culture. The process train
    shows the two seed passages done, one step under way and seven not started. The titer finding is already there (it left
    the reference at culture day 8.0), with the latest sample named as not yet reported, and
    the consequence at harvest says it cannot be compared yet. Nothing dated later than now is
@@ -229,7 +234,7 @@ nothing about it.
 | `BL-0002` | 102 | 2026-07-22 06:00 | Normal | Ordinary variability only |
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
 | `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
-| `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and the historian kept nothing from culture day 13.4 to the end of the phase |
+| `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and feed 7 was recorded as 6 L instead of 60 L, and the historian kept nothing from culture day 13.4 to the end of the phase |
 | `BL-0006` | 107 | 2026-10-14 06:00 | Low inoculum | The N-1 seed passage grew at 0.4 of its rate, so the whole N-1 vessel held too few cells and the culture began at 0.19 instead of 0.5 (1e6 cells/mL); qP is normal |
 | `BL-0007` | 106 | live campaign only: nine days before the first start, 06:00 | Reduced culture productivity, running | qP is multiplied by 0.6 from day 7; generated whole like the others, and shown only up to now |
 

@@ -26,11 +26,13 @@ from batchlens.calc.mass import (
     HARVEST_TITER_WINDOW_HOURS,
     MERGE_TOLERANCE_PERCENT,
     RECOVERY_SUSPECT_ABOVE_PERCENT,
+    TRANSFER_TOLERANCE_PERCENT,
     VOLUME_MAX_AGE_SECONDS,
     harvest_mass,
     merge_balance,
     pool_mass,
     ratio_percent,
+    transfer_balance,
 )
 from batchlens.calc.results import (
     INSUFFICIENT,
@@ -50,6 +52,8 @@ __all__ = [
     "INOCULATION_TOLERANCE_FRACTION",
     "inoculation_shortfall",
     "MERGE_TOLERANCE_PERCENT",
+    "TRANSFER_TOLERANCE_PERCENT",
+    "transfer_balance",
     "merge_balance",
     "PAIRING_WINDOW_HOURS",
     "RECOVERY_TOLERANCE_POINTS",

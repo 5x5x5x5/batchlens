@@ -1,4 +1,4 @@
-"""The batches and their store: five tables in the app's own SQLite database.
+"""The batches and their store: tables in the app's own SQLite database.
 
 | Table | Holds |
 |---|---|
@@ -8,6 +8,7 @@
 | ``assay_results`` | one analyte of one sample, with the time the result became available |
 | ``pool_measurements`` | a pool's volume and concentration |
 | ``pool_links`` | genealogy: material of one pool went into another |
+| ``transfers`` | material moved from one asset into another, with the recorded volume |
 | ``corrections`` | what a person changed: the record, the value before and after, who, when, why |
 
 Assets, signals and online values stay in PlantCraft: a phase execution keeps only the asset's
@@ -37,6 +38,7 @@ from batchlens.batches.models import (
     PoolLink,
     PoolMeasurement,
     Sample,
+    Transfer,
 )
 
 BATCH_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
@@ -48,6 +50,7 @@ TABLES: dict[type, str] = {
     AssayResult: "assay_results",
     PoolMeasurement: "pool_measurements",
     PoolLink: "pool_links",
+    Transfer: "transfers",
     Correction: "corrections",
 }
 COLUMNS = {"start": "start_at", "end": "end_at"}
@@ -142,6 +145,20 @@ class BatchStore(Store):
         provenance TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS pool_links_batch ON pool_links (batch_id);
+    CREATE TABLE IF NOT EXISTS transfers (
+        transfer_id TEXT PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        from_asset_id TEXT NOT NULL,
+        to_asset_id TEXT NOT NULL,
+        start_at TEXT NOT NULL,
+        end_at TEXT NOT NULL,
+        volume REAL NOT NULL,
+        volume_unit TEXT NOT NULL,
+        from_lot_id TEXT NOT NULL,
+        provenance TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS transfers_batch ON transfers (batch_id, start_at);
     CREATE TABLE IF NOT EXISTS corrections (
         correction_id TEXT PRIMARY KEY,
         batch_id TEXT NOT NULL,
@@ -163,6 +180,7 @@ class BatchStore(Store):
         batch_id = record.batch.batch_id
         rows = [record.batch, *record.phases, *record.samples, *record.results, *record.pools]
         rows += record.links
+        rows += record.transfers
         with self._lock, self._connect() as connection:
             connection.execute(
                 "DELETE FROM assay_results WHERE sample_id IN "
@@ -170,6 +188,7 @@ class BatchStore(Store):
                 (batch_id,),
             )
             for table in (
+                "transfers",
                 "pool_links",
                 "pool_measurements",
                 "samples",
@@ -222,6 +241,7 @@ class BatchStore(Store):
                 ),
                 rows(PoolMeasurement, "batch_id = ?", "measured_at, measurement_id"),
                 rows(PoolLink, "batch_id = ?", "link_id"),
+                rows(Transfer, "batch_id = ?", "start_at, transfer_id"),
             )
 
     def reference_id(self) -> str | None:

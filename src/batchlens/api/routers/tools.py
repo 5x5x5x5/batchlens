@@ -130,4 +130,19 @@ def batch_findings(args: BatchArgs, rt: RuntimeDep, user: CurrentUser) -> dict[s
             for row in train["steps"]
         ],
         "harvest_to_drug_substance_percent": train["overall"]["value"],
+        # Transfers whose recorded volume disagrees with the vessel's volume signal. Which of
+        # the two is wrong is not decided.
+        "transfers_checked": sum(t["balance"]["value"] is not None for t in answer["transfers"]),
+        "transfers_flagged": [
+            {
+                "transfer": t["transfer_id"],
+                "kind": t["kind"],
+                "recorded_volume": t["volume"],
+                "unit": t["volume_unit"],
+                "arrived_percent_off": t["balance"]["value"],
+                "reasons": _reasons(t["balance"]),
+            }
+            for t in answer["transfers"]
+            if t["balance"]["status"] == "suspect"
+        ],
     }

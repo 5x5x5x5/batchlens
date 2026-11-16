@@ -3,6 +3,23 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Transfers
+
+Second item of the agreed order.
+
+- **Built:** a `Transfer` record (from asset, to asset, window, recorded volume, a lot id left
+  empty until solution lots exist) in its own table; twelve per batch from the generator;
+  `calc.transfer_balance` against the destination's volume signal; a Transfers section on the
+  batch page; the assistant's tool names the flagged ones.
+- **Ruling:** a disagreement is `suspect` on the balance, not a finding and not a correction:
+  the app cannot know whether the record or the vessel is wrong.
+- **Ruling:** `BL-0005`, the badly recorded batch, also has feed 7 written down as 6 L. Its
+  culture is unchanged.
+- **Ruling:** evidence keeps its pairing by culture age and now says how many hours after a
+  feed each sample was taken, which is what a reader needs to discount a glucose difference.
+- **Schema:** one new table, created by `SCHEMA` on an existing database; no migration.
+- **Checked:** every earlier generated value unchanged (`synthetic-generator/4`).
+
 ## 2026-11-16: A sixth finished batch, with a low inoculum
 
 The owner chose a new batch over changing one of the five.
