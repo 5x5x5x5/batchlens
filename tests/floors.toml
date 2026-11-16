@@ -3,4 +3,4 @@
 
 [api]
 # API operations exercised with junk by tests/test_suite_rules.py.
-operations = 5
+operations = 12

@@ -3,11 +3,11 @@
  * assay result with both of its times. The page shows what the server computed; no formula
  * lives here. */
 import { lazy, Suspense, useEffect, useState } from "react";
-import { DataTable, Pill } from "@plantcraft/ui";
+import { confirmAction, DataTable, isoOf, localOf, Pill } from "@plantcraft/ui";
 import { api } from "./api";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
-import type { BatchDetail, Evidence, Finding, Metric, Metrics, Samples, Trends } from "./types";
+import type { BatchDetail, Evidence, Finding, Me, Metric, Metrics, Sample, Samples, Trends } from "./types";
 import { ErrorBox, Heading, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
 import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord } from "./words";
@@ -180,6 +180,50 @@ function AsOfControl({ timeline, asOf, onChange }: { timeline: BatchDetail["time
   </div>;
 }
 
+/** The samples with their collection times. An editor may correct a time that was recorded
+ * wrongly: the value it replaces is kept and listed, and PlantCraft's audit log has the change. */
+function SamplesSection({ batchId, samples, detail, canEdit, onChanged }: { batchId: string; samples: Samples; detail: BatchDetail; canEdit: boolean; onChanged: () => void }) {
+  const [editing, setEditing] = useState<Sample | null>(null);
+  const [time, setTime] = useState("");
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const open = (sample: Sample) => { setEditing(sample); setTime(localOf(sample.collected_at)); setReason(""); setError(""); };
+  const save = () => editing && api.correctSample(batchId, editing.sample_id, { collected_at: isoOf(time), reason: reason.trim() })
+    .then(() => { setEditing(null); onChanged(); })
+    .catch((err) => setError(message(err)));
+  return <>
+    <DataTable rows={samples.samples} rowKey={(sample) => sample.sample_id} label={t("Samples")}
+      empty={t("No samples yet.")}
+      columns={[
+        { key: "sample", label: t("Sample"), render: (sample) => sample.sample_id },
+        { key: "collected", label: t("Collected"), render: (sample) => <>{when(sample.collected_at)}{sample.corrected && <small>{t("Corrected")}</small>}</> },
+        { key: "day", label: t("Culture day"), numeric: true, render: (sample) => (sample.culture_day === null ? "" : sample.culture_day.toFixed(2)) },
+        { key: "change", label: "", render: (sample) => (canEdit ? <button type="button" className="button button-small" data-action="correct-time" onClick={() => open(sample)}>{t("Correct the time")}</button> : "") },
+      ]} />
+    {editing && <form className="panel" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+      <h3>{t("Correct the collection time of {sample}", { sample: editing.sample_id })}</h3>
+      <p className="muted">{t("The recorded value is kept beside the correction, and the change is written to PlantCraft's audit log with your name and reason.")}</p>
+      <div className="form-grid">
+        <label>{t("Collected")}<input type="datetime-local" value={time} onChange={(event) => setTime(event.target.value)} required /></label>
+        <label className="form-wide">{t("Reason")}<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={2} minLength={5} maxLength={500} required /></label>
+      </div>
+      {error && <ErrorBox text={error} />}
+      <div className="form-actions">
+        <button className="button button-primary" type="submit">{t("Save the correction")}</button>{" "}
+        <button className="button" type="button" onClick={() => setEditing(null)}>{t("Cancel")}</button>
+      </div>
+    </form>}
+    {detail.corrections.length > 0 && <DataTable rows={detail.corrections} rowKey={(item) => item.correction_id} label={t("Corrections")}
+      columns={[
+        { key: "record", label: t("Corrected record"), render: (item) => item.record_id },
+        { key: "old", label: t("Recorded as"), render: (item) => when(item.old_value) },
+        { key: "new", label: t("Corrected to"), render: (item) => when(item.new_value) },
+        { key: "reason", label: t("Reason"), render: (item) => item.reason },
+        { key: "by", label: t("By"), render: (item) => <>{item.corrected_by}<small>{when(item.corrected_at)}</small></> },
+      ]} />}
+  </>;
+}
+
 function Results({ samples }: { samples: Samples }) {
   const rows = samples.samples.flatMap((sample) => sample.results.map((result) => ({ ...result, collected_at: sample.collected_at })));
   return <DataTable rows={rows} rowKey={(row) => row.result_id} label={t("Assay results")}
@@ -194,9 +238,10 @@ function Results({ samples }: { samples: Samples }) {
     ]} />;
 }
 
-export function BatchPage({ batchId }: { batchId: string }) {
+export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [asOf, setAsOf] = useState<string | null>(null);
+  const [version, setVersion] = useState(0); // bumped after a change, to read everything again
   const [error, setError] = useState("");
   useEffect(() => {
     const at = asOf ?? undefined;
@@ -207,16 +252,23 @@ export function BatchPage({ batchId }: { batchId: string }) {
         setLoaded({ detail, metrics, samples, trends, reference });
       })
       .catch((err) => setError(message(err)));
-  }, [batchId, asOf]);
+  }, [batchId, asOf, version]);
   useInstallationZone(loaded?.detail.time_zone);
   if (error) return <ErrorBox text={error} />;
   if (!loaded) return <Loading />;
   const { detail, metrics, samples, trends, reference: beside } = loaded;
+  const makeReference = async () => {
+    if (!(await confirmAction(t("Compare every other batch with {batch} from now on? The change is written to PlantCraft's audit log.", { batch: batchId })))) return;
+    api.setReference(batchId).then(() => setVersion((value) => value + 1)).catch((err) => setError(message(err)));
+  };
   const reference = detail.batch.is_reference
     ? t("This is the reference batch.")
     : metrics.reference_batch_id ? t("Reference batch: {batch}", { batch: metrics.reference_batch_id }) : t("No reference batch is set.");
   return <>
-    <Heading title={t("Batch {batch}", { batch: detail.batch.batch_id })} />
+    <Heading title={t("Batch {batch}", { batch: detail.batch.batch_id })}
+      actions={me.can_edit && !detail.batch.is_reference && !asOf
+        ? <button type="button" className="button" data-action="make-reference" onClick={() => void makeReference()}>{t("Make this the reference batch")}</button>
+        : undefined} />
     <p className="muted">{detail.batch.product} · {reference} · {detail.batch.provenance}</p>
     <ZoneNote />
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
@@ -227,6 +279,9 @@ export function BatchPage({ batchId }: { batchId: string }) {
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
     <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
+    <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>
+      <SamplesSection batchId={batchId} samples={samples} detail={detail} canEdit={me.can_edit && !asOf} onChanged={() => setVersion((value) => value + 1)} />
+    </Section>
     <Section id="results" title={t("Assay results")} detail={t("Each result has two times: when its sample was collected, and when the result became available.")}><Results samples={samples} /></Section>
   </>;
 }

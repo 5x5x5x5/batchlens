@@ -152,6 +152,34 @@ def test_going_back_in_time_shows_only_what_was_known_then(signed_in, app_url, s
     expect(findings).to_contain_text("Titer left the reference batch at culture day 7.9")
 
 
+def test_an_editor_corrects_the_mis_keyed_sample_time(signed_in_without_volume, screenshots):
+    # On the second app of this run, so the other journeys keep the batch as it was recorded.
+    page, url = signed_in_without_volume
+    page.goto(f"{url}/batchlens/batches/BL-0005")
+    metrics = page.locator('[data-section="metrics"]')
+    cells = metrics.get_by_role("row", name=re.compile("^Integral of viable cell density"))
+    expect(cells).to_contain_text("Invalid")
+    samples = page.locator('[data-section="samples"]')
+    samples.get_by_role("row", name=re.compile("BL-0005-S09")).get_by_role(
+        "button", name="Correct the time"
+    ).click()
+    # Sample 9 was keyed in with sample 8's time, Sep 30; a daily sample belongs a day later.
+    expect(samples.get_by_label("Collected")).to_have_value(re.compile("^2026-09-30T"))
+    samples.get_by_label("Collected").fill("2026-10-01T05:00")
+    samples.get_by_label("Reason").fill(
+        "Keyed in with the previous sample's time; corrected from the label."
+    )
+    samples.get_by_role("button", name="Save the correction").click()
+    expect(cells).to_contain_text("Usable")
+    expect(cells).to_contain_text("1e6 cell-days/mL")
+    expect(samples.get_by_role("row", name=re.compile("BL-0005-S09")).first).to_contain_text(
+        "Corrected"
+    )
+    expect(samples).to_contain_text("corrected from the label")
+    expect(samples).to_contain_text("engineer")
+    _shot(page, screenshots, "7-corrected")
+
+
 def test_a_metric_that_needs_a_missing_signal_says_why(signed_in_without_volume, screenshots):
     page, url = signed_in_without_volume
     page.goto(f"{url}/batchlens/batches/BL-0001")

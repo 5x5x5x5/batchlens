@@ -85,7 +85,13 @@ def test_every_api_route_answers_junk_without_a_server_error(tmp_path):
         with client_for(runtime, fake, "admin") as client:
             failures, answered = apptest.hostile_failures(
                 client,
-                real={"batch_id": "BL-0001"},  # a real batch, so validation past the lookup runs
+                # A real batch and sample, so validation past the lookup runs.
+                real={"batch_id": "BL-0001", "sample_id": "BL-0001-S01"},
+                bodies=[
+                    {"collected_at": "yesterday", "reason": "because"},
+                    {"collected_at": "2026-07-02T00:00:00Z", "reason": "x" * 9000},
+                    {"collected_at": "9999-12-31T23:59:59-05:00", "reason": "the edge of time"},
+                ],
                 queries=[{"as_of": "yesterday"}, {"as_of": "2026-13-45T00:00:00Z"}, {"as_of": ""}],
             )
     finally:

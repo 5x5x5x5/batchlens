@@ -31,6 +31,10 @@ referência, aquele com que os outros são comparados. Abra um lote pelo seu ide
 - **Medições de pool**: o volume e a concentração por trás de cada massa de pool.
 - **Tendências**: os sinais online do biorreator durante a fase de produção, lidos do
   PlantCraft, e a densidade de células viáveis e o título offline nos instantes de coleta.
+- **Amostras**: quando cada uma foi coletada. Se um horário foi registrado errado, um editor
+  pode **corrigir o horário**, informando o motivo. O valor registrado é mantido e listado ao
+  lado da correção, e o log de auditoria do PlantCraft guarda quem alterou e por quê. Editores
+  também podem tornar um lote a referência pelo botão no topo da página.
 - **Resultados de ensaio**: cada resultado com dois instantes, quando a amostra foi coletada e
   quando o resultado ficou disponível. Nunca são a mesma coisa.
 

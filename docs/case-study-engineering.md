@@ -141,8 +141,9 @@ passing locally; the exact counts of each step are in [devlog.md](devlog.md).
   each choice costs; a mild fall in productivity is mostly missed at the default.
 - **The examiner and the examined share one generator.** The benchmark's false-alarm rates are
   a floor, not an estimate for real data.
-- **Read-only.** There is no editing, so a mis-keyed sample cannot be corrected in the app, and
-  nothing is audited because nothing changes.
+- **Two things can be changed, and only by an editor**: a sample's collection time and the
+  reference designation. A correction needs a reason, keeps the value it replaces and is
+  written to PlantCraft's audit log. Everything else is read-only.
 - **Upstream and capture only.** Polishing, viral filtration and UF/DF, where pools split and
   merge, are not modelled; batch genealogy is future work.
 - **Not validated, not GxP**, and the generator is not a mechanistic model.

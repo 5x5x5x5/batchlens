@@ -29,12 +29,15 @@ One aggregate, the batch record (`src/batchlens/batches/models.py`), in five tab
 | Pool measurement | `measurement_id`, `batch_id`, `phase_id`, `pool` (`protein_a_load`, `protein_a_eluate`), `volume`, `volume_unit`, `concentration`, `concentration_unit`, `method`, `measured_at`, `result_available_at` |
 
 Every record carries `provenance` (here always the synthetic generator and its seed). Stored
-instants are UTC. Records are loaded only by `batchlens seed-demo`; there is no create, change
-or delete route in this version.
+instants are UTC. Records are loaded by `batchlens seed-demo`. An editor may change two things:
+a sample's collection time (a correction, kept in a `corrections` table with the value it
+replaced, who, when and why) and which batch is the reference. Both are audited in PlantCraft.
+Nothing else can be written, and nothing can be deleted.
 
 ## API
 
-All read-only, all behind a PlantCraft token that grants this app; viewers and editors read alike.
+All behind a PlantCraft token that grants this app. Viewers read; editors may also use the two
+write routes at the end of the table.
 
 | Route | Answers |
 |---|---|
@@ -42,6 +45,8 @@ All read-only, all behind a PlantCraft token that grants this app; viewers and e
 | `GET /api/batches/{id}?as_of=` | One batch with its phase executions and pool measurements, and the span over which anything about it became known |
 | `GET /api/batches/{id}/samples?as_of=&align_to=` | Samples and assay results, both timestamps on each, and each sample's culture day; with `align_to`, also the instant of the same culture age on another batch's timeline |
 | `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference; and `findings` against the reference batch (titer divergence, and a shortfall of each step recovery), each with an `observation` (a result object), a `consequence`, `evidence` and a `cause` that is always null |
+| `PATCH /api/batches/{id}/samples/{sample_id}` | Editors: correct the sample's collection time. Body `{collected_at, reason}`. The time must lie in the sample's phase execution and before its results were reported, else 422. Audited as `batchlens.sample.corrected` |
+| `PUT /api/batches/{id}/reference` | Editors: make this batch the reference. Audited as `batchlens.batch.reference_set` |
 | `GET /api/batches/{id}/trends?as_of=` | The bioreactor's online signals over the production phase, read from PlantCraft as the person, downsampled |
 
 `as_of` is an ISO 8601 instant (UTC without an offset): the answer holds only what was collected

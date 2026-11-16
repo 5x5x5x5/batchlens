@@ -1,13 +1,28 @@
 """The batches' rules, without HTTP. The routers call these; only this module touches the store.
 
-This slice only reads batches and loads the seeded demo: there is no create, change or delete
-route yet, so there is nothing to audit.
+Batches are loaded by the seed. A person may change two things: a sample's collection time (a
+correction, kept with the value it replaced) and which batch is the reference. The router
+audits each change in PlantCraft.
 """
 
 from __future__ import annotations
 
-from batchlens.batches.models import Batch, BatchRecord, PhaseExecution
+from datetime import datetime
+
+from batchlens.batches.models import Batch, BatchRecord, Correction, PhaseExecution
 from batchlens.batches.store import BatchStore
+
+
+class NotFound(LookupError):
+    """No such batch or sample."""
+
+
+class RuleBroken(ValueError):
+    """The change breaks a rule of the object; ``code`` says which."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
 
 
 class BatchService:
@@ -26,3 +41,36 @@ class BatchService:
 
     def save(self, record: BatchRecord) -> None:
         self.store.save(record)
+
+    def corrections(self, batch_id: str) -> list[Correction]:
+        return self.store.corrections(batch_id)
+
+    def correct_sample_time(
+        self, batch_id: str, sample_id: str, collected_at: datetime, reason: str, by: str
+    ) -> Correction:
+        """A sample's collection time, corrected. It must stay inside the phase execution the
+        sample belongs to, and before each of the sample's own results became available."""
+
+        record = self.store.get(batch_id)
+        samples = record.samples if record else ()
+        sample = next((item for item in samples if item.sample_id == sample_id), None)
+        if record is None or sample is None:
+            raise NotFound(sample_id)
+        phase = next(item for item in record.phases if item.phase_id == sample.phase_id)
+        if not phase.start <= collected_at <= phase.end:
+            raise RuleBroken("outside_phase")
+        reported = [r.result_available_at for r in record.results if r.sample_id == sample_id]
+        if reported and collected_at >= min(reported):
+            raise RuleBroken("after_result")
+        return self.store.correct_sample_time(batch_id, sample_id, collected_at, reason, by)
+
+    def set_reference(self, batch_id: str) -> str | None:
+        """Make the batch the reference; answers the previous reference's id (the batch's own
+        id when it already was, and nothing changed)."""
+
+        if self.store.get(batch_id) is None:
+            raise NotFound(batch_id)
+        previous = self.store.reference_id()
+        if previous != batch_id:
+            self.store.set_reference(batch_id)
+        return previous
