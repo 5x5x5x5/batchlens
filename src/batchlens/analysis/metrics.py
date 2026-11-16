@@ -25,14 +25,20 @@ METRICS = (
 )
 
 
-def measurements(record: BatchRecord, analyte: str) -> list[calc.Measurement]:
-    """The valid results of one analyte on the production phase's samples, in collection order."""
+def measurements(
+    record: BatchRecord, analyte: str, as_of: datetime | None = None
+) -> list[calc.Measurement]:
+    """The valid results of one analyte on the production phase's samples, in collection order.
+    With ``as_of``, a sample collected later does not exist yet: it is left out altogether,
+    not reported as a result that is still pending."""
 
     culture = record.phase("production_culture")
     collected = {
         sample.sample_id: sample.collected_at
         for sample in record.samples
-        if culture is not None and sample.phase_id == culture.phase_id
+        if culture is not None
+        and sample.phase_id == culture.phase_id
+        and (as_of is None or sample.collected_at <= as_of)
     }
     found = [
         calc.Measurement(
@@ -51,9 +57,11 @@ def measurements(record: BatchRecord, analyte: str) -> list[calc.Measurement]:
     return sorted(found, key=lambda m: m.at)
 
 
-def _pool(record: BatchRecord, name: str) -> calc.Pool | None:
+def _pool(record: BatchRecord, name: str, as_of: datetime | None = None) -> calc.Pool | None:
+    """The pool's measurement; with ``as_of``, none if it had not been measured yet."""
+
     for pool in record.pools:
-        if pool.pool == name:
+        if pool.pool == name and (as_of is None or pool.measured_at <= as_of):
             return calc.Pool(
                 pool.measurement_id,
                 pool.volume,
@@ -72,7 +80,7 @@ def batch_metrics(
     """Every metric of ``METRICS``, in that order. ``volume`` is the bioreactor's volume signal
     over the production phase, or the reason it could not be read."""
 
-    vcd, titer = measurements(record, "vcd"), measurements(record, "titer")
+    vcd, titer = measurements(record, "vcd", as_of), measurements(record, "titer", as_of)
     culture = record.phase("production_culture")
     if culture is None:
         harvest = calc.insufficient(
@@ -84,8 +92,12 @@ def batch_metrics(
         harvest = calc.harvest_mass(
             titer, volume, phase_start=culture.start, phase_end=culture.end, as_of=as_of
         )
-    load = calc.pool_mass("protein_a_load_mass", _pool(record, "protein_a_load"), as_of=as_of)
-    eluate = calc.pool_mass("protein_a_eluate_mass", _pool(record, "protein_a_eluate"), as_of=as_of)
+    load = calc.pool_mass(
+        "protein_a_load_mass", _pool(record, "protein_a_load", as_of), as_of=as_of
+    )
+    eluate = calc.pool_mass(
+        "protein_a_eluate_mass", _pool(record, "protein_a_eluate", as_of), as_of=as_of
+    )
     return [
         calc.ivcd(vcd, as_of=as_of),
         calc.specific_productivity(vcd, titer, as_of=as_of),
@@ -231,8 +243,8 @@ def findings(
         )
     else:
         divergence = calc.titer_divergence(
-            measurements(record, "titer"),
-            measurements(reference, "titer"),
+            measurements(record, "titer", as_of),
+            measurements(reference, "titer", as_of),
             batch_start=culture.start,
             reference_start=reference_culture.start,
             as_of=as_of,

@@ -16,10 +16,12 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Findings for both step recoveries, evidence beside a divergence, reference overlay on VCD and titer | Done, tested, on the batch page |
 | A fifth, badly recorded demo batch that is flagged rather than answered | Done, tested |
 | Benchmark over 320 seeded batches and the verification report | Done; a test keeps the report current |
+| One-command demo, image and lock built, documents for publication | Done |
+| An as-of slider on the batch page | Done, Vitest and a browser journey |
 
 ## Next, in the intended order (proposed)
 
-1. An as-of control in the interface, then editing (samples, reference designation) with audit.
+1. Editing with audit: a sample's collection time, the reference designation.
 2. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
    filtration, UF/DF), where pools split and merge.
 3. Possibly later: cross-batch process monitoring, and read-only assistant tools over the

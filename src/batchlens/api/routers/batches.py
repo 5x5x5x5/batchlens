@@ -83,17 +83,37 @@ def list_batches(rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
 
 
 @router.get("/batches/{batch_id}")
-def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
+def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
     client = rt.user_client(user)
     names = plant.asset_names(client, {phase.asset_id for phase in record.phases})
+    # From the start of the batch to the last moment anything about it became known: the span
+    # an as-of view moves over.
+    known = [phase.end for phase in record.phases]
+    known += [result.result_available_at for result in record.results]
+    known += [pool.result_available_at for pool in record.pools]
+    phases = []
+    for phase in record.phases:
+        if as_of is not None and phase.start > as_of:
+            continue  # it had not begun
+        row = {**_plain(phase), "asset_name": names.get(phase.asset_id)}
+        if as_of is not None and phase.end > as_of:
+            row["end"] = None  # in progress: its end was not known yet
+        phases.append(row)
     return {
         "time_zone": plant.time_zone(client),
+        "as_of": _stamp(as_of),
+        "timeline": {
+            "start": _stamp(min((phase.start for phase in record.phases), default=None)),
+            "end": _stamp(max(known, default=None)),
+        },
         "batch": _plain(record.batch),
-        "phases": [
-            {**_plain(phase), "asset_name": names.get(phase.asset_id)} for phase in record.phases
+        "phases": phases,
+        "pools": [
+            _plain(pool)
+            for pool in record.pools
+            if as_of is None or pool.result_available_at <= as_of
         ],
-        "pools": [_plain(pool) for pool in record.pools],
     }
 
 

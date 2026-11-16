@@ -65,7 +65,11 @@ batchlens benchmark --out docs/verification-report.md
    culture metrics and the harvest mass, names the record each tripped on, stops the trends
    where the data stops, and still answers the Protein A recovery. This is the batch to show
    someone who asks whether it can be trusted.
-6. **How often is it wrong?** [verification-report.md](verification-report.md): the same
+6. **What was known when.** Back on `BL-0003`, drag the slider to the middle of the culture.
+   The finding disappears, the harvest mass says the production phase had not ended, later
+   phases and samples are gone, and a titer whose sample was already taken but not yet
+   reported is named as pending. This is the view an engineer had on that day.
+7. **How often is it wrong?** [verification-report.md](verification-report.md): the same
    findings over 320 seeded batches with known faults.
 
 ## Inside a live PlantCraft, by hand

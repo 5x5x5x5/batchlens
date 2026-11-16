@@ -29,7 +29,9 @@ found"; its reason then says so (`no_divergence`).
 - **No look-ahead (`as_of`)**. An assay result or pool measurement is used only when its
   `result_available_at <= as_of`; online series are read only up to `as_of`. Collection time
   places a value on the process timeline, availability time decides whether it may be used, and
-  the two are never merged. Without `as_of`, everything recorded is used. The two ratios take
+  the two are never merged. A sample collected after `as_of`, a pool measured after it and a
+  phase that had not begun do not exist in that view at all; a phase that had not ended has
+  no end. Without `as_of`, everything recorded is used. The two ratios take
   results that were already computed under `as_of`, so they need no `as_of` of their own.
 - **Nothing is repaired**: no clipping, no interpolation across a disallowed gap, no
   extrapolation, no substituted denominator. A negative or non-finite input is `invalid`.
