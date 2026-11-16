@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any
 
 from batchlens import calc
-from batchlens.batches.models import BatchRecord
+from batchlens.batches.models import BatchRecord, PoolMeasurement
 from batchlens.calc.comparison import DIVERGENCE_VERSION
 from batchlens.calc.mass import HARVEST_VERSION
 
@@ -62,16 +62,22 @@ def _pool(record: BatchRecord, name: str, as_of: datetime | None = None) -> calc
 
     for pool in record.pools:
         if pool.pool == name and (as_of is None or pool.measured_at <= as_of):
-            return calc.Pool(
-                pool.measurement_id,
-                pool.volume,
-                pool.volume_unit,
-                pool.concentration,
-                pool.concentration_unit,
-                pool.method,
-                pool.result_available_at,
-            )
+            return as_calc_pool(pool)
     return None
+
+
+def as_calc_pool(pool: PoolMeasurement) -> calc.Pool:
+    """One pool measurement as the calculations take it."""
+
+    return calc.Pool(
+        pool.measurement_id,
+        pool.volume,
+        pool.volume_unit,
+        pool.concentration,
+        pool.concentration_unit,
+        pool.method,
+        pool.result_available_at,
+    )
 
 
 def batch_metrics(

@@ -246,6 +246,8 @@ class BatchStore(Store):
                 "SELECT collected_at FROM samples WHERE sample_id = ? AND batch_id = ?",
                 (sample_id, batch_id),
             ).fetchone()
+            if row is None:
+                raise LookupError(sample_id)
             correction = Correction(
                 uuid.uuid4().hex[:12],
                 batch_id,

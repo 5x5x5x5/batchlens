@@ -704,3 +704,15 @@ def test_an_as_of_view_does_not_know_the_future(seeded, client):
         "/api/batches/BL-0003", params={"as_of": (culture.start - timedelta(days=1)).isoformat()}
     )
     assert before.status_code == 200 and before.json()["phases"] == []
+
+
+def test_a_value_that_is_not_a_number_never_reaches_a_trend():
+    from batchlens.api.plant import _step_means
+
+    start = datetime(2026, 7, 1, 6, tzinfo=UTC)
+    stamps = [(start + timedelta(minutes=10 * i)).isoformat() for i in range(4)]
+    marks, values = _step_means(
+        stamps, [1.0, float("nan"), 3.0, float("inf")], start, start + timedelta(hours=1), 1200
+    )
+    # Steps of 20 minutes: [1.0, nan] -> 1.0; [3.0, inf] -> 3.0; the third step has nothing.
+    assert values == [1.0, 3.0, None] and len(marks) == 3

@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any
 
 from batchlens import calc
-from batchlens.analysis.metrics import _pool
+from batchlens.analysis.metrics import _pool, as_calc_pool
 from batchlens.batches.models import BatchRecord
 
 # (step, the pool that goes in, the pool that comes out), in process order.
@@ -66,9 +66,8 @@ def downstream(
 
     seen = [p for p in record.pools if as_of is None or p.measured_at <= as_of]
     masses = {
-        p.measurement_id: calc.pool_mass(
-            f"{p.pool}_mass", _pool(record, p.pool, as_of), as_of=as_of
-        )
+        # Each measurement's own mass, by its id: a pool measured twice keeps both.
+        p.measurement_id: calc.pool_mass(f"{p.pool}_mass", as_calc_pool(p), as_of=as_of)
         for p in seen
     }
     genealogy = []

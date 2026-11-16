@@ -22,6 +22,10 @@ support a number it says so instead of producing one.
 
 ![One batch: the finding, its consequence and its evidence](docs/images/findings/titer-divergence.png)
 
+The purification train of the batch with the poor capture step, and its pool genealogy:
+
+![Downstream recovery and pool genealogy](docs/images/findings/downstream.png)
+
 ## What it shows
 
 Five synthetic batches on one 2,000 L bioreactor, each followed by harvest and Protein A capture:

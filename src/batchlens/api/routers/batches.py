@@ -119,7 +119,11 @@ def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> 
             if as_of is None or pool.result_available_at <= as_of
         ],
         # What people changed, with the values they replaced.
-        "corrections": [_plain(item) for item in rt.batches.corrections(batch_id)],
+        "corrections": [
+            _plain(item)
+            for item in rt.batches.corrections(batch_id)
+            if as_of is None or item.corrected_at <= as_of
+        ],
     }
 
 
@@ -141,7 +145,14 @@ def batch_samples(
     record = batch_or_404(rt, batch_id)
     culture = record.phase("production_culture")
     other = batch_or_404(rt, align_to).phase("production_culture") if align_to else None
-    corrected = {item.record_id for item in rt.batches.corrections(batch_id)}
+    # A sample is marked corrected while its time is the one its last correction gave it (a
+    # batch loaded again as generated loses the corrected time, and the mark with it).
+    latest = {item.record_id: item.new_value for item in rt.batches.corrections(batch_id)}
+    corrected = {
+        sample.sample_id
+        for sample in record.samples
+        if latest.get(sample.sample_id) == utc_iso(sample.collected_at)
+    }
     samples = []
     for sample in record.samples:
         if as_of is not None and sample.collected_at > as_of:
@@ -234,8 +245,9 @@ def batch_trends(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) 
     return {
         **answer,
         "asset_id": culture.asset_id,
-        "start": utc_iso(culture.start),
-        "end": utc_iso(culture.end),
+        # In an as-of view a phase not yet begun has no start, and one in progress has no end.
+        "start": utc_iso(culture.start) if as_of is None or culture.start <= as_of else None,
+        "end": utc_iso(culture.end) if as_of is None or culture.end <= as_of else None,
         "step_seconds": step,
         "signals": signals,
     }
@@ -260,6 +272,8 @@ def correct_sample(
     except RuleBroken as exc:
         if exc.code == "outside_phase":
             detail = t("The collection time must lie inside the sample's phase execution.")
+        elif exc.code == "unchanged":
+            detail = t("The sample already has that collection time.")
         else:
             detail = t("The collection time must be before the sample's results were reported.")
         raise HTTPException(status_code=422, detail=detail) from exc

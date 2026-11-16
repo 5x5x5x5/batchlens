@@ -3,5 +3,6 @@
   "Sample not found.": "Amostra não encontrada.",
   "The collection time must be before the sample's results were reported.": "O instante de coleta deve ser anterior ao reporte dos resultados da amostra.",
   "The collection time must lie inside the sample's phase execution.": "O instante de coleta deve estar dentro da execução de fase da amostra.",
+  "The sample already has that collection time.": "A amostra já tem esse instante de coleta.",
   "as_of is an ISO 8601 time, like 2026-07-06T06:00:00Z.": "as_of é um instante ISO 8601, como 2026-07-06T06:00:00Z."
 }

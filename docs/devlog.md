@@ -3,6 +3,43 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The second review, and the documents brought up to date
+
+Branch `docs-refresh`. Everything since the first slice was built without the owner watching,
+so a fresh reviewer (a subagent on a mid-tier model, read-only, with no knowledge of the
+reasoning behind the code) reviewed `e5d0def..HEAD` against the rules and the assumptions.
+
+- **Important, fixed:** loading a stale batch again (an older generator's) deleted and
+  re-inserted its samples and its batch row. A person's corrected sample time was undone while
+  the sample was still marked corrected, and if the person had chosen another reference batch,
+  two batches ended up flagged. Now the chosen reference stays the only one, a sample is
+  marked corrected only while it holds the corrected time, and the undone correction is logged
+  by sample id. `test_reloading_a_stale_batch_keeps_one_reference_and_an_honest_history`.
+- **Minor, all fixed:**
+  - the trends answer and the `phase_not_ended` reason gave a phase end that, as of then, had
+    not happened;
+  - an as-of view listed corrections made later;
+  - a recovery within the reference could be `suspect` with no value, against the meaning of
+    `suspect`;
+  - a correction to the time the sample already has was accepted and audited;
+  - a sample deleted between the rule check and the write would have been a server error;
+  - the pool genealogy took a pool's mass by name instead of by measurement;
+  - a value that is not a finite number could have reached a trend.
+  Seven tests, all red before the fixes.
+- **Found correct by the reviewer:** the divergence rule and its oracles (re-derived), the merge
+  balance, the step-yield identity, no look-ahead through pools, sources or links, who may
+  write, the atomic reference change, no reader of ground truth outside `demo/` and
+  `benchmark/`.
+- **Declined to judge by the reviewer:** the benchmark's scoring, the time-zone handling of the
+  correction form (the suite's helpers), the browser journeys, the translations, the demo
+  script. The first three are in `docs/gaps.md` or covered by a test; the others are not
+  independently reviewed.
+- **Documents:** the case studies now cover the as-of slider, corrections, the purification
+  train and the assistant's tools, with current counts; the screenshots are from the current
+  pages.
+- **Final checks:** `make ci` exit 0 (Vitest 27 passed, pytest 222 passed, 0 skipped);
+  `make e2e` exit 0 (8 passed).
+
 ## 2026-11-16: Read-only tools for PlantCraft's assistant
 
 Branch `assistant-tools`. Fourth optional extension. It needs no new permission: tools are a

@@ -68,12 +68,32 @@ What they did not catch:
   real system. It was found because the agent compared the two and did not accept "close".
 - **An independent review** by a second agent with no knowledge of the first one's reasoning
   found a path to a server error that 118 passing tests had missed: a valid `as_of` whose
-  offset pushes it outside representable time.
+  offset pushes it outside representable time. A second review, of the unattended night's
+  work, found that loading a stale demo batch again could undo a person's correction while
+  still marking the sample corrected, and leave two reference batches. 215 tests were
+  passing at the time.
+
+## A night without the owner
+
+The first slice was built with the owner present. The rest (the remaining findings, the badly
+recorded batch, the benchmark, packaging, the as-of slider, editing, the purification train
+and the assistant's tools) was built in one unattended stretch, under one instruction: proceed
+on your own judgment, merge each pull request when its checks pass, stop at a set time. Each
+item was its own branch and pull request with a devlog entry; nine were merged that night.
+
+What held up without supervision was what had been written down beforehand: the domain rules,
+the test-first habit, the list of decisions that were not the agent's, and looking at the
+rendered page before calling a step done. Three of the night's fixes came from that last one
+(an as-of view that named samples not yet taken, phase ends that had not happened, and a demo
+database left stale by a change to the seeding rule). One decision was deliberately not taken:
+making the repository public, because it exposes the commit author's email address.
 
 ## Where the agent got it wrong
 
-- **Edit scripts that silently did less than they said.** Three times a scripted edit stopped
-  at a text match that did not exist. Once this was after a commit and a pull request, so
+- **Edit scripts that silently did less than they said.** Four times a scripted edit stopped
+  at a text match that did not exist. After the fourth, edits went through a small helper
+  that checks every match in a file before writing any of it and names a file it did not
+  change; the problem did not recur. Once this was after a commit and a pull request, so
   half the documents arrived in a second commit. The tests staying red caught the code cases;
   nothing caught the documentation case until the next step read the files.
 - **A wrong first design for the time zone problem**, built and tested before the real cause
@@ -92,12 +112,13 @@ evidence of anything.
 
 | | |
 |---|---|
-| Python tests | 172 passing |
-| Interface tests | 21 passing |
-| Browser journeys | 6 passing |
+| Python tests | 222 passing |
+| Interface tests | 27 passing |
+| Browser journeys | 8 passing |
 | Benchmark | 320 seeded batches, 1,600 comparisons, under 3 seconds |
-| Independent review | 1 important finding (fixed, with a failing test first), 4 minor (1 fixed since, 3 open) |
-| Decisions taken to the owner | 5 |
+| Pull requests | 11 merged, each with its devlog entry |
+| Independent reviews | Two. First slice: 1 important finding and 4 minor (important fixed, 1 minor fixed since, 3 open). The night's work: 1 important and 7 minor, all fixed, each with a failing test first |
+| Decisions taken to the owner | 5, and 1 left for the owner (publication) |
 | Known gaps written down | 30, each with a state ([gaps.md](gaps.md)) |
 
 Not measured: how long the same work would have taken without an agent, or with an agent and
