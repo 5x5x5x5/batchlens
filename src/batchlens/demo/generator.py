@@ -16,6 +16,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 
 from batchlens.batches.models import (
     AssayResult,
@@ -601,6 +602,18 @@ def live_start(now: datetime) -> datetime:
 def demo_campaign(
     live_from: datetime | None = None,
 ) -> tuple[list[Observations], dict[str, GroundTruth]]:
+    """``_campaign``, as a list and a dict of the caller's own."""
+
+    observations, truth = _campaign(live_from)
+    return list(observations), dict(truth)
+
+
+# The same campaign is asked for many times (the live plant file every minute, every test
+# module); it is a pure function of ``live_from``, so the last few are kept.
+@lru_cache(maxsize=4)
+def _campaign(
+    live_from: datetime | None,
+) -> tuple[tuple[Observations, ...], dict[str, GroundTruth]]:
     """The demo batches, one after another on the same bioreactor (docs/demo.md): three
     normal ones from an earlier campaign (``EARLIER``), then the six of this campaign.
 
@@ -666,4 +679,4 @@ def demo_campaign(
         # The live batch keeps the seed it had before the sixth finished batch was added.
         scenarios.append((live, 106))
     made = [generate(scenario, seed) for scenario, seed in scenarios]
-    return [observations for observations, _ in made], {t.batch_id: t for _, t in made}
+    return tuple(observations for observations, _ in made), {t.batch_id: t for _, t in made}
