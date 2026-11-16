@@ -58,11 +58,16 @@ if [ -n "$FLAGS" ]; then
   for id in histcraft linkcraft dashcraft alarmcraft modelcraft doccraft; do rm -rf "$PLANTCRAFT_DIR/var/$id"; done
 fi
 
+if curl -fs -o /dev/null "$PLANTCRAFT_URL/"; then
+  echo "Something already answers at $PLANTCRAFT_URL: stop the demo that is running first."; exit 1
+fi
 echo "Starting PlantCraft, BatchLens and $(( $(wc -w <<<"$APPS") - 1 )) of the suite's modules..."
 : > /tmp/batchlens-demo.log
 PIDS=""
 # PlantCraft's launcher starts the Simulator and PlantCraft as children: they are stopped first.
 trap 'for pid in $PIDS; do pkill -P "$pid" 2>/dev/null; done; kill $PIDS 2>/dev/null; wait 2>/dev/null; echo; echo "Stopped."' EXIT
+# A signal ends the script through the line above (bash alone would leave the servers running).
+trap 'exit 143' TERM INT HUP
 (cd "$PLANTCRAFT_DIR" && PLANTCRAFT_APPS="${LIST#,}" PLANTCRAFT_OPS_URLS="${OPS#,}" \
   exec python run_opcua_demo.py --no-linkcraft $FLAGS) >> /tmp/batchlens-demo.log 2>&1 &
 PIDS="$PIDS $!"

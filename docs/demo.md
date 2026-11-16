@@ -1,6 +1,6 @@
 # The demo
 
-Six batches of `mAb-X (synthetic)`, run one after another on the same 2,000 L bioreactor. Five
+Six batches of `mAb-X`, run one after another on the same 2,000 L bioreactor. Five
 are finished, each followed by harvest and the purification train; the sixth is running when
 the demo starts. Everything is made by `src/batchlens/demo/generator.py` from fixed seeds: the
 same values on every run and machine. **All of it is illustrative**
@@ -168,7 +168,7 @@ API v1; only `tools/run_demo.sh` calls them, never the app.
 
 | Asset id | What | Signals |
 |---|---|---|
-| `U-MAB` | Unit: mAb drug substance (synthetic) | |
+| `U-MAB` | Unit: mAb drug substance | |
 | `BR-2001` | Production bioreactor 2000 L (equipment) | Roles `ph`, `do`, `temperature`, `volume`, from source `batchlens-synthetic` |
 | `HV-2101` | Harvest clarification skid | None |
 | `CH-3001` | Protein A chromatography skid | None |

@@ -1,7 +1,5 @@
 # BatchLens
 
-**Synthetic demo · non-GxP · not for process control, release or batch disposition.**
-
 BatchLens follows antibody batches from the production culture through the purification train to
 drug substance and shows, for each batch, how much product there was at each point and where each number
 comes from. Every batch here is synthetic: made by a generator, not measured in any plant.

@@ -153,15 +153,35 @@ distrust analytics, which is why they are written down here and not only fixed.
   delay of 1.9 days; a fall to 85 % found 52 times out of 300; a later purification step at
   85 % of its nominal yield found 99 times out of 100, with no false alarm in 7,700 and never
   the wrong step named; no number returned for any badly recorded batch. A test fails when the published report is not what the command gives.
-- **A live run** inside PlantCraft 0.6.0, where every checked value equals the fake's.
+- **A live run** inside PlantCraft 0.6.0, where every checked value equals the fake's, and
+  later a campaign with a batch running now, seen beside the suite's own modules.
 - **Two independent reviews.** The first, of the first slice, found one path to a server
   error (an `as_of` at the edge of representable time) and four smaller issues. The second,
   of everything built afterwards, found one important defect in reseeding and seven smaller
   ones; all eight were fixed with a failing test first. Both are recorded in
   [gaps.md](gaps.md) and [devlog.md](devlog.md).
 
-At the time of writing: 225 Python tests, 28 interface tests and 8 browser journeys, all
+At the time of writing: 236 Python tests, 29 interface tests and 8 browser journeys, all
 passing locally and in the repository's CI; the exact counts of each step are in [devlog.md](devlog.md).
+
+## A plant that is running
+
+Five finished batches gave the rest of the suite nothing to show: its modules are about what
+a plant is doing now. The demo therefore has a sixth batch in its production culture, and the
+same bioreactor signals feed a dashboard and a process display in PlantCraft View and alarm
+rules in PlantCraft Alarms.
+
+The design choice was where "now" is applied. The live batch is generated whole and stored
+whole; every route cuts a running batch at the clock with the same filter `as_of` already
+used. That reused the one piece of logic every route and calculation already honoured and
+tested, where storing only the past would have meant phases without an end through the store
+and every formula. The price is stated in [gaps.md](gaps.md): the future sits in the
+database, and a new route that forgot the cut would show it.
+
+Two things about the platform surfaced only here. Its app switcher opens an app only from its
+own origin, so the local demo needs a gateway that a packaged install gets from the suite's
+proxy. And the modules' "start from the plant" steps look for control loops, so a batch plant
+with none gets its dashboard, display and rules from a script of this repository instead.
 
 ## Tradeoffs and limits
 

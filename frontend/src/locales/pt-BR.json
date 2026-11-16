@@ -11,7 +11,7 @@
   "At the last compared sample: {sample} against {reference} (culture day {day})": "Na última amostra comparada: {sample} contra {reference} (dia {day} de cultura)",
   "Batch": "Lote",
   "Batch {batch}": "Lote {batch}",
-  "BatchLens follows antibody batches from cell culture through purification to drug substance. Everything here is a demonstration: synthetic data, non-GxP.": "O BatchLens acompanha lotes de anticorpos da cultura celular, pela purificação, até a substância ativa. Tudo aqui é demonstração: dados sintéticos, não GxP.",
+  "BatchLens follows antibody batches from cell culture through purification to drug substance. Everything here is a demonstration.": "O BatchLens acompanha lotes de anticorpos da cultura celular, pela purificação, até a substância ativa. Tudo aqui é demonstração.",
   "Batches": "Lotes",
   "Bioreactor": "Biorreator",
   "By": "Por",

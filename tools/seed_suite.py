@@ -132,7 +132,7 @@ def diagram() -> dict[str, Any]:
             "type": "text",
             "x": 40.0,
             "y": 40.0,
-            "text": "mAb drug substance train (synthetic demo)",
+            "text": "mAb drug substance train",
             "size": 18,
             "align": "start",
             "bold": True,

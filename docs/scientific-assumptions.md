@@ -267,6 +267,21 @@ Rounding happens only in the interface (`frontend/src/format.ts`); the API sends
 - A recorded value (an assay result, a pool volume) is shown as recorded, without trailing zeros.
 - Times are shown in the installation's time zone, which every page names.
 
+## A batch that is running
+
+The demo's live campaign (`demo_campaign(live_from)`) is the fixed campaign moved in time by
+whole days, plus `BL-0006`: qP multiplied by 0.6 from day 7, seed 106, its culture begun nine
+days before the day the demo first starts. Moving a batch changes none of its values
+(`tests/test_live.py`).
+
+- The live batch is generated whole, like the others, so its later records are dated ahead of
+  the clock. Rule: for a batch any of whose records is later than now, every answer is cut at
+  now, as if `as_of` were now; asking for a later instant gives no more.
+- Its bioreactor values reach PlantCraft in a file written again every minute, holding nothing
+  later than now. A value is recorded every 10 minutes.
+- Assumption: this imitates a running batch for a demonstration. Real records arrive as they
+  are made, late, corrected and out of order; none of that is modelled.
+
 ## The generator's model
 
 `src/batchlens/demo/generator.py`, a deterministic function of (scenario parameters, seed) on
