@@ -28,7 +28,7 @@ from tests.plant import APP_KEY, make_fake
 
 @contextmanager
 def _app(fake, data_dir) -> Iterator[str]:
-    """BatchlensCraft with the four demo batches, served against ``fake``; yields its URL."""
+    """BatchlensCraft with the demo batches, served against ``fake``; yields its URL."""
 
     if ui_folder() is None:
         e2e.unavailable(

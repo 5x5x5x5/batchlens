@@ -27,6 +27,10 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   tolerance below the reference's; the other results of a divergence's samples as evidence
   beside the reference's; the reference batch drawn over the VCD and titer charts at the
   same culture age (`align_to` on the samples route).
+- A fifth demo batch with a normal culture and bad records (a mis-keyed sample time, a hole in
+  the historian): the app flags it and answers only what rests on good records.
+- Trends are means of recorded values per step, computed in the app, so a gap in the history
+  stays a gap. Two titers recorded at one instant make qP `invalid`.
 - `batchlens demo-plant --out DIR [--time-zone ZONE]` writes the synthetic plant as a CSV and a
   PlantCraft plant map, so an administrator can import it into a live PlantCraft and the
   demo runs end to end there (`docs/demo.md`).

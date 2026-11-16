@@ -50,7 +50,7 @@ def client(runtime, fake):
 
 @pytest.fixture
 def seeded(runtime):
-    """The runtime with the four demo batches loaded, as ``batchlens seed-demo`` loads them."""
+    """The runtime with the demo batches loaded, as ``batchlens seed-demo`` loads them."""
 
     from batchlens.demo.seed import seed_demo
 

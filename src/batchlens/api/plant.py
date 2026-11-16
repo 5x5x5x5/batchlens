@@ -16,6 +16,7 @@ from typing import Any, TypeVar
 
 from fastapi import HTTPException
 from plantcraft_sdk.client import PlantCraftClient
+from plantcraft_sdk.utc import utc_iso
 
 from batchlens import calc
 from batchlens.api.deps import guarded
@@ -110,11 +111,30 @@ def volume(
     return calc.Online(signal["id"], signal.get("unit") or "", points)
 
 
+def _step_means(
+    stamps: list[str], values: list[Any], start: datetime, end: datetime, step: int
+) -> tuple[list[str], list[float | None]]:
+    """One mean per ``step`` seconds from ``start``, over the values recorded in that step; a
+    step in which nothing was recorded has no value, so a gap stays a gap."""
+
+    count = max(1, math.ceil((end - start).total_seconds() / step))
+    sums, seen = [0.0] * count, [0] * count
+    for stamp, value in zip(stamps, values):
+        if not isinstance(value, int | float) or isinstance(value, bool):
+            continue
+        index = int((_instant(stamp) - start).total_seconds() // step)
+        if 0 <= index < count:
+            sums[index] += value
+            seen[index] += 1
+    marks = [utc_iso(start + timedelta(seconds=index * step)) for index in range(count)]
+    return marks, [sums[i] / seen[i] if seen[i] else None for i in range(count)]
+
+
 def trends(
     client: PlantCraftClient, culture: PhaseExecution, as_of: datetime | None
 ) -> tuple[int, list[dict[str, Any]]]:
-    """The step in seconds and, for each role of ``ROLES``, the signal's means per step over the
-    production phase (cut at ``as_of``), or why there are none."""
+    """The step in seconds and, for each role of ``ROLES``, the mean of the signal's recorded
+    values in each step over the production phase (cut at ``as_of``), or why there are none."""
 
     end = culture.end if as_of is None else min(culture.end, as_of)
     span = max(0.0, (end - culture.start).total_seconds())
@@ -126,7 +146,9 @@ def trends(
     failed: dict[str, calc.Reason] = {}
     if ids and span > 0:
         answer = _read(
-            lambda: client.series_many(ids, culture.start, end, step=step),
+            # Recorded values, not PlantCraft's stepped means: those hold the last value across
+            # a gap, and a trend must not show hours that were never recorded.
+            lambda: client.series_many(ids, culture.start, end),
             calc.Reason("signal_not_found", {"asset_id": culture.asset_id}),
         )
         if isinstance(answer, calc.Reason):
@@ -150,7 +172,8 @@ def trends(
             row.update(signal_id=signal["id"], name=signal.get("name"), unit=signal.get("unit"))
         if reason is None:
             item = series.get(signal["id"], {"t": [], "v": []})
-            row.update(t=item["t"], v=item["v"])
+            stamps, values = _step_means(item["t"], item["v"], culture.start, end, step)
+            row.update(t=stamps, v=values)
         rows.append(
             {
                 **row,

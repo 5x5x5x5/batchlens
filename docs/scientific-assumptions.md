@@ -196,6 +196,14 @@ A finding puts things side by side and keeps them apart: this **observation**; a
 **consequence**, the product mass at harvest against the reference's (calculation 3, with its
 own status); and a **cause**, which is always empty. BatchLens attributes nothing.
 
+## Trends
+
+The online trends are the mean of the values **recorded** in each step (about 300 steps over
+the production phase), computed by the app from PlantCraft's recorded series. A step in which
+nothing was recorded has no value and the line breaks there. PlantCraft's own stepped means
+are not used for this: they hold the last value across a gap (in the test fake, for about
+twelve hours), which would draw values that were never recorded.
+
 ## Display
 
 Rounding happens only in the interface (`frontend/src/format.ts`); the API sends full values.
@@ -233,6 +241,7 @@ harvest, a 4 h hold and one aggregated 10 h Protein A capture step.
 | Harvest-to-load yield | 0.93 (x 1 ± 0.5 %) of the true harvest mass | Load volume 1920 ± 10 L |
 | Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass | Eluate at about 18 g/L |
 | Online signals | One value every 10 minutes during the production phase | |
+| Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
 
 Because titer is generated from qP and the running IVCD, `tests/test_generator.py` checks that
 the calculations recover the generator's own parameters within three standard deviations of the

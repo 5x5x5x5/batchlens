@@ -249,6 +249,15 @@ describe("one batch", () => {
     answers.metrics = { ...METRICS, findings: [short] };
     host = await render(<BatchPage batchId="BL-0002" />);
     expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Fewer than two titer samples could be compared with the reference batch.");
+    // A comparison that could not be made says which one, and why.
+    const bad = { ...quiet, observation: { ...quiet.observation, status: "invalid", reasons: [{ code: "times_not_increasing", values: { id: "BL-0002-S09-titer" } }] } };
+    const noYield = { ...METRICS.findings[2], observation: { ...METRICS.findings[2].observation, status: "insufficient", reasons: [{ code: "input_not_usable", values: { metric: "harvest_to_load_yield", status: "insufficient" } }] } };
+    answers.metrics = { ...METRICS, findings: [bad, noYield] };
+    host = await render(<BatchPage batchId="BL-0002" />);
+    const flagged = host.querySelector('[data-section="findings"]')!.textContent ?? "";
+    expect(flagged).toContain("The titer could not be compared with the reference batch (Invalid)");
+    expect(flagged).toContain("Sample times are duplicated or out of order at BL-0002-S09-titer.");
+    expect(flagged).toContain("Harvest-to-load yield could not be compared with the reference batch (Insufficient)");
     // The reference batch has nothing to be compared with: no section at all.
     answers.metrics = { ...METRICS, findings: [] };
     host = await render(<BatchPage batchId="BL-0002" />);

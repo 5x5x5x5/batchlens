@@ -8,7 +8,7 @@ version = "0.2.0"
 category = "Example"
 summary = "Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery."
 description = """\
-BatchLens follows four synthetic antibody batches from production culture to Protein A capture: \
+BatchLens follows five synthetic antibody batches from production culture to Protein A capture: \
 integral of viable cell density, specific productivity, product mass at harvest, the mass loaded \
 and eluted, yield and recovery, each with its status, reasons and inputs. Synthetic data only, \
 non-GxP: not for process control, release or batch disposition."""

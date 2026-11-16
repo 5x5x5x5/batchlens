@@ -112,6 +112,9 @@ function FindingPanel({ finding }: { finding: Finding }) {
       <Consequence consequence={consequence} />
       <p className="muted">{NO_CAUSE()}</p>
     </>}
+    {observation.status !== "usable" && observation.value === null && <h3>{finding.finding === "titer_divergence"
+      ? t("The titer could not be compared with the reference batch ({status})", { status: statusWord(observation.status) })
+      : t("{metric} could not be compared with the reference batch ({status})", { metric: metricName(observation.metric.replace(/_shortfall$/, "")), status: statusWord(observation.status) })}</h3>}
     {others.map((reason, index) => <p key={index}>{reasonText(reason)}</p>)}
     <EvidenceTables evidence={finding.evidence} />
   </div>;

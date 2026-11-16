@@ -1,4 +1,4 @@
-"""Loads the four generated demo batches into the app's store (``batchlens seed-demo``).
+"""Loads the generated demo batches into the app's store (``batchlens seed-demo``).
 
 Only the observations are stored. The generator's ground truth never reaches the database.
 """

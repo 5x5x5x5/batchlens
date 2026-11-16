@@ -100,6 +100,12 @@ def specific_productivity(
     titers, titer_notes = available(titer, as_of)
     notes = count_notes + titer_notes
     problems = [p for m in titers for p in value_problems(m.id, m.value, m.unit, TITER_UNIT)]
+    # Two titers of one instant cannot be told apart by time: never keep one and drop the other.
+    problems += [
+        Reason("times_not_increasing", {"id": after.id, "at": iso(after.at)})
+        for before, after in zip(titers, titers[1:])
+        if after.at <= before.at
+    ]
     if problems:
         return invalid("qp", QP_UNIT, QP_VERSION, problems)
     by_time = {m.at: m for m in titers}
