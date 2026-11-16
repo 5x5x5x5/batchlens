@@ -34,6 +34,7 @@ from batchlens.demo.generator import (
     LOOP_ROLES,
     ONLINE_UNITS,
     PROTEIN_A_SKID,
+    SEED_TRAIN,
     demo_campaign,
     loop_series,
 )
@@ -82,6 +83,10 @@ assert {role for _, role, _, _ in LOOPS.values()} == set(LOOP_ROLES)
 # is plain equipment and no asset type has to be made before the import.
 ASSETS = {
     UNIT: ("unit", "mAb drug substance", None),
+    **{
+        asset_id: ("equipment", f"Seed bioreactor {short} {litres:.0f} L", UNIT)
+        for (_, asset_id, litres), short in zip(SEED_TRAIN, ("N-2", "N-1"))
+    },
     BIOREACTOR: ("equipment", "Production bioreactor 2000 L", UNIT),
     HARVEST_SKID: ("equipment", "Harvest clarification skid", UNIT),
     PROTEIN_A_SKID: ("equipment", "Protein A chromatography skid", UNIT),

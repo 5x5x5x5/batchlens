@@ -38,7 +38,9 @@ def test_moving_a_batch_in_time_changes_none_of_its_values():
     fixed, _ = demo_campaign()
     moved, _ = demo_campaign(START)
     for a, b in zip(fixed, moved[:5]):
-        shift = b.record.phases[0].start - a.record.phases[0].start
+        shift = (
+            b.record.phase("production_culture").start - a.record.phase("production_culture").start
+        )
         assert shift.total_seconds() % 86400 == 0
         assert [r.value for r in a.record.results] == [r.value for r in b.record.results]
         assert [
@@ -70,7 +72,11 @@ def test_a_running_batch_shows_nothing_later_than_now(live, client):
     stamp = NOW.isoformat().replace("+00:00", "Z")
     detail = client.get(f"/api/batches/{LIVE_BATCH}").json()
     assert detail["running"] is True
-    assert [(p["kind"], p["end"]) for p in detail["phases"]] == [("production_culture", None)]
+    assert [(p["kind"], p["end"] is None) for p in detail["phases"]] == [
+        ("seed_n2", False),
+        ("seed_n1", False),
+        ("production_culture", True),
+    ]
     assert detail["pools"] == []
     assert datetime.fromisoformat(detail["timeline"]["end"].replace("Z", "+00:00")) == NOW
     samples = client.get(f"/api/batches/{LIVE_BATCH}/samples").json()["samples"]
@@ -94,7 +100,7 @@ def test_the_running_batch_already_has_its_finding_and_no_harvest_yet(live, clie
 
 def test_a_finished_batch_is_shown_whole(live, client):
     detail = client.get("/api/batches/BL-0005").json()
-    assert detail["running"] is False and len(detail["phases"]) == 8
+    assert detail["running"] is False and len(detail["phases"]) == 10
 
 
 def test_the_live_plant_file_stops_at_now(tmp_path):

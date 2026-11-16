@@ -76,6 +76,8 @@ def trains():
 def test_a_batch_runs_through_the_whole_train_in_order(trains):
     record, _ = trains[0]["BL-0001"]
     assert [phase.kind for phase in record.phases] == [
+        "seed_n2",
+        "seed_n1",
         "production_culture",
         "harvest",
         "protein_a_capture",
@@ -86,8 +88,8 @@ def test_a_batch_runs_through_the_whole_train_in_order(trains):
         "ufdf",
     ]
     assert all(a.end <= b.start for a, b in zip(record.phases, record.phases[1:]))
-    assert len({phase.asset_id for phase in record.phases}) == 8  # each step on its own equipment
-    assert [step for step, _, _ in STEPS] == [phase.kind for phase in record.phases[2:]]
+    assert len({phase.asset_id for phase in record.phases}) == 10  # each step on its own equipment
+    assert [step for step, _, _ in STEPS] == [phase.kind for phase in record.phases[4:]]
 
 
 def test_step_yields_multiply_to_the_cumulative_recovery(trains):

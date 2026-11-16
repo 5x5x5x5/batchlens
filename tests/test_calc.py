@@ -367,3 +367,47 @@ def test_a_result_is_plain_data_for_the_api():
         "inputs": ["vcd@0", "vcd@1.25", "vcd@3.0"],
         "calculation_version": "ivcd/1",
     }
+
+
+def test_growth_rate_is_the_log_of_the_last_count_over_the_first_per_day():
+    counts = [vcd(0.0, 0.5), vcd(1.2, 1.1), vcd(3.0, 3.5)]
+    result = calc.growth_rate("seed_n1_growth_rate", counts)
+    # ln(3.5 / 0.5) / 3 d = 1.9459 / 3 = 0.6486 per day. The count between them is not used.
+    assert (result.metric, result.unit, result.status) == ("seed_n1_growth_rate", "1/day", "usable")
+    assert result.value == pytest.approx(0.6486, abs=1e-4)
+    assert result.inputs == ("vcd@0.0", "vcd@3.0") and result.calculation_version == "growth_rate/1"
+
+
+def test_growth_rate_without_two_usable_counts_has_no_value():
+    assert calc.growth_rate("g", []).reasons[0].code == "fewer_than_two_samples"
+    one = calc.growth_rate("g", [vcd(0.0, 0.5)])
+    assert (one.value, one.status) == (None, "insufficient")
+    # The last count was not available yet: it is named, and the rate waits.
+    late = calc.growth_rate("g", [vcd(0.0, 0.5), vcd(3.0, 3.5)], as_of=at(3.0))
+    assert late.value is None
+    assert [r.code for r in late.reasons] == ["fewer_than_two_samples", "result_not_yet_available"]
+    zero = calc.growth_rate("g", [vcd(0.0, 0.0), vcd(3.0, 3.5)])
+    assert (zero.status, zero.reasons[0].code) == ("insufficient", "zero_cell_count")
+    same = calc.growth_rate("g", [vcd(1.0, 0.5), vcd(1.0, 3.5)])
+    assert (same.status, same.reasons[0].code) == ("invalid", "times_not_increasing")
+    wrong = calc.growth_rate("g", [vcd(0.0, 0.5), vcd(3.0, 3.5, unit="cells/mL")])
+    assert (wrong.status, wrong.reasons[0].code) == ("invalid", "wrong_unit")
+
+
+def test_inoculation_density_is_the_first_count_only_when_taken_near_the_start():
+    counts = [vcd(1 / 24, 0.52), vcd(1.0, 1.0)]
+    result = calc.inoculation_density(counts, phase_start=at(0))
+    assert (result.value, result.unit, result.status) == (0.52, "1e6 cells/mL", "usable")
+    assert (
+        result.inputs == (f"vcd@{1 / 24}",)
+        and result.calculation_version == "inoculation_density/1"
+    )
+    # A first count a day in is not the density the culture began at.
+    late = calc.inoculation_density(counts[1:], phase_start=at(0))
+    assert (late.value, late.status) == (None, "insufficient")
+    assert late.reasons[0].code == "no_count_near_inoculation"
+    assert late.reasons[0].values == {"id": "vcd@1.0", "hours": 24.0, "window_hours": 6.0}
+    none = calc.inoculation_density([], phase_start=at(0))
+    assert (none.status, none.reasons[0].code) == ("insufficient", "no_cell_count")
+    before = calc.inoculation_density(counts, phase_start=at(0), as_of=at(1 / 24))
+    assert before.value is None and before.reasons[-1].code == "result_not_yet_available"

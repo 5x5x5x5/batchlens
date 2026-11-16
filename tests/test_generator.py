@@ -38,13 +38,13 @@ def campaign():
 
 
 def test_the_same_scenario_and_seed_give_identical_output(campaign):
-    scenario = Scenario("BL-0001", demo_campaign()[0][0].record.phases[0].start)
+    scenario = Scenario("BL-0001", demo_campaign()[0][0].record.phase("production_culture").start)
     assert generate(scenario, 7) == generate(scenario, 7)
     assert demo_campaign() == demo_campaign()
 
 
 def test_different_seeds_differ():
-    scenario = Scenario("BL-0001", demo_campaign()[0][0].record.phases[0].start)
+    scenario = Scenario("BL-0001", demo_campaign()[0][0].record.phase("production_culture").start)
     first, second = generate(scenario, 7)[0], generate(scenario, 8)[0]
     assert first.record.results != second.record.results
     assert first.online != second.online
@@ -56,9 +56,15 @@ def test_five_batches_run_one_after_another_on_the_same_bioreactor(campaign):
     windows = []
     for observations in batches.values():
         kinds = [phase.kind for phase in observations.record.phases]
-        assert kinds[:3] == ["production_culture", "harvest", "protein_a_capture"]
-        assert len(kinds) == 8  # then the rest of the train (tests/test_downstream.py)
-        culture = observations.record.phases[0]
+        assert kinds[:5] == [
+            "seed_n2",
+            "seed_n1",
+            "production_culture",
+            "harvest",
+            "protein_a_capture",
+        ]
+        assert len(kinds) == 10  # then the rest of the train (tests/test_downstream.py)
+        culture = observations.record.phase("production_culture")
         assert culture.asset_id == BIOREACTOR
         windows.append((culture.start, culture.end))
         # The online data of a batch sits inside its own production window.
@@ -85,7 +91,7 @@ def test_the_data_problem_batch_has_a_normal_culture_recorded_badly(campaign):
     assert times["BL-0005-S09"] == times["BL-0005-S08"]
     assert len(set(times.values())) == len(times) - 1
     # A hole in the historian over the end of the culture, where the harvest sample sits.
-    culture = problem.record.phases[0]
+    culture = problem.record.phase("production_culture")
     for points in problem.online.values():
         assert max(moment for moment, _ in points) < culture.start + timedelta(days=13.4)
     assert times["BL-0005-S15"] > culture.start + timedelta(days=13.4)
@@ -127,8 +133,10 @@ def test_two_titers_recorded_at_one_instant_are_invalid_not_silently_merged():
 def test_a_batch_has_roughly_daily_samples_with_each_result_available_later(campaign):
     batches, _ = campaign
     record = batches["BL-0001"].record
-    assert len(record.samples) == 15
-    gaps = [b.collected_at - a.collected_at for a, b in zip(record.samples, record.samples[1:])]
+    culture = record.phase("production_culture")
+    samples = [sample for sample in record.samples if sample.phase_id == culture.phase_id]
+    assert len(samples) == 15
+    gaps = [b.collected_at - a.collected_at for a, b in zip(samples, samples[1:])]
     assert len(set(gaps)) > 5  # irregular times
     assert max(gaps) < timedelta(days=1.5)
     collected = {sample.sample_id: sample.collected_at for sample in record.samples}
@@ -161,6 +169,56 @@ def test_the_calculations_recover_the_generators_own_parameters(campaign):
         assert found["protein_a_recovery"].value == pytest.approx(
             100 * expected.protein_a_recovery, rel=0.045
         )
+
+
+def test_a_batch_begins_with_two_seed_passages_whose_growth_rates_are_recovered(campaign):
+    batches, truth = campaign
+    for batch_id, observations in batches.items():
+        record, found = observations.record, metrics(observations)
+        n2, n1, culture = (record.phase(k) for k in ("seed_n2", "seed_n1", "production_culture"))
+        assert (n2.asset_id, n1.asset_id) == ("BR-1001", "BR-1002")
+        assert n2.end == n1.start and n1.end == culture.start  # moved on at once
+        for kind in ("seed_n2", "seed_n1"):
+            rate = found[f"{kind}_growth_rate"]
+            # Two counts with 3 % noise each, three days apart: about 0.014 per day, one sigma.
+            assert rate.status == "usable" and rate.unit == "1/day"
+            assert rate.value == pytest.approx(truth[batch_id].seed_growth_rates[kind], abs=0.05)
+            assert all(
+                result_id.startswith(f"{batch_id}-{kind[-2:].upper()}-")
+                for result_id in rate.inputs
+            )
+        # Every demo batch was seeded at the target density.
+        assert truth[batch_id].inoculation_density == 0.5
+        assert found["inoculation_density"].value == pytest.approx(0.5 * 1.03, rel=0.1)
+
+
+def test_a_slow_last_passage_starts_the_culture_with_fewer_cells_not_less_per_cell(campaign):
+    batches, truth = campaign
+    start = batches["BL-0001"].record.phase("production_culture").start
+    low, low_truth = generate(Scenario("BL-0001", start, n1_growth_factor=0.4), 101)
+    normal, normal_truth = batches["BL-0001"], truth["BL-0001"]
+    found, usual = metrics(low), metrics(normal)
+    # The cause is in the seed records: the N-1 passage grew at well under half the rate.
+    assert found["seed_n1_growth_rate"].value < 0.5 * usual["seed_n1_growth_rate"].value
+    assert found["seed_n2_growth_rate"].value == usual["seed_n2_growth_rate"].value
+    # All of N-1 held too few cells for the target, so the culture began below it.
+    assert low_truth.inoculation_density < 0.25
+    assert found["inoculation_density"].value == pytest.approx(
+        low_truth.inoculation_density, rel=0.1
+    )
+    # Fewer cell-days and less product, at the same productivity per cell.
+    assert found["ivcd"].value < 0.93 * usual["ivcd"].value
+    assert found["harvest_mass"].value < 0.93 * usual["harvest_mass"].value
+    assert low_truth.qp_nominal == normal_truth.qp_nominal
+    assert found["qp"].value == pytest.approx(usual["qp"].value, rel=0.07)
+
+
+def test_the_seed_train_left_every_other_value_of_a_batch_as_it_was(campaign):
+    """Pinned from the generator before the seed train existed (synthetic-generator/2)."""
+
+    record = campaign[0]["BL-0003"].record
+    values = {result.result_id: result.value for result in record.results}
+    assert (values["BL-0003-S01-vcd"], values["BL-0003-S15-titer"]) == (0.49, 3.658)
 
 
 def test_the_reduced_productivity_batch_has_lower_qp_than_the_normal_ones(campaign):
@@ -202,7 +260,7 @@ def test_what_the_app_sees_carries_no_ground_truth(campaign):
 def test_a_result_not_yet_available_is_not_used_and_the_metric_says_why(campaign):
     batches, _ = campaign
     observations = batches["BL-0001"]
-    culture = observations.record.phases[0]
+    culture = observations.record.phase("production_culture")
     early = metrics(observations, as_of=culture.end + timedelta(hours=1))
     assert early["harvest_mass"].status == "insufficient"
     assert early["harvest_mass"].reasons[0].code == "result_not_yet_available"
@@ -251,7 +309,7 @@ def test_calc_and_the_generator_use_the_standard_library_only(package):
 
 def loops_of(index: int, first_day: float, last_day: float):
     batch = demo_campaign()[0][index]
-    start = batch.record.phases[0].start
+    start = batch.record.phase("production_culture").start
     since, until = start + timedelta(days=first_day), start + timedelta(days=last_day)
     return batch, start, loop_series(batch, since, until)
 

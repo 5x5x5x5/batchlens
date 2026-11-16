@@ -14,7 +14,7 @@ from tests.conftest import client_for
 
 CAMPAIGN = {o.record.batch.batch_id: o for o in demo_campaign()[0]}
 BAD = CAMPAIGN["BL-0005"].record
-S08, S09 = BAD.samples[7], BAD.samples[8]
+S08, S09 = (next(s for s in BAD.samples if s.sample_id == f"BL-0005-S0{n}") for n in (8, 9))
 URL = "/api/batches/BL-0005/samples/BL-0005-S09"
 # Sample 9 was keyed in with sample 8's time; a day later is where a daily sample belongs.
 RIGHT_TIME = S08.collected_at + timedelta(days=1)
@@ -110,8 +110,12 @@ def test_a_sample_that_is_not_there_is_a_404(seeded, client, url, status):
         {"collected_at": RIGHT_TIME.isoformat()},
         {},
         # Outside the production phase the sample belongs to.
-        correction(collected_at=(BAD.phases[0].start - timedelta(hours=1)).isoformat()),
-        correction(collected_at=(BAD.phases[0].end + timedelta(hours=1)).isoformat()),
+        correction(
+            collected_at=(BAD.phase("production_culture").start - timedelta(hours=1)).isoformat()
+        ),
+        correction(
+            collected_at=(BAD.phase("production_culture").end + timedelta(hours=1)).isoformat()
+        ),
         # After one of its own results was already reported: a sample cannot be taken after that.
         correction(collected_at=(S09.collected_at + timedelta(days=5)).isoformat()),
     ],
@@ -216,7 +220,7 @@ def test_a_sample_that_vanished_between_the_check_and_the_write_is_a_404(seeded,
 
 def test_an_as_of_view_does_not_show_later_corrections_or_a_phase_end_to_come(seeded, client):
     client.patch(URL, json=correction())
-    culture = BAD.phases[0]
+    culture = BAD.phase("production_culture")
     as_of = (culture.start + timedelta(days=3)).isoformat()
     # The correction was made today, long after day 3 of the batch.
     assert client.get("/api/batches/BL-0005", params={"as_of": as_of}).json()["corrections"] == []

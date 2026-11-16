@@ -145,15 +145,15 @@ def batch_samples(
         str | None,
         Query(
             max_length=64,
-            description="Another batch: each sample also gets the instant of the same culture "
-            "age on that batch's timeline, to lay one batch over the other.",
+            description="Another batch: each sample also gets the instant of the same age in "
+            "the same phase on that batch's timeline, to lay one batch over the other.",
         ),
     ] = None,
 ) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
     asked, as_of = as_of, deps.horizon(record, as_of)
-    culture = record.phase("production_culture")
-    other = batch_or_404(rt, align_to).phase("production_culture") if align_to else None
+    phases = {phase.phase_id: phase for phase in record.phases}
+    other = batch_or_404(rt, align_to) if align_to else None
     # A sample is marked corrected while its time is the one its last correction gave it (a
     # batch loaded again as generated loses the corrected time, and the mark with it).
     latest = {item.record_id: item.new_value for item in rt.batches.corrections(batch_id)}
@@ -172,14 +172,18 @@ def batch_samples(
             if result.sample_id == sample.sample_id
             and (as_of is None or result.result_available_at <= as_of)
         ]
-        # Culture age: time since the start of the batch's production phase.
-        age = sample.collected_at - culture.start if culture else None
+        # Culture age: time since the start of the sample's own phase (a seed passage's
+        # sample counts from that passage's start, not from the production culture's).
+        phase = phases.get(sample.phase_id)
+        age = sample.collected_at - phase.start if phase else None
+        beside = other.phase(phase.kind) if other and phase else None
         samples.append(
             {
                 **_plain(sample),
+                "phase_kind": phase.kind if phase else None,
                 "corrected": sample.sample_id in corrected,
                 "culture_day": age.total_seconds() / 86400 if age is not None else None,
-                "aligned_at": _stamp(other.start + age) if other and age is not None else None,
+                "aligned_at": _stamp(beside.start + age) if beside and age is not None else None,
                 "results": sorted(results, key=lambda r: r["analyte"]),
             }
         )

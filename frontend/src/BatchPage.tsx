@@ -183,9 +183,10 @@ function Pools({ detail }: { detail: BatchDetail }) {
 function TrendCharts({ trends, samples, reference }: { trends: Trends; samples: Samples; reference: Samples | null }) {
   const range = { start: trends.start ?? undefined, end: trends.end ?? undefined };
   const offline = ["vcd", "titer"].map((analyte) => {
-    const results = samples.samples.flatMap((sample) => sample.results.filter((result) => result.analyte === analyte).map((result) => ({ at: sample.collected_at, result })));
+    // The production culture's samples only: the seed passages are not on the bioreactor's timeline.
+    const results = samples.samples.filter((sample) => sample.phase_kind === "production_culture").flatMap((sample) => sample.results.filter((result) => result.analyte === analyte).map((result) => ({ at: sample.collected_at, result })));
     // The reference batch at the same culture age: the server placed its samples on this batch's timeline.
-    const beside = (reference?.samples ?? []).flatMap((sample) => sample.results.filter((result) => result.analyte === analyte && sample.aligned_at).map((result) => ({ at: sample.aligned_at as string, result })));
+    const beside = (reference?.samples ?? []).filter((sample) => sample.phase_kind === "production_culture").flatMap((sample) => sample.results.filter((result) => result.analyte === analyte && sample.aligned_at).map((result) => ({ at: sample.aligned_at as string, result })));
     const lines = [{ name: analyteName(analyte), t: results.map((item) => item.at), v: results.map((item) => item.result.value), unit: results[0]?.result.unit }];
     if (reference && beside.length > 0) lines.push({ name: t("Reference batch {batch}, same culture age", { batch: reference.batch_id }), t: beside.map((item) => item.at), v: beside.map((item) => item.result.value), unit: beside[0].result.unit });
     return { analyte, lines };
@@ -244,6 +245,7 @@ function SamplesSection({ batchId, samples, detail, canEdit, onChanged }: { batc
       columns={[
         { key: "sample", label: t("Sample"), render: (sample) => sample.sample_id },
         { key: "collected", label: t("Collected"), render: (sample) => <>{when(sample.collected_at)}{sample.corrected && <small>{t("Corrected")}</small>}</> },
+        { key: "phase", label: t("Phase"), render: (sample) => (sample.phase_kind ? phaseName(sample.phase_kind) : "") },
         { key: "day", label: t("Culture day"), numeric: true, render: (sample) => (sample.culture_day === null ? "" : sample.culture_day.toFixed(2)) },
         { key: "change", label: "", render: (sample) => (canEdit ? <button type="button" className="button button-small" data-action="correct-time" onClick={() => open(sample)}>{t("Correct the time")}</button> : "") },
       ]} />

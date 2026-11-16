@@ -3,6 +3,27 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The seed train
+
+First item of the order agreed with the owner (ROADMAP: depth before breadth).
+
+- **Built:** two seed passages before the production culture (`seed_n2` on `BR-1001`,
+  `seed_n1` on `BR-1002`) as phase executions of the same batch, with their own cell counts;
+  `calc.growth_rate` and `calc.inoculation_density`; three new metrics beside the reference
+  batch's; the two seed reactors in the plant map and in the picture of the train.
+- **Ruling:** the generator may make an outcome depend on an input. A slow N-1 passage
+  (`Scenario.n1_growth_factor`) starts the culture below the target density: fewer cells, not
+  less product per cell.
+- **Ruling:** a sample's age counts from the start of its own phase, and the reference batch's
+  samples are laid over the same phase. The trend charts keep to the production culture.
+- **Ruling:** a batch's window now starts at its first seed passage, six days before the
+  culture, so the as-of slider does too.
+- **Checked:** every value the generator made before is unchanged (compared result by result
+  against `synthetic-generator/2`; two are pinned in `tests/test_generator.py`). The
+  verification report differs only by the generator's version and three new error rows.
+- **Not done:** the seed reactors have no online signals; no demo batch carries the
+  low-inoculum scenario and no finding is raised for it (`docs/gaps.md`).
+
 ## 2026-11-16: A healthy oxygen loop, and no refinery
 
 - **Owner's ruling:** the dissolved oxygen loop is to look healthy. Its own value now keeps

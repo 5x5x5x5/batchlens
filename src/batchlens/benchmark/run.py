@@ -93,8 +93,8 @@ def _divergence(case: Case, reference: Case, tolerance: float) -> calc.Result:
     return calc.titer_divergence(
         measurements(observations.record, "titer"),
         measurements(other.record, "titer"),
-        batch_start=observations.record.phases[0].start,
-        reference_start=other.record.phases[0].start,
+        batch_start=observations.record.phase("production_culture").start,
+        reference_start=other.record.phase("production_culture").start,
         tolerance_fraction=tolerance,
     )
 
@@ -278,6 +278,9 @@ def _errors(made: list[Case]) -> dict[str, Any]:
     the batches whose records are good."""
 
     truths = {
+        "seed_n2_growth_rate": lambda t: t.seed_growth_rates["seed_n2"],
+        "seed_n1_growth_rate": lambda t: t.seed_growth_rates["seed_n1"],
+        "inoculation_density": lambda t: t.inoculation_density,
         "ivcd": lambda t: t.ivcd,
         "qp": lambda t: t.qp_culture_average,
         "harvest_mass": lambda t: t.harvest_mass,

@@ -1,10 +1,12 @@
-"""Cell culture: the integral of viable cell density (IVCD) and specific productivity (qP).
+"""Cell culture: the integral of viable cell density (IVCD), specific productivity (qP), a
+passage's growth rate and the density a culture was started at.
 
 Times are sample collection times; elapsed days are seconds / 86400.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from datetime import datetime
 
@@ -28,6 +30,12 @@ TITER_UNIT = "g/L"
 QP_UNIT = "pg/cell/day"
 IVCD_VERSION = "ivcd/1"
 QP_VERSION = "qp/1"
+GROWTH_UNIT = "1/day"
+GROWTH_VERSION = "growth_rate/1"
+INOCULATION_VERSION = "inoculation_density/1"
+# How long after a phase began a cell count still stands for the density it began at.
+# Illustrative default.
+INOCULATION_WINDOW_HOURS = 6.0
 # The longest span between two cell counts the trapezoid bridges. Illustrative default.
 MAX_GAP_DAYS = 3.0
 
@@ -144,4 +152,75 @@ def specific_productivity(
     )
 
 
-__all__ = ["INSUFFICIENT", "MAX_GAP_DAYS", "ivcd", "specific_productivity"]
+def growth_rate(
+    metric: str, vcd: Sequence[Measurement], *, as_of: datetime | None = None
+) -> Result:
+    """The average specific growth rate of one passage: ``ln(X_last / X_first) / days`` between
+    its first and its last cell count, given in collection order."""
+
+    used, notes = available(vcd, as_of)
+    problems = [p for m in used for p in value_problems(m.id, m.value, m.unit, VCD_UNIT)]
+    if problems:
+        return invalid(metric, GROWTH_UNIT, GROWTH_VERSION, problems)
+    if len(used) < 2:
+        reason = Reason("fewer_than_two_samples", {"count": len(used)})
+        return insufficient(metric, GROWTH_UNIT, GROWTH_VERSION, reason, *notes)
+    first, last = used[0], used[-1]
+    if last.at <= first.at:
+        reason = Reason("times_not_increasing", {"id": last.id, "at": iso(last.at)})
+        return invalid(metric, GROWTH_UNIT, GROWTH_VERSION, [reason])
+    if first.value == 0 or last.value == 0:
+        zero = first if first.value == 0 else last
+        return insufficient(
+            metric, GROWTH_UNIT, GROWTH_VERSION, Reason("zero_cell_count", {"id": zero.id}), *notes
+        )
+    value = math.log(last.value / first.value) / _days(first.at, last.at)
+    return Result(
+        metric, value, GROWTH_UNIT, USABLE, tuple(notes), (first.id, last.id), GROWTH_VERSION
+    )
+
+
+def inoculation_density(
+    vcd: Sequence[Measurement],
+    *,
+    phase_start: datetime,
+    as_of: datetime | None = None,
+    window_hours: float = INOCULATION_WINDOW_HOURS,
+) -> Result:
+    """The first cell count of a culture, when it was collected within ``window_hours`` of the
+    phase's start. A later count is not the density the culture began at, and is not used."""
+
+    def answer(*reasons: Reason) -> Result:
+        return insufficient("inoculation_density", VCD_UNIT, INOCULATION_VERSION, *reasons)
+
+    used, notes = available(vcd, as_of)
+    if not used:
+        return answer(Reason("no_cell_count", {}), *notes)
+    first = min(used, key=lambda m: m.at)
+    problems = value_problems(first.id, first.value, first.unit, VCD_UNIT)
+    if problems:
+        return invalid("inoculation_density", VCD_UNIT, INOCULATION_VERSION, problems)
+    hours = (first.at - phase_start).total_seconds() / 3600
+    if not 0 <= hours <= window_hours:
+        values = {"id": first.id, "hours": hours, "window_hours": float(window_hours)}
+        return answer(Reason("no_count_near_inoculation", values), *notes)
+    return Result(
+        "inoculation_density",
+        first.value,
+        VCD_UNIT,
+        USABLE,
+        tuple(notes),
+        (first.id,),
+        INOCULATION_VERSION,
+    )
+
+
+__all__ = [
+    "INOCULATION_WINDOW_HOURS",
+    "INSUFFICIENT",
+    "MAX_GAP_DAYS",
+    "growth_rate",
+    "inoculation_density",
+    "ivcd",
+    "specific_productivity",
+]

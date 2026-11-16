@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 PHASE_KINDS = (
+    "seed_n2",
+    "seed_n1",
     "production_culture",
     "harvest",
     "protein_a_capture",

@@ -181,5 +181,14 @@
   "{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).": "{metric} está a até {tolerance} pontos do lote de referência ({value} % contra {reference} %).",
   "{metric} is {points} points below the reference batch": "{metric} está {points} pontos abaixo do lote de referência",
   "{pool} mass": "Massa de {pool}",
-  "{step} yield": "Rendimento de {step}"
+  "{step} yield": "Rendimento de {step}",
+  "N-2 seed growth rate": "Taxa de crescimento do inóculo N-2",
+  "N-1 seed growth rate": "Taxa de crescimento do inóculo N-1",
+  "Inoculation density": "Densidade de inoculação",
+  "N-2 seed culture": "Cultura de inóculo N-2",
+  "N-1 seed culture": "Cultura de inóculo N-1",
+  "{id} counted no cells.": "{id} não contou células.",
+  "No cell count.": "Nenhuma contagem de células.",
+  "The first cell count ({id}) was collected {hours} h after the phase began; only one within {window} h stands for the density it began at.": "A primeira contagem de células ({id}) foi coletada {hours} h após o início da fase; só uma dentro de {window} h representa a densidade inicial.",
+  "No record": "Sem registro"
 }

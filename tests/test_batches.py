@@ -97,6 +97,8 @@ def test_one_batch_comes_with_its_phase_executions_and_pool_measurements(seeded,
     answer = client.get("/api/batches/BL-0001").json()
     assert answer["batch"]["batch_id"] == "BL-0001" and answer["batch"]["is_reference"] is True
     assert [phase["kind"] for phase in answer["phases"]] == [
+        "seed_n2",
+        "seed_n1",
         "production_culture",
         "harvest",
         "protein_a_capture",
@@ -107,6 +109,8 @@ def test_one_batch_comes_with_its_phase_executions_and_pool_measurements(seeded,
         "ufdf",
     ]
     assert [phase["asset_name"] for phase in answer["phases"]] == [
+        "Seed bioreactor N-2 50 L",
+        "Seed bioreactor N-1 250 L",
         "Production bioreactor 2000 L",
         "Harvest clarification skid",
         "Protein A chromatography skid",
@@ -134,15 +138,15 @@ def test_one_batch_comes_with_its_phase_executions_and_pool_measurements(seeded,
 
 def test_samples_carry_every_result_with_both_timestamps(seeded, client):
     answer = client.get("/api/batches/BL-0001/samples").json()
-    assert answer["as_of"] is None and len(answer["samples"]) == 15
+    assert answer["as_of"] is None
+    kinds = [sample["phase_kind"] for sample in answer["samples"]]
+    assert kinds == ["seed_n2"] * 4 + ["seed_n1"] * 4 + ["production_culture"] * 15
     for sample in answer["samples"]:
-        assert [r["analyte"] for r in sample["results"]] == [
-            "glucose",
-            "lactate",
-            "titer",
-            "vcd",
-            "viability",
-        ]
+        # A seed passage's samples are counted only; the production culture's are assayed too.
+        seed = sample["phase_kind"] != "production_culture"
+        assert [r["analyte"] for r in sample["results"]] == (
+            ["vcd", "viability"] if seed else ["glucose", "lactate", "titer", "vcd", "viability"]
+        )
         for result in sample["results"]:
             assert instant(result["result_available_at"]) > instant(sample["collected_at"])
             assert result["unit"] and result["method"] and result["validity"] == "valid"
@@ -158,7 +162,7 @@ def test_metrics_are_the_calculations_on_what_plantcraft_and_the_store_hold(seed
             assert got["status"] == expected.status, (batch_id, got)
             assert (got["status"] == "usable") == (
                 batch_id != "BL-0005"
-            ) or expected.metric.startswith("protein_a")
+            ) or expected.metric.startswith(("protein_a", "seed_", "inoculation"))
             assert got["value"] == (
                 pytest.approx(expected.value) if expected.value is not None else None
             )
@@ -186,7 +190,7 @@ def test_metrics_come_beside_the_reference_batch_and_the_difference(seeded, clie
 
 def test_trends_are_the_bioreactors_signals_over_the_production_phase(seeded, client):
     answer = client.get("/api/batches/BL-0002/trends").json()
-    culture = CAMPAIGN["BL-0002"].record.phases[0]
+    culture = CAMPAIGN["BL-0002"].record.phase("production_culture")
     assert answer["asset_id"] == BIOREACTOR
     assert instant(answer["start"]) == culture.start and instant(answer["end"]) == culture.end
     assert [s["role"] for s in answer["signals"]] == ["ph", "do", "temperature", "volume"]
@@ -233,7 +237,7 @@ def test_there_are_no_write_routes(seeded, client):
 
 def test_as_of_before_the_last_titer_came_in_omits_it_and_harvest_mass_waits(seeded, client):
     record = CAMPAIGN["BL-0001"].record
-    as_of = (record.phases[0].end + timedelta(hours=1)).isoformat()
+    as_of = (record.phase("production_culture").end + timedelta(hours=1)).isoformat()
     last = client.get("/api/batches/BL-0001/samples", params={"as_of": as_of}).json()["samples"][-1]
     assert "titer" not in [r["analyte"] for r in last["results"]]
     assert "vcd" in [r["analyte"] for r in last["results"]]
@@ -249,7 +253,7 @@ def test_as_of_before_the_last_titer_came_in_omits_it_and_harvest_mass_waits(see
 
 
 def test_as_of_mid_culture_shows_only_what_was_collected_and_recorded_by_then(seeded, client):
-    culture = CAMPAIGN["BL-0001"].record.phases[0]
+    culture = CAMPAIGN["BL-0001"].record.phase("production_culture")
     as_of = culture.start + timedelta(days=5)
     samples = client.get("/api/batches/BL-0001/samples", params={"as_of": as_of.isoformat()}).json()
     assert instant(samples["as_of"]) == as_of
@@ -349,7 +353,7 @@ def test_a_volume_signal_in_another_unit_is_invalid_not_converted(seeded, fake, 
 def test_two_batches_on_the_same_bioreactor_do_not_see_each_other(seeded, client):
     seen = {}
     for batch_id in ("BL-0001", "BL-0002"):
-        culture = CAMPAIGN[batch_id].record.phases[0]
+        culture = CAMPAIGN[batch_id].record.phase("production_culture")
         samples = client.get(f"/api/batches/{batch_id}/samples").json()["samples"]
         assert all(s["sample_id"].startswith(batch_id) for s in samples)
         assert all(r["result_id"].startswith(batch_id) for s in samples for r in s["results"])
@@ -451,7 +455,7 @@ def test_batches_with_a_normal_capture_step_get_no_recovery_shortfall(seeded, cl
 
 
 def test_a_recovery_finding_waits_for_the_pool_measurements(seeded, client):
-    capture = CAMPAIGN["BL-0004"].record.phases[2]
+    capture = CAMPAIGN["BL-0004"].record.phase("protein_a_capture")
     finding = finding_of(
         client, "BL-0004", "protein_a_recovery_shortfall", as_of=capture.start.isoformat()
     )
@@ -494,7 +498,7 @@ def test_the_divergence_comes_with_the_other_results_of_the_same_samples_as_evid
 
 
 def test_evidence_holds_only_what_was_available_at_as_of(seeded, client):
-    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    culture = CAMPAIGN["BL-0003"].record.phase("production_culture")
     as_of = (culture.start + timedelta(days=12)).isoformat()
     finding = finding_of(client, "BL-0003", "titer_divergence", as_of=as_of)
     last = finding["evidence"][1]
@@ -508,16 +512,20 @@ def test_evidence_holds_only_what_was_available_at_as_of(seeded, client):
 
 def test_samples_carry_their_culture_day_and_can_be_laid_over_another_batch(seeded, client):
     own = client.get("/api/batches/BL-0003/samples").json()["samples"]
-    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    record = CAMPAIGN["BL-0003"].record
     for sample in own:
-        age = (instant(sample["collected_at"]) - culture.start).total_seconds() / 86400
+        # The age counts from the start of the sample's own phase: a seed passage's from its own.
+        began = record.phase(sample["phase_kind"]).start
+        age = (instant(sample["collected_at"]) - began).total_seconds() / 86400
+        assert 0 <= age <= 14.25
         assert sample["culture_day"] == pytest.approx(age)
         assert sample["aligned_at"] is None
     # The reference batch's samples, placed at the same culture age on BL-0003's timeline.
     laid = client.get("/api/batches/BL-0001/samples", params={"align_to": "BL-0003"}).json()
     assert laid["aligned_to"] == "BL-0003"
     for sample in laid["samples"]:
-        shifted = culture.start + timedelta(days=sample["culture_day"])
+        # Each on the same phase of BL-0003: a seed passage's sample on that seed passage.
+        shifted = record.phase(sample["phase_kind"]).start + timedelta(days=sample["culture_day"])
         assert abs((instant(sample["aligned_at"]) - shifted).total_seconds()) < 0.002
     assert (
         client.get("/api/batches/BL-0001/samples", params={"align_to": "BL-9999"}).status_code
@@ -570,7 +578,7 @@ def test_the_reference_batch_is_not_compared_with_itself(seeded, client):
 
 
 def test_a_finding_uses_only_what_was_available_at_as_of(seeded, client):
-    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    culture = CAMPAIGN["BL-0003"].record.phase("production_culture")
     # Day 6.5: before the titer left the reference, and before day 6's own titer came in.
     early = finding_of(
         client,
@@ -651,7 +659,7 @@ def test_the_badly_recorded_batch_is_flagged_everywhere_and_answered_nowhere_it_
 
 def test_the_hole_in_the_historian_shows_in_the_trends_as_missing_values(seeded, client):
     answer = client.get("/api/batches/BL-0005/trends").json()
-    culture = CAMPAIGN["BL-0005"].record.phases[0]
+    culture = CAMPAIGN["BL-0005"].record.phase("production_culture")
     hole = culture.start + timedelta(days=13.4)
     for signal in answer["signals"]:
         assert signal["status"] == "usable"
@@ -683,7 +691,7 @@ def test_a_batch_says_from_when_to_when_anything_about_it_became_known(seeded, c
 
 def test_an_as_of_view_does_not_know_the_future(seeded, client):
     record = CAMPAIGN["BL-0003"].record
-    culture = record.phases[0]
+    culture = record.phase("production_culture")
     as_of = culture.start + timedelta(days=6.5)  # day 6's sample is taken, its titer not reported
     params = {"as_of": as_of.isoformat()}
     # Samples collected after as_of do not exist yet: no metric or finding names them.
@@ -701,17 +709,21 @@ def test_an_as_of_view_does_not_know_the_future(seeded, client):
     # pool has been measured.
     detail = client.get("/api/batches/BL-0003", params=params).json()
     assert instant(detail["as_of"]) == as_of
-    [phase] = detail["phases"]
+    *seed, phase = detail["phases"]
+    assert [(p["kind"], p["end"] is not None) for p in seed] == [
+        ("seed_n2", True),
+        ("seed_n1", True),
+    ]
     assert (phase["kind"], phase["end"]) == ("production_culture", None)
     assert detail["pools"] == []
     # After everything: all three phases with their ends, both pools.
     whole = client.get("/api/batches/BL-0003").json()
-    assert whole["as_of"] is None and len(whole["phases"]) == 8 and len(whole["pools"]) == 9
+    assert whole["as_of"] is None and len(whole["phases"]) == 10 and len(whole["pools"]) == 9
     assert all(phase["end"] for phase in whole["phases"])
     assert client.get("/api/batches/BL-0003", params={"as_of": "soon"}).status_code == 422
     # The list is not an as-of view: it has no as_of.
     before = client.get(
-        "/api/batches/BL-0003", params={"as_of": (culture.start - timedelta(days=1)).isoformat()}
+        "/api/batches/BL-0003", params={"as_of": (culture.start - timedelta(days=7)).isoformat()}
     )
     assert before.status_code == 200 and before.json()["phases"] == []
 

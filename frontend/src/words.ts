@@ -5,6 +5,9 @@ import type { Reason } from "./types";
 
 export function metricName(metric: string): string {
   switch (metric) {
+    case "seed_n2_growth_rate": return t("N-2 seed growth rate");
+    case "seed_n1_growth_rate": return t("N-1 seed growth rate");
+    case "inoculation_density": return t("Inoculation density");
     case "ivcd": return t("Integral of viable cell density (IVCD)");
     case "qp": return t("Specific productivity (qP)");
     case "harvest_mass": return t("Product mass at harvest");
@@ -28,6 +31,8 @@ export function metricDigits(metric: string): number {
 
 export function phaseName(kind: string): string {
   switch (kind) {
+    case "seed_n2": return t("N-2 seed culture");
+    case "seed_n1": return t("N-1 seed culture");
     case "production_culture": return t("Production culture");
     case "harvest": return t("Harvest");
     case "protein_a_capture": return t("Protein A capture");
@@ -109,6 +114,9 @@ export function reasonText(reason: Reason): string {
     case "result_not_yet_available": return t("Result not yet available: {ids}.", { ids: (v.ids as string[] | undefined ?? []).join(", ") });
     case "estimated_from_concentration_times_volume": return t("Estimated from concentration × volume ({method}).", { method: text("method") });
     case "fewer_than_two_samples": return t("Fewer than two cell counts.");
+    case "zero_cell_count": return t("{id} counted no cells.", { id: text("id") });
+    case "no_cell_count": return t("No cell count.");
+    case "no_count_near_inoculation": return t("The first cell count ({id}) was collected {hours} h after the phase began; only one within {window} h stands for the density it began at.", { id: text("id"), hours: Number(v.hours).toFixed(1), window: text("window_hours") });
     case "fewer_than_two_paired_samples": return t("Fewer than two samples have both a cell count and a titer.");
     case "gap_exceeds_maximum": return t("A gap of {gap} days between cell counts exceeds the limit of {max} days.", { gap: Number(v.gap_days).toFixed(1), max: text("max_gap_days") });
     case "wrong_unit": return t("{id} is in {unit}; {expected} is required, and units are never converted.", { id: text("id"), unit: text("unit") || "?", expected: text("expected") });

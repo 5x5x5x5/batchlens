@@ -1,12 +1,12 @@
 /** The process train as a picture: one drawing per step, in process order, with the asset it
- * ran on. A step the batch has not reached (or had not, at the chosen time) is drawn faded and
- * says so. The drawings are schematic symbols, not the equipment. */
+ * ran on. A step the batch has not reached (or had not, at the chosen time), or has no record
+ * of, is drawn faded and says which. The drawings are schematic symbols, not the equipment. */
 import { t } from "./i18n";
 import type { Phase } from "./types";
 import { phaseName } from "./words";
 
 /** Process order. The picture shows every step, whether or not the batch has a record of it. */
-export const TRAIN = ["production_culture", "harvest", "protein_a_capture", "viral_inactivation", "cation_exchange", "anion_exchange", "viral_filtration", "ufdf"];
+export const TRAIN = ["seed_n2", "seed_n1", "production_culture", "harvest", "protein_a_capture", "viral_inactivation", "cation_exchange", "anion_exchange", "viral_filtration", "ufdf"];
 
 /** A packed chromatography column, with what tells the three of them apart written on the bed. */
 function Column({ mark }: { mark: string }) {
@@ -19,8 +19,22 @@ function Column({ mark }: { mark: string }) {
   </>;
 }
 
+/** A seed bioreactor: a small stirred tank, with its place in the seed train written on it. */
+function SeedTank({ mark, small }: { mark: string; small?: boolean }) {
+  const [x, top, width] = small ? [16, 26, 16] : [13, 18, 22];
+  return <>
+    <rect x="21" y={top - 7} width="6" height="5" rx="1" />
+    <rect x={x} y={top} width={width} height={50 - top} rx="4" />
+    <path className="fill" d={`M${x} ${top + 8}h${width}v${38 - top}a4 4 0 0 1-4 4h-${width - 8}a4 4 0 0 1-4-4z`} />
+    <path d={`M24 ${top - 2}v6`} />
+    <text x="24" y="44">{mark}</text>
+  </>;
+}
+
 function Glyph({ kind }: { kind: string }) {
   switch (kind) {
+    case "seed_n2": return <SeedTank mark="N-2" small />;
+    case "seed_n1": return <SeedTank mark="N-1" />;
     case "production_culture": // stirred tank: motor, shaft, two impellers, liquid, sparger
       return <>
         <rect x="20" y="3" width="8" height="6" rx="1" />
@@ -67,13 +81,15 @@ function Glyph({ kind }: { kind: string }) {
 
 export function ProcessTrain({ phases }: { phases: Phase[] }) {
   return <ol className="train" aria-label={t("Process train")}>
-    {TRAIN.map((kind) => {
+    {TRAIN.map((kind, index) => {
       const phase = phases.find((candidate) => candidate.kind === kind);
+      // A step before one the batch has a record of was not "not started": it has no record.
+      const passed = TRAIN.slice(index + 1).some((later) => phases.some((candidate) => candidate.kind === later));
       const state = !phase ? "pending" : phase.end ? "done" : "running";
       return <li key={kind} data-step={kind} data-state={state}>
         <svg viewBox="0 0 48 56" aria-hidden="true" focusable="false"><Glyph kind={kind} /></svg>
         <strong>{phaseName(kind)}</strong>
-        <span className="muted">{phase ? phase.asset_id : t("Not started")}{state === "running" && ` · ${t("In progress")}`}</span>
+        <span className="muted">{phase ? phase.asset_id : passed ? t("No record") : t("Not started")}{state === "running" && ` · ${t("In progress")}`}</span>
       </li>;
     })}
   </ol>;
