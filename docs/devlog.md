@@ -3,6 +3,23 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Control loops on the bioreactor
+
+The owner asked for them so that the suite's loop monitoring has something to judge.
+
+- **Built:** `generator.loop_series`: a fast value, a setpoint and an output for temperature,
+  pH and dissolved oxygen, every 30 seconds, each point on a random stream of its own. The
+  plant files gain `bioreactor-loops.csv` (the last 48 hours), a second source and a `loops`
+  sheet; `tools/seed_suite.py` adds the source to Historian, asks Analytics to list the loops
+  and run a round, and runs View's and Alarms' own first steps.
+- **First attempt, dropped:** setpoint and output at the 10-minute instants of the recorded
+  signals. PlantCraft Analytics rated every loop at 0 %: it wants a value every 30 seconds or
+  faster. Hence fast signals in a small rolling file, and no change to any recorded value.
+- **Seen (PlantCraft 0.6.0, fresh workspace):** 13 signals and 3 loops imported with no
+  issues; Analytics: `TIC-2001` 97.5 %, `AIC-2001` 92.8 %, `AIC-2002` 41.8 % with "sluggish
+  tuning" as likely cause (the generator's noise, `docs/gaps.md`); View drew "mAb drug
+  substance overview"; Alarms drafted two rules, switched off.
+
 ## 2026-11-16: The bioreactor in Historian and Analytics
 
 - **Built:** `tools/seed_suite.py` adds the bioreactor's file to PlantCraft Historian as a CSV

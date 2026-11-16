@@ -58,6 +58,18 @@ POOL_LITRES_PER_GRAM = {
 ONLINE_UNITS = {"ph": "pH", "do": "% air sat.", "temperature": "°C", "volume": "L"}
 VOLUME_UNIT = ONLINE_UNITS["volume"]
 ONLINE_INTERVAL_SECONDS = 600
+# The bioreactor's control loops, by the role of the signal each one controls. A loop's values
+# are fast (loop monitoring wants seconds, not the 10 minutes of the recorded signals) and are
+# made on request for a window of time (``loop_series``), not kept with the batch.
+LOOP_INTERVAL_SECONDS = 30
+LOOP_ROLES = ("temperature", "ph", "do")
+# role: the output's load (%) at culture day 0 and at day 14, its gain in % per unit of error,
+# its noise (%), and the noise of the fast value between two recorded ones. Illustrative.
+LOOP_SHAPE = {
+    "temperature": (42.0, 30.0, 20.0, 0.4, 0.01),  # jacket valve: less heating as cells warm it
+    "ph": (30.0, 14.0, 150.0, 0.5, 0.003),  # CO2 and base: less as lactate is consumed
+    "do": (8.0, 58.0, 2.0, 0.8, 0.3),  # oxygen sparge: more as the cell density grows
+}
 
 CULTURE_DAYS = 14.25  # the last sample is taken near day 14
 TEMPERATURE_SHIFT_DAY = 6.0  # the one planned shift, 36.5 to 33.0 °C
@@ -161,6 +173,62 @@ def _online(
             continue  # drawn (so the noise is the same as without a gap) but never kept
         for role, value in values.items():
             series[role].append((moment, round(value, 2 if role != "volume" else 1)))
+    return series
+
+
+def loop_setpoint(role: str, day: float) -> float:
+    if role == "temperature":
+        return round(36.5 - 3.5 * min(1.0, max(0.0, (day - TEMPERATURE_SHIFT_DAY) * 12)), 2)
+    return {"ph": 7.0, "do": 40.0}[role]
+
+
+def loop_series(
+    batch: Observations, since: datetime, until: datetime
+) -> dict[str, list[tuple[datetime, float]]]:
+    """The control loops' value, setpoint and output (``"<role>.pv"``, ``.sp``, ``.op``) every
+    ``LOOP_INTERVAL_SECONDS`` of the batch's culture between ``since`` and ``until``.
+
+    The fast value passes through every recorded value of the same signal (straight lines
+    between them, plus a little noise that is zero at the recorded instants); the output is a
+    load that moves over the culture plus a proportional answer to the error, clipped to
+    0..100 %. That is the shape of a loop that is working, not a model of a controller. Each
+    point has its own random stream, so any window gives the same values and no value that
+    existed before the loops is changed. Nothing is made across a hole in the recorded values."""
+
+    start = batch.record.phases[0].start
+    batch_id = batch.record.batch.batch_id
+    series: dict[str, list[tuple[datetime, float]]] = {}
+    for role in LOOP_ROLES:
+        first, last, gain, noise, between = LOOP_SHAPE[role]
+        recorded = batch.online[role]
+        values, setpoints, outputs = [], [], []
+        for (left_at, left), (right_at, right) in zip(recorded, recorded[1:]):
+            if right_at <= since or left_at > until:
+                continue
+            if (right_at - left_at).total_seconds() > ONLINE_INTERVAL_SECONDS:
+                continue  # a hole in the record: no fast values either
+            steps = ONLINE_INTERVAL_SECONDS // LOOP_INTERVAL_SECONDS
+            for step in range(steps):
+                moment = left_at + timedelta(seconds=step * LOOP_INTERVAL_SECONDS)
+                if not since <= moment <= until:
+                    continue
+                seconds = (moment - start).total_seconds()
+                rng = random.Random(f"{batch_id}/loop/{role}/{int(seconds)}")
+                value = (
+                    left + (right - left) * step / steps + (rng.gauss(0, between) if step else 0)
+                )
+                day = seconds / 86400
+                setpoint = loop_setpoint(role, day)
+                load = first + (last - first) / (1 + math.exp(-(day - CULTURE_DAYS / 2)))
+                output = load + gain * (setpoint - value) + rng.gauss(0, noise)
+                values.append((moment, round(value, 3)))
+                setpoints.append((moment, setpoint))
+                outputs.append((moment, round(min(100.0, max(0.0, output)), 1)))
+        series[f"{role}.pv"], series[f"{role}.sp"], series[f"{role}.op"] = (
+            values,
+            setpoints,
+            outputs,
+        )
     return series
 
 

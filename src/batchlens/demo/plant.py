@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -31,9 +31,11 @@ from batchlens.demo.generator import (
     BIOREACTOR,
     DOWNSTREAM,
     HARVEST_SKID,
+    LOOP_ROLES,
     ONLINE_UNITS,
     PROTEIN_A_SKID,
     demo_campaign,
+    loop_series,
 )
 
 UNIT = "U-MAB"
@@ -48,6 +50,34 @@ SIGNAL_NAMES = {
 }
 # role -> tag (the CSV column).
 TAGS = {role: f"BIO.{BIOREACTOR}.{role.upper()}" for role in ONLINE_UNITS}
+# The control loops' fast signals come from a source and a file of their own, which holds the
+# last LOOP_HOURS only: loop monitoring looks at what a loop is doing now.
+LOOP_SOURCE_NAME = "BatchLens synthetic loops"
+LOOP_SOURCE_ID = "batchlens-synthetic-loops"
+LOOP_HOURS = 48
+# loop id -> (name, the role it controls, PlantCraft's loop type, what it does).
+LOOPS = {
+    "TIC-2001": (
+        "BR-2001 temperature control",
+        "temperature",
+        "temperature",
+        "Jacket temperature of the production bioreactor",
+    ),
+    "AIC-2001": ("BR-2001 pH control", "ph", "composition", "pH of the culture by CO2 and base"),
+    "AIC-2002": (
+        "BR-2001 dissolved oxygen control",
+        "do",
+        "composition",
+        "Dissolved oxygen of the culture by oxygen sparge",
+    ),
+}
+# "<role>.pv", ".sp" and ".op" -> tag (the loops file's column).
+LOOP_TAGS = {
+    f"{role}.{part}": f"LOOP.{loop_id}.{part.upper()}"
+    for loop_id, (_, role, _, _) in LOOPS.items()
+    for part in ("pv", "sp", "op")
+}
+assert {role for _, role, _, _ in LOOPS.values()} == set(LOOP_ROLES)
 # asset id -> (kind, name, parent). Roles are free text in PlantCraft's map, so the bioreactor
 # is plain equipment and no asset type has to be made before the import.
 ASSETS = {
@@ -88,12 +118,34 @@ def recorded(
     return rows
 
 
+def loop_rows(
+    live_from: datetime | None = None, until: datetime | None = None
+) -> dict[datetime, dict[str, float]]:
+    """The loops' fast values over the last ``LOOP_HOURS`` before ``until`` (without it: before
+    the end of the campaign's last culture): ``{instant: {tag: value}}``."""
+
+    observations, _ground_truth = demo_campaign(live_from)
+    if until is None:
+        until = observations[-1].record.phase("production_culture").end
+    since = until - timedelta(hours=LOOP_HOURS)
+    rows: dict[datetime, dict[str, float]] = {}
+    for batch in observations:
+        culture = batch.record.phase("production_culture")
+        if culture.end <= since or culture.start > until:
+            continue
+        for key, points in loop_series(batch, since, until).items():
+            for moment, value in points:
+                rows.setdefault(moment, {})[LOOP_TAGS[key]] = value
+    return rows
+
+
 class PlantFiles(NamedTuple):
     csv: Path
     map: Path
+    loops: Path
 
 
-def plant_map(csv_path: Path) -> dict[str, object]:
+def plant_map(csv_path: Path, loops_path: Path) -> dict[str, object]:
     """PlantCraft's plant map (format ``processcraft-map``) of the synthetic plant."""
 
     sheets: dict[str, list[dict[str, object]]] = {"unit": [], "equipment": []}
@@ -109,7 +161,13 @@ def plant_map(csv_path: Path) -> dict[str, object]:
     return {
         "format": "processcraft-map",
         "sources": [
-            {"source_id": SOURCE_ID, "name": SOURCE_NAME, "type": "csv", "path": str(csv_path)}
+            {"source_id": SOURCE_ID, "name": SOURCE_NAME, "type": "csv", "path": str(csv_path)},
+            {
+                "source_id": LOOP_SOURCE_ID,
+                "name": LOOP_SOURCE_NAME,
+                "type": "csv",
+                "path": str(loops_path),
+            },
         ],
         **sheets,
         "signals": [
@@ -124,6 +182,33 @@ def plant_map(csv_path: Path) -> dict[str, object]:
                 "monitor": True,
             }
             for role, tag in TAGS.items()
+        ]
+        + [
+            # A loop's signals belong to the loop only (the loops sheet binds them by role).
+            {
+                "tag": LOOP_TAGS[f"{role}.{part}"],
+                "source_id": LOOP_SOURCE_ID,
+                "name": f"{loop_id} {label}",
+                "unit": "%" if part == "op" else ONLINE_UNITS[role],
+                "asset_id": "",
+                "role": "",
+                "monitor": False,
+            }
+            for loop_id, (_, role, _, _) in LOOPS.items()
+            for part, label in (("pv", "value"), ("sp", "setpoint"), ("op", "output"))
+        ],
+        "loops": [
+            {
+                "loop_id": loop_id,
+                "name": name,
+                "asset_id": BIOREACTOR,
+                "service": service,
+                "pv": LOOP_TAGS[f"{role}.pv"],
+                "sp": LOOP_TAGS[f"{role}.sp"],
+                "op": LOOP_TAGS[f"{role}.op"],
+                "loop_type": loop_type,
+            }
+            for loop_id, (name, role, loop_type, service) in LOOPS.items()
         ],
     }
 
@@ -135,12 +220,12 @@ def write_plant_files(
     live_from: datetime | None = None,
     until: datetime | None = None,
 ) -> PlantFiles:
-    """Writes ``bioreactor.csv`` and ``plant-map.json`` into ``folder``. The CSV's times are on
+    """Writes ``bioreactor.csv``, ``bioreactor-loops.csv`` and ``plant-map.json`` into ``folder``. The CSV's times are on
     the wall clock of ``time_zone`` (the zone PlantCraft reads CSV files in); the map names the
     CSV by its absolute path, as PlantCraft's server will open it. Raises ``ValueError`` for a
     time zone this computer does not know.
 
-    ``live_from`` and ``until`` as in ``recorded``. The CSV is replaced in one step, so writing
+    ``live_from`` and ``until`` as in ``recorded``. Each CSV is replaced in one step, so writing
     it again while PlantCraft reads it never shows half a file."""
 
     try:
@@ -148,17 +233,25 @@ def write_plant_files(
     except (ZoneInfoNotFoundError, ValueError) as exc:
         raise ValueError(f"Unknown time zone: {time_zone}") from exc
     folder.mkdir(parents=True, exist_ok=True)
-    csv_path = folder.resolve() / "bioreactor.csv"
-    rows = recorded(live_from, until)
-    draft = csv_path.with_suffix(".csv.part")
-    with draft.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["time", *TAGS.values()])
-        for moment in sorted(rows):
-            values = rows[moment]
-            stamp = moment.astimezone(zone).strftime("%Y-%m-%d %H:%M:%S")
-            writer.writerow([stamp, *(values.get(tag, "") for tag in TAGS.values())])
-    draft.replace(csv_path)
+
+    def write(name: str, rows: dict[datetime, dict[str, float]], columns: list[str]) -> Path:
+        path = folder.resolve() / name
+        draft = path.with_suffix(".csv.part")
+        with draft.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["time", *columns])
+            for moment in sorted(rows):
+                stamp = moment.astimezone(zone).strftime("%Y-%m-%d %H:%M:%S")
+                writer.writerow([stamp, *(rows[moment].get(tag, "") for tag in columns)])
+        draft.replace(path)
+        return path
+
+    csv_path = write("bioreactor.csv", recorded(live_from, until), list(TAGS.values()))
+    loops_path = write(
+        "bioreactor-loops.csv", loop_rows(live_from, until), list(LOOP_TAGS.values())
+    )
     map_path = folder.resolve() / "plant-map.json"
-    map_path.write_text(json.dumps(plant_map(csv_path), indent=2) + "\n", encoding="utf-8")
-    return PlantFiles(csv_path, map_path)
+    map_path.write_text(
+        json.dumps(plant_map(csv_path, loops_path), indent=2) + "\n", encoding="utf-8"
+    )
+    return PlantFiles(csv_path, map_path, loops_path)

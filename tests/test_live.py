@@ -102,3 +102,10 @@ def test_the_live_plant_file_stops_at_now(tmp_path):
     rows = list(csv.reader(files.csv.open()))
     assert rows[-1][0] == "2027-03-10 15:30:00"
     assert not (tmp_path / "bioreactor.csv.part").exists()
+
+
+def test_the_live_loops_file_holds_the_two_days_before_now(tmp_path):
+    files = write_plant_files(tmp_path, live_from=START, until=NOW)
+    rows = list(csv.reader(files.loops.open()))
+    assert rows[1][0] == "2027-03-08 15:30:00" and rows[-1][0] == "2027-03-10 15:30:00"
+    assert len(rows) - 1 == 48 * 120 + 1

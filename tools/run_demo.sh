@@ -119,7 +119,7 @@ curl -fs -b "$COOKIES" -X POST --data-binary "@$PLANT_DIR/plant-map.json" \
   | python -c 'import json,sys; r=json.load(sys.stdin); print("imported:", r["applied"], {s["name"]: [s["create"], s["update"], s["unchanged"]] for s in r["sections"]}, "issues:", r["issues"])'
 rm -f "$COOKIES"
 
-echo "Giving the suite's modules the mAb plant (history, signal ranges, a dashboard, a process display, alarm rules, documents)..."
+echo "Giving the suite's modules the mAb plant (history, control loops, signal ranges, dashboards, a process display, alarm rules, documents)..."
 python "$REPO/tools/seed_suite.py" "$DEMO_URL" "$PLANT_DIR/bioreactor.csv" "$ZONE" 2>&1 | tail -1
 
 cat <<DONE
