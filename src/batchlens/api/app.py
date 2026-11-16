@@ -1,4 +1,4 @@
-"""The BatchlensCraft web application: API and built interface under ``/batchlens``.
+"""The BatchLens web application: API and built interface under ``/batchlens``.
 
 The endpoints every app serves (``/healthz``, ``/api/meta``, ``/api/help``, ``assets/<id>``),
 the interface and its sign-in redirects come from ``plantcraft_sdk.server.web``; this module
@@ -37,7 +37,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
 
     api = web.suite_api(
         runtime,
-        title="BatchlensCraft",
+        title="BatchLens",
         version=__version__,
         files=FILES,
         routers=(batches.router, tools.router),

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "batchlens"
 version = "0.2.0"
-description = "BatchLens (BatchlensCraft): synthetic, non-GxP mAb batch analytics on the PlantCraft suite"
+description = "BatchLens: synthetic, non-GxP mAb batch analytics on the PlantCraft suite"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.11"

@@ -1,4 +1,4 @@
-# STATUS: BatchLens (BatchlensCraft)
+# STATUS: BatchLens
 
 Where the app stands, for people and agents picking up work here. Updated 2026-11-15.
 

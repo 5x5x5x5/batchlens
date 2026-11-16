@@ -1,6 +1,6 @@
 """Settings, all from the environment, each with a safe default.
 
-Secrets (the app key) are never logged or stored by BatchlensCraft.
+Secrets (the app key) are never logged or stored by BatchLens.
 
 | Variable | Default | Meaning |
 |---|---|---|

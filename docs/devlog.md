@@ -3,6 +3,18 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The app is named BatchLens
+
+The name `make rename` gave the app is gone from everything but the older entries below, which
+record what was true then. It is **BatchLens** in the documents and the sidebar, and `BatchLensCraft` in the manifest.
+The id `batchlens`, the prefix `/batchlens/`, the Python package and the repository are unchanged.
+
+- **Tried and refused:** the owner asked for "PlantCraft BatchLens", the form the suite gives
+  its own modules (app standard, D10). `plantcraft-app check` refuses it for an app outside
+  the suite ("kept for the suite's own apps"), and PlantCraft's `TRADEMARKS.md` asks that the
+  maintainers be asked before an app is published under a PlantCraft name. The check refuses
+  a plain "BatchLens" as well: an outside app's manifest name must end in "Craft".
+
 ## 2026-11-16: Last check of the night, on `main`
 
 `tools/run_demo.sh --reset` on `main` at `d2475d7`, then a browser driven through the demo

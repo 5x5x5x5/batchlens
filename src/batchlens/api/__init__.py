@@ -1,1 +1,1 @@
-"""BatchlensCraft's web API and the server of its interface."""
+"""BatchLens's web API and the server of its interface."""

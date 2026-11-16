@@ -1,4 +1,4 @@
-"""E2E fixtures: FakePlantCraft and BatchlensCraft served over HTTP, and a headless Chromium
+"""E2E fixtures: FakePlantCraft and BatchLens served over HTTP, and a headless Chromium
 (``plantcraft_sdk.e2e``: the fake in a forked server, the app in a uvicorn thread with the built
 interface, the browser signed in with PlantCraft's cookie). ``BATCHLENS_E2E_REQUIRED=1`` makes a
 missing tool a failure; ``BATCHLENS_E2E_SCREENSHOTS`` names a folder for screenshots.
@@ -28,7 +28,7 @@ from tests.plant import APP_KEY, make_fake
 
 @contextmanager
 def _app(fake, data_dir) -> Iterator[str]:
-    """BatchlensCraft with the demo batches, served against ``fake``; yields its URL."""
+    """BatchLens with the demo batches, served against ``fake``; yields its URL."""
 
     if ui_folder() is None:
         e2e.unavailable(
@@ -47,7 +47,7 @@ def _app(fake, data_dir) -> Iterator[str]:
         seed_demo(runtime.batches)
         runtime.start()
         try:
-            with e2e.serving(create_app(runtime), "BatchlensCraft") as url:
+            with e2e.serving(create_app(runtime), "BatchLens") as url:
                 yield url
         finally:
             runtime.shutdown()

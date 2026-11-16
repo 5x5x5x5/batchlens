@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
 #
-# BatchlensCraft image: built online once, then shipped offline in the PlantCraft suite bundle.
+# BatchLens image: built online once, then shipped offline in the PlantCraft suite bundle.
 # Three stages:
 #   1. frontend: builds the web interface with Node (never shipped), with @plantcraft/ui
 #                from vendor/.
 #   2. wheels:   downloads every Python dependency as a wheel, checked against the hashes in
 #                deploy/requirements.lock (binary wheels only: no compiler anywhere), plus the
-#                BatchlensCraft wheel. plantcraft-sdk comes from vendor/, never from an index.
+#                BatchLens wheel. plantcraft-sdk comes from vendor/, never from an index.
 #   3. runtime:  Python slim, installs from that wheelhouse with --no-index (no network), runs
 #                as an unprivileged user and holds no build tools, not even pip.
 #
@@ -47,7 +47,7 @@ COPY vendor ./vendor
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 # plantcraft-sdk from vendor/ only, checked against the SHA256 in vendor/README.md; then the
-# BatchlensCraft wheel (--no-deps: the index only provides its build backend, setuptools).
+# BatchLens wheel (--no-deps: the index only provides its build backend, setuptools).
 RUN --mount=type=secret,id=build_ca,required=false \
     if [ -s /run/secrets/build_ca ]; then export PIP_CERT=/run/secrets/build_ca; fi; \
     grep -o '[0-9a-f]\{64\}  plantcraft_sdk-0.104.0-py3-none-any.whl' vendor/README.md \
@@ -91,7 +91,7 @@ COPY --from=frontend /build/frontend/dist /app/ui
 COPY LICENSE ATTRIBUTION.md CHANGELOG.md app.toml /app/
 COPY docs/help /app/docs/help
 
-# Dependencies from the hash-checked wheelhouse, without network; then the SDK and BatchlensCraft.
+# Dependencies from the hash-checked wheelhouse, without network; then the SDK and BatchLens.
 # --no-deps everywhere: the lock is complete.
 RUN --mount=type=bind,from=wheels,source=/wheelhouse,target=/wheelhouse \
     --mount=type=bind,source=deploy/requirements.lock,target=/tmp/requirements.lock \

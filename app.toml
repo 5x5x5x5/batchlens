@@ -1,9 +1,9 @@
-# BatchlensCraft's manifest: the single source of its metadata (the suite's app standard, section 4).
+# BatchLens's manifest: the single source of its metadata (the suite's app standard, section 4).
 # The launcher card, the Apps page, the package manifest, the image labels and /api/meta read it.
 
 [app]
 id = "batchlens"
-name = "BatchlensCraft"
+name = "BatchLensCraft"
 version = "0.2.0"
 category = "Example"
 summary = "Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery."
