@@ -44,6 +44,26 @@ print(json.load(open(sys.argv[1]))["source"].get("timezone", "America/Sao_Paulo"
 PY
 )
 
+# PlantCraft's own demo scenario is a simulated refinery with 50 control loops. The demo runs
+# a copy of it under the mAb plant's name with one of those loops, shown as a utility, so the
+# plant PlantCraft shows is the one BatchLens is about. The Simulator still runs: it is the
+# scenario's source, and PlantCraft needs one tag from it.
+SCENARIO="$PLANTCRAFT_DIR/var/batchlens-scenario.json"
+mkdir -p "$PLANTCRAFT_DIR/var"
+python - "$PLANTCRAFT_DIR/scenarios/opcua_demo.json" "$SCENARIO" <<'PY'
+import json, sys
+scenario = json.load(open(sys.argv[1]))
+scenario["display_name"] = "mAb drug substance plant"
+scenario["description"] = "A synthetic mAb drug substance plant: one bioreactor and its purification train."
+# PlantCraft needs one tag from its source: one of the Simulator's loops stays, as a utility.
+keep = scenario["loops"][0]
+keep.update(name="Purified water flow", area="Utilities", unit="U-UTIL", service="A utility loop from PlantCraft's Simulator")
+keep["metadata"] = {"loop_type": keep["metadata"]["loop_type"]}
+scenario["loops"] = [keep]
+json.dump(scenario, open(sys.argv[2], "w"), indent=2)
+PY
+LAUNCH='import pathlib, sys, run_opcua_demo as demo; demo.SCENARIO = pathlib.Path(sys.argv[1])'
+
 # Every app as id:prefix:port:command. View's own port, 8080, is left alone: other things on
 # a workstation use it.
 APPS="batchlens:batchlens:9100:$(command -v batchlens)"
@@ -75,7 +95,7 @@ trap 'for pid in $PIDS; do pkill -P "$pid" 2>/dev/null || true; done; kill $PIDS
 # A signal ends the script through the line above (bash alone would leave the servers running).
 trap 'exit 143' TERM INT HUP
 (cd "$PLANTCRAFT_DIR" && PLANTCRAFT_APPS="${LIST#,}" PLANTCRAFT_OPS_URLS="${OPS#,}" \
-  exec python run_opcua_demo.py --no-linkcraft $FLAGS) >> /tmp/batchlens-demo.log 2>&1 &
+  exec python -c "$LAUNCH; sys.exit(demo.main(sys.argv[2:]))" "$SCENARIO" --no-linkcraft $FLAGS) >> /tmp/batchlens-demo.log 2>&1 &
 PIDS="$PIDS $!"
 for _ in $(seq 1 180); do
   curl -fs -o /dev/null "$PLANTCRAFT_URL/" && break
@@ -89,9 +109,11 @@ curl -fs -o /dev/null "$PLANTCRAFT_URL/" || { echo "PlantCraft did not answer; s
 # clears the workspace first.
 # Historian may read CSV files only in the folders named here: the plant's folder.
 export HISTCRAFT_CSV_DIRS="$PLANT_DIR"
+# Models' built-in examples are about the refinery (a furnace): not in this plant.
+export MODELCRAFT_EXAMPLES=false
 for app in $APPS; do
   IFS=: read -r id prefix port command <<<"$app"
-  key=$(cd "$PLANTCRAFT_DIR" && python -c "import sys, run_opcua_demo as d; print(d._app_key(sys.argv[1], d.PROJECT_ROOT / 'var' / sys.argv[1]))" "$id")
+  key=$(cd "$PLANTCRAFT_DIR" && python -c "$LAUNCH; print(demo._app_key(sys.argv[2], demo.PROJECT_ROOT / 'var' / sys.argv[2]))" "$SCENARIO" "$id")
   env PLANTCRAFT_URL="$PLANTCRAFT_URL" PLANTCRAFT_APP_KEY_FILE="$key" "$(tr a-z A-Z <<<"$id")_DATA_DIR=$PLANTCRAFT_DIR/var/$id" \
     "$command" serve --port "$port" >> /tmp/batchlens-demo.log 2>&1 &
   PIDS="$PIDS $!"
@@ -128,7 +150,7 @@ print(json.dumps({"username": sys.argv[1], "password": open(sys.argv[2]).read().
 PY
   if [ -n "${BATCHLENS_DEMO_GUEST:-}" ]; then
     echo "Adding the read-only guest..."
-    users() { (cd "$PLANTCRAFT_DIR" && plantcraft users --scenario scenarios/opcua_demo.json "$@"); }
+    users() { (cd "$PLANTCRAFT_DIR" && plantcraft users --scenario "$SCENARIO" "$@"); }
     users add "$BATCHLENS_DEMO_GUEST" --name "Guest" --access viewer > /dev/null 2>&1 || true  # there already
     PLANTCRAFT_PASSWORD=$(cat "$BATCHLENS_DEMO_GUEST_PASSWORD_FILE") users password "$BATCHLENS_DEMO_GUEST" > /dev/null
   fi

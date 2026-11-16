@@ -79,7 +79,7 @@ tools/run_demo.sh
 The guest is a PlantCraft viewer: every page reads, nothing can be changed. The demo's cast
 has no passwords and cannot sign in. `tools/gateway.py` sends a request that a proxy received
 over plain HTTP to HTTPS. Tried through a Cloudflare Tunnel pointed at `http://127.0.0.1:8088`:
-an anonymous visitor gets the sign-in page and 401 from every API, the guest reads all seven
+the sign-in page names the plant, an anonymous visitor gets it and 401 from every API, the guest reads all seven
 apps and gets 403 on a write.
 
 ### Without PlantCraft

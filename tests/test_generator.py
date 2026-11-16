@@ -263,7 +263,12 @@ def test_a_loops_fast_value_passes_through_every_recorded_value():
         fast = dict(loops[f"{role}.pv"])
         recorded = [(m, v) for m, v in batch.online[role] if m in fast]
         assert len(recorded) == 145  # a day of 10-minute values, both ends
-        assert all(fast[moment] == value for moment, value in recorded)
+        if role == "do":  # the controller's value keeps 15 % of the recorded scatter
+            assert all(
+                fast[m] == pytest.approx(40.0 + 0.15 * (v - 40.0), abs=1e-3) for m, v in recorded
+            )
+        else:
+            assert all(fast[moment] == value for moment, value in recorded)
         assert len(fast) == 144 * 20 + 1  # one every 30 seconds
         assert all(0 <= value <= 100 for _, value in loops[f"{role}.op"])
 
@@ -288,8 +293,8 @@ def test_a_loops_output_answers_the_error_between_setpoint_and_value():
     # More oxygen when dissolved oxygen is below its setpoint than when it is above.
     _, _, loops = loops_of(0, 10.0, 12.0)
     pairs = list(zip(loops["do.pv"], loops["do.op"]))
-    below = [op for (_, pv), (_, op) in pairs if pv < 39.0]
-    above = [op for (_, pv), (_, op) in pairs if pv > 41.0]
+    below = [op for (_, pv), (_, op) in pairs if pv < 39.8]
+    above = [op for (_, pv), (_, op) in pairs if pv > 40.2]
     assert below and above and sum(below) / len(below) > sum(above) / len(above)
 
 
@@ -299,3 +304,9 @@ def test_no_loop_value_is_made_across_a_hole_in_the_record():
     last = max(moment for moment, _ in loops["ph.pv"])
     assert last < start + timedelta(days=13.4)
     assert last >= batch.online["ph"][-1][0] - timedelta(minutes=10)
+
+
+def test_the_dissolved_oxygen_loop_holds_its_value_close_to_the_setpoint():
+    _, _, loops = loops_of(0, 10.0, 12.0)
+    values = [value for _, value in loops["do.pv"]]
+    assert sum(abs(value - 40.0) <= 0.4 for value in values) / len(values) > 0.9

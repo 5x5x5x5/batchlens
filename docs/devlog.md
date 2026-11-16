@@ -3,6 +3,16 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A healthy oxygen loop, and no refinery
+
+- **Owner's ruling:** the dissolved oxygen loop is to look healthy. Its own value now keeps
+  15 % of the recorded signal's scatter around the setpoint; no recorded value changes.
+  PlantCraft Analytics: 41.8 % before, 90.8 % after (temperature 97.6 %, pH 92.8 %).
+- **Owner's ruling:** no references to the simulated refinery. `tools/run_demo.sh` runs a copy
+  of PlantCraft's scenario named "mAb drug substance plant" with one Simulator loop kept as a
+  utility (a scenario with no tag is refused), and switches Models' examples off. Seen: no
+  page of the eight apps says refinery or furnace.
+
 ## 2026-11-16: The demo where others can reach it
 
 - **Built:** `tools/run_demo.sh` and `tools/seed_suite.py` sign in as the administrator when
