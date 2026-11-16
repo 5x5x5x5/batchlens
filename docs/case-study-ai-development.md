@@ -39,7 +39,7 @@ Five decisions went to the owner, each asked as a question with options and a re
 | What counts as a batch "diverging" from the reference? | A scientific choice |
 | A recovery finding on one step or both? | A scientific choice |
 
-Everything else the agent decided and wrote down. There are more than thirty such rulings in the
+Everything else the agent decided and wrote down. There are about thirty such rulings in the
 devlog, for example: harvest mass uses the last titer sample collected in the phase and waits
 for it rather than falling back to an older one; "volume at the sample's time" is the last
 online value at or before it, at most fifteen minutes old, never a later one.
@@ -98,7 +98,7 @@ evidence of anything.
 | Benchmark | 320 seeded batches, 1,600 comparisons, under 3 seconds |
 | Independent review | 1 important finding (fixed, with a failing test first), 4 minor (1 fixed since, 3 open) |
 | Decisions taken to the owner | 5 |
-| Known gaps written down | 37, each with a state ([gaps.md](gaps.md)) |
+| Known gaps written down | 30, each with a state ([gaps.md](gaps.md)) |
 
 Not measured: how long the same work would have taken without an agent, or with an agent and
 no domain rules. An experiment comparing an agent with and without the bioprocess rules on the
