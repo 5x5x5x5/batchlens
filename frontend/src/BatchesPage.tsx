@@ -27,7 +27,7 @@ export function BatchesPage() {
             { key: "bioreactor", label: t("Bioreactor"), sort: (batch) => batch.asset_name ?? batch.asset_id, phone: "hide",
               render: (batch) => batch.asset_name ?? <>{batch.asset_id}<NotInPlantCraft /></> },
             { key: "start", label: t("Start"), sort: (batch) => batch.start, render: (batch) => when(batch.start) },
-            { key: "end", label: t("End"), sort: (batch) => batch.end, phone: "hide", render: (batch) => when(batch.end) },
+            { key: "end", label: t("End"), sort: (batch) => batch.end, phone: "hide", render: (batch) => (batch.running ? <Pill status="good" label={t("Running now")} /> : when(batch.end)) },
             { key: "reference", label: t("Reference"), sort: (batch) => (batch.is_reference ? 0 : 1),
               render: (batch) => (batch.is_reference ? <Pill status="info" label={t("Reference")} /> : "") },
           ]} />}

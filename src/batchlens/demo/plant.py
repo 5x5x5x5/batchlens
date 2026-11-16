@@ -72,15 +72,19 @@ ASSETS = {
 DESCRIPTION = "Synthetic demo equipment of BatchLens. Not a real asset."
 
 
-def recorded() -> dict[datetime, dict[str, float]]:
-    """Every online value of the demo batches: ``{instant: {tag: value}}``."""
+def recorded(
+    live_from: datetime | None = None, until: datetime | None = None
+) -> dict[datetime, dict[str, float]]:
+    """Every online value of the demo batches: ``{instant: {tag: value}}``. With ``live_from``
+    the campaign is the live one, and ``until`` (now) leaves out what has not happened yet."""
 
-    observations, _ground_truth = demo_campaign()
+    observations, _ground_truth = demo_campaign(live_from)
     rows: dict[datetime, dict[str, float]] = {}
     for batch in observations:
         for role, points in batch.online.items():
             for moment, value in points:
-                rows.setdefault(moment, {})[TAGS[role]] = value
+                if until is None or moment <= until:
+                    rows.setdefault(moment, {})[TAGS[role]] = value
     return rows
 
 
@@ -124,11 +128,20 @@ def plant_map(csv_path: Path) -> dict[str, object]:
     }
 
 
-def write_plant_files(folder: Path, time_zone: str = "UTC") -> PlantFiles:
+def write_plant_files(
+    folder: Path,
+    time_zone: str = "UTC",
+    *,
+    live_from: datetime | None = None,
+    until: datetime | None = None,
+) -> PlantFiles:
     """Writes ``bioreactor.csv`` and ``plant-map.json`` into ``folder``. The CSV's times are on
     the wall clock of ``time_zone`` (the zone PlantCraft reads CSV files in); the map names the
     CSV by its absolute path, as PlantCraft's server will open it. Raises ``ValueError`` for a
-    time zone this computer does not know."""
+    time zone this computer does not know.
+
+    ``live_from`` and ``until`` as in ``recorded``. The CSV is replaced in one step, so writing
+    it again while PlantCraft reads it never shows half a file."""
 
     try:
         zone = ZoneInfo(time_zone)
@@ -136,14 +149,16 @@ def write_plant_files(folder: Path, time_zone: str = "UTC") -> PlantFiles:
         raise ValueError(f"Unknown time zone: {time_zone}") from exc
     folder.mkdir(parents=True, exist_ok=True)
     csv_path = folder.resolve() / "bioreactor.csv"
-    rows = recorded()
-    with csv_path.open("w", newline="", encoding="utf-8") as file:
+    rows = recorded(live_from, until)
+    draft = csv_path.with_suffix(".csv.part")
+    with draft.open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["time", *TAGS.values()])
         for moment in sorted(rows):
             values = rows[moment]
             stamp = moment.astimezone(zone).strftime("%Y-%m-%d %H:%M:%S")
             writer.writerow([stamp, *(values.get(tag, "") for tag in TAGS.values())])
+    draft.replace(csv_path)
     map_path = folder.resolve() / "plant-map.json"
     map_path.write_text(json.dumps(plant_map(csv_path), indent=2) + "\n", encoding="utf-8")
     return PlantFiles(csv_path, map_path)

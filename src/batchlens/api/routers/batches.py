@@ -13,7 +13,7 @@ from plantcraft_sdk.utc import utc_iso
 
 from batchlens.analysis.downstream import downstream
 from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
-from batchlens.api import plant
+from batchlens.api import deps, plant
 from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, batch_or_404
 from batchlens.batches.drafts import SampleTimeCorrection
 from batchlens.batches.models import BatchRecord
@@ -71,14 +71,19 @@ def list_batches(rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
     }
     names = plant.asset_names(client, {p.asset_id for p in cultures.values() if p is not None})
     rows = []
+    moment = deps.now()
     for batch, phases in summaries:
         culture = cultures[batch.batch_id]
+        end = max((p.end for p in phases), default=None)
+        running = end is not None and end > moment
         rows.append(
             {
                 **_plain(batch),
                 # The batch's window: from its first phase execution to the end of its last.
                 "start": _stamp(min((p.start for p in phases), default=None)),
-                "end": _stamp(max((p.end for p in phases), default=None)),
+                # A batch still running has no end yet.
+                "end": None if running else _stamp(end),
+                "running": running,
                 "asset_id": culture.asset_id if culture else None,
                 "asset_name": names.get(culture.asset_id) if culture else None,
             }
@@ -89,6 +94,7 @@ def list_batches(rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
 @router.get("/batches/{batch_id}")
 def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
+    asked, as_of = as_of, deps.horizon(record, as_of)
     client = rt.user_client(user)
     names = plant.asset_names(client, {phase.asset_id for phase in record.phases})
     # From the start of the batch to the last moment anything about it became known: the span
@@ -106,10 +112,12 @@ def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> 
         phases.append(row)
     return {
         "time_zone": plant.time_zone(client),
-        "as_of": _stamp(as_of),
+        "as_of": _stamp(asked),
+        "running": deps.horizon(record, None) is not None,
         "timeline": {
             "start": _stamp(min((phase.start for phase in record.phases), default=None)),
-            "end": _stamp(max(known, default=None)),
+            # A batch still running: up to now.
+            "end": _stamp(min(max(known), deps.now()) if known else None),
         },
         "batch": _plain(record.batch),
         "phases": phases,
@@ -143,6 +151,7 @@ def batch_samples(
     ] = None,
 ) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
+    asked, as_of = as_of, deps.horizon(record, as_of)
     culture = record.phase("production_culture")
     other = batch_or_404(rt, align_to).phase("production_culture") if align_to else None
     # A sample is marked corrected while its time is the one its last correction gave it (a
@@ -176,7 +185,7 @@ def batch_samples(
         )
     return {
         "batch_id": batch_id,
-        "as_of": _stamp(as_of),
+        "as_of": _stamp(asked),
         "aligned_to": align_to,
         "samples": samples,
     }
@@ -190,6 +199,7 @@ def metrics_answer(
 
     batch_id = record.batch.batch_id
     client = rt.user_client(user)
+    asked, as_of = as_of, deps.horizon(record, as_of)
 
     def metrics_of(item):
         volume = plant.volume(client, item.phase("production_culture"), as_of)
@@ -211,7 +221,7 @@ def metrics_answer(
     found += train.pop("findings")
     return {
         "batch_id": batch_id,
-        "as_of": _stamp(as_of),
+        "as_of": _stamp(asked),
         "reference_batch_id": reference.batch.batch_id if reference else None,
         "metrics": beside_reference(results, reference_results),
         "findings": found,
@@ -230,8 +240,9 @@ def batch_metrics_route(
 @router.get("/batches/{batch_id}/trends")
 def batch_trends(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
+    asked, as_of = as_of, deps.horizon(record, as_of)
     culture = record.phase("production_culture")
-    answer: dict[str, Any] = {"batch_id": batch_id, "as_of": _stamp(as_of)}
+    answer: dict[str, Any] = {"batch_id": batch_id, "as_of": _stamp(asked)}
     if culture is None:
         return {
             **answer,

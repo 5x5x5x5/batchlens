@@ -53,10 +53,16 @@ for app in $APPS; do
   LIST="$LIST,$id=/$prefix/"; OPS="$OPS,$id=http://127.0.0.1:$port/$prefix"; ROUTES="$ROUTES /$prefix/=$port"
 done
 
+# PlantCraft's --reset clears its own workspace; what the suite's modules stored is cleared here.
+if [ -n "$FLAGS" ]; then
+  for id in histcraft linkcraft dashcraft alarmcraft modelcraft doccraft; do rm -rf "$PLANTCRAFT_DIR/var/$id"; done
+fi
+
 echo "Starting PlantCraft, BatchLens and $(( $(wc -w <<<"$APPS") - 1 )) of the suite's modules..."
 : > /tmp/batchlens-demo.log
 PIDS=""
-trap 'kill $PIDS 2>/dev/null; wait 2>/dev/null; echo; echo "Stopped."' EXIT
+# PlantCraft's launcher starts the Simulator and PlantCraft as children: they are stopped first.
+trap 'for pid in $PIDS; do pkill -P "$pid" 2>/dev/null; done; kill $PIDS 2>/dev/null; wait 2>/dev/null; echo; echo "Stopped."' EXIT
 (cd "$PLANTCRAFT_DIR" && PLANTCRAFT_APPS="${LIST#,}" PLANTCRAFT_OPS_URLS="${OPS#,}" \
   exec python run_opcua_demo.py --no-linkcraft $FLAGS) >> /tmp/batchlens-demo.log 2>&1 &
 PIDS="$PIDS $!"
@@ -86,18 +92,27 @@ for _ in $(seq 1 60); do
 done
 curl -fs -o /dev/null "$DEMO_URL/batchlens/healthz" || { echo "BatchLens did not answer; see /tmp/batchlens-demo.log"; exit 1; }
 
-echo "Loading the five synthetic batches..."
-# With --reset the batches are loaded again as generated, undoing corrections made in the app.
-BATCHLENS_DATA_DIR="$DATA_DIR" batchlens seed-demo $FLAGS 2>/dev/null | tail -1
+echo "Loading the synthetic batches: five finished, one running now..."
+# With --reset the batches are loaded again as generated, undoing corrections made in the app,
+# and the campaign's dates are set again from today.
+LIVE_FROM=$(BATCHLENS_DATA_DIR="$DATA_DIR" batchlens seed-demo --live $FLAGS 2>/dev/null \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["live_from"])')
 
 echo "Writing the synthetic plant for time zone $ZONE and importing it into PlantCraft..."
-batchlens demo-plant --out "$PLANT_DIR" --time-zone "$ZONE" 2>/dev/null | tail -1
+plant_files() { batchlens demo-plant --out "$PLANT_DIR" --time-zone "$ZONE" --live-from "$LIVE_FROM" 2>/dev/null; }
+plant_files | tail -1
+# The bioreactor is live: its file is written again every minute, up to now.
+(while sleep 60; do plant_files > /dev/null; done) &
+PIDS="$PIDS $!"
 COOKIES=$(mktemp)
 curl -fs -c "$COOKIES" -o /dev/null "$PLANTCRAFT_URL/api/session"
 curl -fs -b "$COOKIES" -X POST --data-binary "@$PLANT_DIR/plant-map.json" \
   "$PLANTCRAFT_URL/api/map/apply?filename=plant-map.json" \
   | python -c 'import json,sys; r=json.load(sys.stdin); print("imported:", r["applied"], {s["name"]: [s["create"], s["update"], s["unchanged"]] for s in r["sections"]}, "issues:", r["issues"])'
 rm -f "$COOKIES"
+
+echo "Giving the suite's modules the mAb plant (a dashboard, a process display, alarm rules, documents)..."
+python "$REPO/tools/seed_suite.py" "$DEMO_URL" 2>&1 | tail -1
 
 cat <<DONE
 

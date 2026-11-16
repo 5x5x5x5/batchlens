@@ -25,6 +25,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Load all of them again as generated (undoes what people corrected).",
     )
+    seed.add_argument(
+        "--live",
+        action="store_true",
+        help="The live campaign: the same batches ending before a sixth that is running now.",
+    )
     bench = commands.add_parser(
         "benchmark",
         help="Score the findings against ground truth over many seeded batches; write the report.",
@@ -42,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
         default="UTC",
         help="The zone PlantCraft reads CSV files in: its scenario's source time zone "
         "(America/Sao_Paulo in PlantCraft's local demo). Default: UTC.",
+    )
+    plant.add_argument(
+        "--live-from",
+        help="The live campaign's start, as `seed-demo --live` answers it (live_from): the "
+        "files then hold the bioreactor's values up to now.",
     )
     args = parser.parse_args(argv)
     from plantcraft_sdk.server.logs import configure_logging
@@ -88,16 +98,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "demo-plant":
+        from datetime import UTC, datetime
         from pathlib import Path
 
         from batchlens.demo.plant import recorded, write_plant_files
 
         try:
-            files = write_plant_files(Path(args.out), args.time_zone)
+            live = datetime.fromisoformat(args.live_from) if args.live_from else None
+            until = datetime.now(UTC) if live else None
+            files = write_plant_files(Path(args.out), args.time_zone, live_from=live, until=until)
         except ValueError as exc:
             print(json.dumps({"status": "error", "error": str(exc)}))
             return 1
-        moments = sorted(recorded())
+        moments = sorted(recorded(live, until))
         print(
             json.dumps(
                 {
@@ -121,10 +134,17 @@ def main(argv: list[str] | None = None) -> int:
     runtime = Runtime(settings)
     try:
         if args.command == "seed-demo":
-            from batchlens.demo.seed import seed_demo
+            from datetime import UTC, datetime
 
-            seeded = seed_demo(runtime.batches, reset=args.reset)
-            print(json.dumps({"status": "ok", "batches": seeded}))
+            from batchlens.demo.seed import live_from, seed_demo
+
+            now = datetime.now(UTC) if args.live else None
+            seeded = seed_demo(runtime.batches, reset=args.reset, live_at=now)
+            answer: dict[str, object] = {"status": "ok", "batches": seeded}
+            if args.live:
+                start = live_from(runtime.batches)
+                answer["live_from"] = start.isoformat() if start else None
+            print(json.dumps(answer))
             return 0
         if runtime.service_client is None:
             print(json.dumps({"status": "error", "error": "PLANTCRAFT_APP_KEY is not set."}))
