@@ -23,10 +23,11 @@ One aggregate, the batch record (`src/batchlens/batches/models.py`), in five tab
 | Record | Fields |
 |---|---|
 | Batch | `batch_id`, `product`, `is_reference`, `created_at` |
-| Phase execution | `phase_id`, `batch_id`, `kind` (`production_culture`, `harvest`, `protein_a_capture`), `asset_id` (PlantCraft's), `start`, `end` |
+| Phase execution | `phase_id`, `batch_id`, `kind` (`production_culture`, `harvest`, `protein_a_capture`, `viral_inactivation`, `cation_exchange`, `anion_exchange`, `viral_filtration`, `ufdf`), `asset_id` (PlantCraft's), `start`, `end` |
 | Sample | `sample_id`, `batch_id`, `phase_id`, `collected_at` |
 | Assay result | `result_id`, `sample_id`, `analyte`, `value`, `unit`, `method`, `result_available_at`, `validity` |
-| Pool measurement | `measurement_id`, `batch_id`, `phase_id`, `pool` (`protein_a_load`, `protein_a_eluate`), `volume`, `volume_unit`, `concentration`, `concentration_unit`, `method`, `measured_at`, `result_available_at` |
+| Pool link | `link_id`, `batch_id`, `from_pool_id`, `to_pool_id`: material of one pool went into another (genealogy) |
+| Pool measurement | `measurement_id`, `batch_id`, `phase_id`, `pool` (the load, each cycle's eluate, the merged eluate, and the pool each later step produces, ending in `drug_substance`), `volume`, `volume_unit`, `concentration`, `concentration_unit`, `method`, `measured_at`, `result_available_at` |
 
 Every record carries `provenance` (here always the synthetic generator and its seed). Stored
 instants are UTC. Records are loaded by `batchlens seed-demo`. An editor may change two things:
@@ -44,7 +45,7 @@ write routes at the end of the table.
 | `GET /api/batches` | The batches, with reference flag, window and bioreactor |
 | `GET /api/batches/{id}?as_of=` | One batch with its phase executions and pool measurements, and the span over which anything about it became known |
 | `GET /api/batches/{id}/samples?as_of=&align_to=` | Samples and assay results, both timestamps on each, and each sample's culture day; with `align_to`, also the instant of the same culture age on another batch's timeline |
-| `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference; and `findings` against the reference batch (titer divergence, and a shortfall of each step recovery), each with an `observation` (a result object), a `consequence`, `evidence` and a `cause` that is always null |
+| `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference; and `findings` against the reference batch (titer divergence, and a shortfall of each step recovery), each with an `observation` (a result object), a `consequence`, `evidence` and a `cause` that is always null; and `downstream`: each purification step's masses and yield beside the reference's, the recovery from harvest, and the pool genealogy with the mass balance of a merge |
 | `PATCH /api/batches/{id}/samples/{sample_id}` | Editors: correct the sample's collection time. Body `{collected_at, reason}`. The time must lie in the sample's phase execution and before its results were reported, else 422. Audited as `batchlens.sample.corrected` |
 | `PUT /api/batches/{id}/reference` | Editors: make this batch the reference. Audited as `batchlens.batch.reference_set` |
 | `GET /api/batches/{id}/trends?as_of=` | The bioreactor's online signals over the production phase, read from PlantCraft as the person, downsampled |

@@ -15,9 +15,11 @@ from batchlens.calc.comparison import (
 from batchlens.calc.culture import MAX_GAP_DAYS, ivcd, specific_productivity
 from batchlens.calc.mass import (
     HARVEST_TITER_WINDOW_HOURS,
+    MERGE_TOLERANCE_PERCENT,
     RECOVERY_SUSPECT_ABOVE_PERCENT,
     VOLUME_MAX_AGE_SECONDS,
     harvest_mass,
+    merge_balance,
     pool_mass,
     ratio_percent,
 )
@@ -36,6 +38,8 @@ from batchlens.calc.results import (
 
 __all__ = [
     "DIVERGENCE_TOLERANCE_FRACTION",
+    "MERGE_TOLERANCE_PERCENT",
+    "merge_balance",
     "PAIRING_WINDOW_HOURS",
     "RECOVERY_TOLERANCE_POINTS",
     "recovery_shortfall",

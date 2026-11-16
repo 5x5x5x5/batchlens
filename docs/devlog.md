@@ -3,6 +3,36 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The rest of downstream, and a pool genealogy
+
+Branch `downstream`. Third optional extension.
+
+- **Built:** five more phase executions per batch (viral inactivation, cation exchange, anion
+  exchange, viral filtration, UF/DF), each on its own asset, with a pool measurement; the
+  Protein A eluate as two cycle pools merged into one; a `pool_links` table for the genealogy;
+  `calc.merge_balance`; `analysis/downstream.py`; a `downstream` part of the metrics answer
+  with the reference batch's yields beside each step; a Downstream recovery section on the
+  page; the five new assets in the synthetic plant. Tests: 12 written and run red first (calc,
+  generator, analysis); the 2 API tests and the Vitest test were written with their code.
+- **Rulings:**
+  - The later steps draw from their own random stream, so every value generated before this
+    change is unchanged (the verification report is byte-identical, which a test checks).
+  - Step yields multiply to the recovery by construction: a step's mass in is the previous
+    step's mass out, and no separate product is computed.
+  - A merge beyond 3 % of the sum of its parts in either direction is `suspect`
+    (`MERGE_TOLERANCE_PERCENT`).
+  - Only merges get a balance; the links can describe a split but nothing is computed for one.
+  - No findings for the later steps yet: their yields are shown beside the reference's.
+- **Failed, and how it was resolved:** six older tests assumed three phases, two pools and
+  four assets, and were updated; a browser check failed on a slash inside a locator pattern
+  ("UF/DF"), the test's fault, not the page's.
+- **What it shows on the demo:** `BL-0004` loses 20 points in the capture step and is within a
+  point or two of the reference at every later step, ending at 51.3 % of its harvest against
+  the reference's 72.7 %; its two capture cycles merge with a balance of -1.4 %.
+- **Seen in the browser:** `docs/images/findings/downstream.png`.
+- **Final checks:** `make ci` exit 0 (Vitest 27 passed, pytest 207 passed, 0 skipped);
+  `make e2e` exit 0 (8 passed).
+
 ## 2026-11-16: Editing with audit
 
 Branch `editing`. Second optional extension, and the answer to the fifth batch: a person can

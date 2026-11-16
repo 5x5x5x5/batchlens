@@ -38,3 +38,7 @@ Known gaps, with the date they were found.
 | 2026-11-16 | Corrections are not as-of aware: an as-of view of a moment before a correction still uses the corrected time. The editing controls are hidden in an as-of view. | Open |
 | 2026-11-16 | Only a sample's collection time and the reference designation can be changed. Assay values, validity, pool measurements and phase times cannot, and nothing can be added or deleted. | Open, by scope |
 | 2026-11-16 | A correction cannot be undone as such; a second correction back to the old value does it and leaves both in the history. | Open, by design |
+| 2026-11-16 | Downstream is linear with one merge. Splits get no mass balance, and a step is one pool in and one pool out measured once; sampling and hold losses are inside the step yield. | Open, by scope |
+| 2026-11-16 | No finding is raised for the polishing steps, viral filtration or UF/DF: their yields are shown beside the reference's but only the harvest-to-load yield and the Protein A recovery are checked against a tolerance. | Open |
+| 2026-11-16 | The benchmark does not vary the later steps, so nothing is measured about them beyond the oracle and generator tests. | Open |
+| 2026-11-16 | The longer train was not re-run inside a live PlantCraft: the five new assets are in the plant map, and a phase on an asset PlantCraft lacks is shown as "Not found in PlantCraft", but that was checked on the fake only. | Open |

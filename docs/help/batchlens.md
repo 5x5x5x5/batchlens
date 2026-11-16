@@ -27,6 +27,10 @@ on the reference batch, the one the others are compared with. Open a batch from 
   reference's, for you to read; the app concludes nothing from them.
 - **Metrics**: each with its value and unit, its status, the reasons for it and the ids of its
   inputs, beside the reference batch's value and the difference.
+- **Downstream recovery**: each purification step with the product mass that went in and
+  came out, its yield beside the reference batch's, and what is left of the harvest after it.
+  Below it, each pool with the pools it was made from; where pools were merged, the merged
+  mass is checked against the sum of its parts.
 - **Pool measurements**: the volume and concentration behind each pool mass.
 - **Trends**: the bioreactor's online signals over the production phase, read from PlantCraft,
   and the offline viable cell density and titer at their collection times.

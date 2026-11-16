@@ -62,7 +62,16 @@ export interface Evidence {
   results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null }>;
 }
 
-export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[] }
+/** The purification train: each step's masses and yield, the recovery from harvest, and what
+ * each pool was made from. */
+export interface Downstream {
+  steps: Array<{ step: string; mass_in: Result; mass_out: Result; step_yield: Result; from_harvest: Result; reference_yield?: number | null; yield_difference?: number | null }>;
+  overall: Result;
+  overall_reference: number | null;
+  genealogy: Array<{ pool: string; measurement_id: string; mass: Result; sources: string[]; merge_balance: Result | null }>;
+}
+
+export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[]; downstream: Downstream }
 
 export interface AssayResult { result_id: string; sample_id: string; analyte: string; value: number; unit: string; method: string; result_available_at: string; validity: string; provenance: string }
 

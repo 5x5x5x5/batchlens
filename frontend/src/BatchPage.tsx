@@ -7,7 +7,7 @@ import { confirmAction, DataTable, isoOf, localOf, Pill } from "@plantcraft/ui";
 import { api } from "./api";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
-import type { BatchDetail, Evidence, Finding, Me, Metric, Metrics, Sample, Samples, Trends } from "./types";
+import type { BatchDetail, Downstream, Evidence, Finding, Me, Metric, Metrics, Result, Sample, Samples, Trends } from "./types";
 import { ErrorBox, Heading, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
 import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord } from "./words";
@@ -118,6 +118,44 @@ function FindingPanel({ finding }: { finding: Finding }) {
     {others.map((reason, index) => <p key={index}>{reasonText(reason)}</p>)}
     <EvidenceTables evidence={finding.evidence} />
   </div>;
+}
+
+/** A mass or a percentage of the train, or why there is none. */
+function Amount({ result, digits = 3 }: { result: Result; digits?: number }) {
+  if (result.value === null) return <span className="muted">{result.reasons.map(reasonText).join(" ") || t("No value")}</span>;
+  return <>{significant(result.value, digits)} {result.unit}{result.status === "suspect" && <small>{result.reasons.map(reasonText).join(" ")}</small>}</>;
+}
+
+/** The purification train, step by step, and what each pool was made from. */
+function DownstreamSection({ train }: { train: Downstream }) {
+  return <>
+    <DataTable rows={train.steps} rowKey={(row) => row.step} label={t("Downstream recovery")}
+      columns={[
+        { key: "step", label: t("Step"), render: (row) => phaseName(row.step) },
+        { key: "in", label: t("Mass in"), numeric: true, render: (row) => <Amount result={row.mass_in} /> },
+        { key: "out", label: t("Mass out"), numeric: true, render: (row) => <Amount result={row.mass_out} /> },
+        { key: "yield", label: t("Step yield"), numeric: true, render: (row) => <Amount result={row.step_yield} /> },
+        { key: "reference", label: t("Reference"), numeric: true, phone: "hide", render: (row) => significant(row.reference_yield, 3) },
+        { key: "difference", label: t("Difference"), numeric: true, phone: "hide", render: (row) => signedBetween(row.yield_difference, row.step_yield.value, row.reference_yield, 3) },
+        { key: "harvest", label: t("Left of the harvest"), numeric: true, render: (row) => <Amount result={row.from_harvest} /> },
+      ]} />
+    <p>{train.overall.value === null
+      ? t("From harvest to drug substance: no value. {why}", { why: train.overall.reasons.map(reasonText).join(" ") })
+      : train.overall_reference === null
+        ? t("From harvest to drug substance: {value} %.", { value: significant(train.overall.value, 3) })
+        : t("From harvest to drug substance: {value} % (reference batch: {reference} %).", { value: significant(train.overall.value, 3), reference: significant(train.overall_reference, 3) })}</p>
+    <DataTable rows={train.genealogy} rowKey={(node) => node.measurement_id} label={t("Pool genealogy")}
+      empty={t("No pool measurement recorded.")}
+      columns={[
+        { key: "pool", label: t("Pool"), render: (node) => <>{poolName(node.pool)}<small>{node.measurement_id}</small></> },
+        { key: "mass", label: t("Mass"), numeric: true, render: (node) => <Amount result={node.mass} /> },
+        { key: "sources", label: t("Made from"), render: (node) => node.sources.join(", ") },
+        { key: "balance", label: t("Merge balance"), numeric: true, render: (node) => (node.merge_balance
+          ? node.merge_balance.value === null ? <Amount result={node.merge_balance} />
+            : <>{node.merge_balance.value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })} %{node.merge_balance.status === "suspect" && <small>{node.merge_balance.reasons.map(reasonText).join(" ")}</small>}</>
+          : "") },
+      ]} />
+  </>;
 }
 
 function Pools({ detail }: { detail: BatchDetail }) {
@@ -277,6 +315,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
       {metrics.findings.map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
     </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
+    <Section id="downstream" title={t("Downstream recovery")} detail={t("Each purification step: the product mass that went in and came out, and what is left of the harvest. Where pools were merged, the merged mass is checked against the sum of its parts.")}><DownstreamSection train={metrics.downstream} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
     <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
     <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>

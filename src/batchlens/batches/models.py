@@ -12,8 +12,27 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-PHASE_KINDS = ("production_culture", "harvest", "protein_a_capture")
-POOLS = ("protein_a_load", "protein_a_eluate")
+PHASE_KINDS = (
+    "production_culture",
+    "harvest",
+    "protein_a_capture",
+    "viral_inactivation",
+    "cation_exchange",
+    "anion_exchange",
+    "viral_filtration",
+    "ufdf",
+)
+POOLS = (
+    "protein_a_load",
+    "protein_a_eluate_cycle_1",
+    "protein_a_eluate_cycle_2",
+    "protein_a_eluate",
+    "viral_inactivation_pool",
+    "cation_exchange_pool",
+    "anion_exchange_pool",
+    "viral_filtrate",
+    "drug_substance",
+)
 
 
 @dataclass(frozen=True)
@@ -76,6 +95,18 @@ class PoolMeasurement:
 
 
 @dataclass(frozen=True)
+class PoolLink:
+    """Genealogy: material of one pool went into another. Several links into one pool are a
+    merge; several out of one are a split."""
+
+    link_id: str
+    batch_id: str
+    from_pool_id: str  # a pool measurement's id
+    to_pool_id: str
+    provenance: str
+
+
+@dataclass(frozen=True)
 class Correction:
     """A change a person made to a record: the value before, the value after, who, when and
     why. The original is never lost."""
@@ -100,6 +131,7 @@ class BatchRecord:
     samples: tuple[Sample, ...]
     results: tuple[AssayResult, ...]
     pools: tuple[PoolMeasurement, ...]
+    links: tuple[PoolLink, ...] = ()
 
     def phase(self, kind: str) -> PhaseExecution | None:
         return next((phase for phase in self.phases if phase.kind == kind), None)

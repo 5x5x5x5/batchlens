@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from batchlens.demo.generator import (
     BIOREACTOR,
+    DOWNSTREAM,
     HARVEST_SKID,
     ONLINE_UNITS,
     PROTEIN_A_SKID,
@@ -54,6 +55,19 @@ ASSETS = {
     BIOREACTOR: ("equipment", "Production bioreactor 2000 L", UNIT),
     HARVEST_SKID: ("equipment", "Harvest clarification skid", UNIT),
     PROTEIN_A_SKID: ("equipment", "Protein A chromatography skid", UNIT),
+    **{
+        asset_id: ("equipment", name, UNIT)
+        for (_, asset_id, _, _, _), name in zip(
+            DOWNSTREAM,
+            (
+                "Viral inactivation vessel",
+                "Cation-exchange chromatography skid",
+                "Anion-exchange chromatography skid",
+                "Viral filtration skid",
+                "UF/DF skid",
+            ),
+        )
+    },
 }
 DESCRIPTION = "Synthetic demo equipment of BatchLens. Not a real asset."
 

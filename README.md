@@ -12,7 +12,8 @@ signals, offline assay results, pool measurements) and follows the product throu
 
 ```
 VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volume
-            -> product mass at harvest -> mass loaded on Protein A -> mass eluted -> recovery
+            -> product mass at harvest -> mass loaded on Protein A -> mass eluted
+            -> viral inactivation -> polishing -> viral filtration -> UF/DF -> drug substance
 ```
 
 For each batch it says where that chain left the reference batch, what that cost in grams, and
@@ -49,6 +50,9 @@ generator's separate output, the tests, the benchmark and the documents.
   timestamp: the metric says what was missing. Nothing is interpolated across a gap,
   extrapolated or clipped.
 - **Findings keep observation, consequence and cause apart**, and the cause is always empty.
+- **The mass balance runs to drug substance.** Each purification step has its yield beside the
+  reference's and what is left of the harvest; pools that were merged are checked against
+  the sum of their parts.
 - **It is measured.** [docs/verification-report.md](docs/verification-report.md) scores the
   findings against ground truth over 320 seeded batches: at the default tolerances, no false
   alarms in 400 comparisons, every strong fall in productivity found within about two days,

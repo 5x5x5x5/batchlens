@@ -144,6 +144,7 @@ passing locally; the exact counts of each step are in [devlog.md](devlog.md).
 - **Two things can be changed, and only by an editor**: a sample's collection time and the
   reference designation. A correction needs a reason, keeps the value it replaces and is
   written to PlantCraft's audit log. Everything else is read-only.
-- **Upstream and capture only.** Polishing, viral filtration and UF/DF, where pools split and
-  merge, are not modelled; batch genealogy is future work.
+- **A simple train.** Downstream is one pool in and one pool out per step, with one merge (two
+  capture cycles into one eluate). Splits, side streams, repeated cycles of a polishing
+  column and material carried between batches are not modelled.
 - **Not validated, not GxP**, and the generator is not a mechanistic model.
