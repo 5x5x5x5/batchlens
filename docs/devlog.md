@@ -3,6 +3,25 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Last check of the night, on `main`
+
+`tools/run_demo.sh --reset` on `main` at `d2475d7`, then a browser driven through the demo
+inside PlantCraft 0.6.0 with a fresh workspace.
+
+- **Import:** 1 source, 1 unit, 8 pieces of equipment and 4 signals created, no issues.
+- **List:** five batches, the bioreactor named from PlantCraft on each.
+- **`BL-0003`:** the titer finding (culture day 7.9; 7,317 g against 10,170 g), six charts, no
+  asset marked as missing, 66.0 % of the harvest to drug substance against the reference's
+  72.7 %.
+- **`BL-0005`:** IVCD `Invalid`; the correction form opened on sample 9 with the recorded time;
+  after saving a corrected time and a reason, IVCD is `Usable` (179). PlantCraft's own audit
+  log holds `batchlens.sample.corrected` for `BL-0005-S09` by the demo's signed-in person,
+  with the old and the new time.
+- The demo's app database was then loaded again as generated (`seed-demo --reset`), so the
+  next run starts uncorrected.
+- **Not checked in this run:** a viewer (the local demo has only admins), the as-of slider (it
+  has a browser journey against the fake), a display time zone other than UTC.
+
 ## 2026-11-16: A finding for every purification step
 
 Branch `step-findings`. The first item left on the status page after the listed extensions.
