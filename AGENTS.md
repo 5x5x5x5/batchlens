@@ -52,7 +52,8 @@ tools/          rename.py (`make rename`)
 | 1 | `calc` | pure formulas and result types: standard library only, nothing from the app |
 | 2 | `batches` | the app's object: records, store (`BatchStore`), rules (`BatchService`) |
 | 3 | `demo`, `analysis` | the seeded generator and seed loader; metrics assembled from records |
-| 4 | `api`, `cli` | FastAPI app under `/batchlens`, command line |
+| 4 | `benchmark` | the findings scored against the generator's ground truth |
+| 5 | `api`, `cli` | FastAPI app under `/batchlens`, command line |
 
 A new object goes in layer 2 beside `batches` (its own package: contract and store). Methods that
 compute something (an analysis on plant signals) go in a layer between the objects and the API.
@@ -129,8 +130,10 @@ decisions, reproducible results and honest reporting matter more than breadth.
 - **Units are explicit** on every stored and returned quantity. Instants are stored in UTC
   and shown in the installation's zone, named.
 - **Ground truth stays out.** Scenario labels and fault parameters of the synthetic data
-  live in the generator's separate output, the tests and the documents. They are never
-  stored in the app's database, returned by the API or read by analysis code.
+  live in the generator's separate output, the tests, the benchmark and the documents. They
+  are never stored in the app's database, returned by the API or read by analysis code. The
+  `benchmark` package is the one reader outside the tests: it scores the analysis, it is not
+  part of it.
 - **Nothing universal is hard-coded.** No critical process parameter or quality attribute
   classification, acceptance limit or viral-clearance claim. Plausibility bounds and gap
   limits are named settings with illustrative defaults, listed in

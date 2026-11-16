@@ -23,7 +23,8 @@ FLOORS = tomllib.loads((ROOT / "tests" / "floors.toml").read_text(encoding="utf-
 # | 1 | calc (pure formulas and result types: standard library only, nothing from the app) |
 # | 2 | batches (the app's own object: records, store and service) |
 # | 3 | demo (the seeded generator and the seed loader), analysis (metrics from records) |
-# | 4 | api, cli |
+# | 4 | benchmark (scores the findings against the generator's ground truth) |
+# | 5 | api, cli |
 LAYERS = {
     "i18n": -1,
     "config": 0,
@@ -33,8 +34,9 @@ LAYERS = {
     "batches": 2,
     "demo": 3,
     "analysis": 3,
-    "api": 4,
-    "cli": 4,
+    "benchmark": 4,
+    "api": 5,
+    "cli": 5,
 }
 
 

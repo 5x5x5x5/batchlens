@@ -158,8 +158,10 @@ Example (`tests/test_divergence.py`), reference 1.0, 2.0, 3.0, 4.0, 5.0 g/L at d
 - Assumption: **the first sample at which the gap is seen comes after whatever began it.** In
   the demo the productivity change starts at day 7 and is seen at day 7.9, the next sample.
 - Assumption: the answer depends on the tolerance. For the demo's reduced-productivity batch a
-  tolerance of 5, 10 or 15 % gives day 7.9 and 20 % gives day 11.9; the two normal batches give
-  no divergence at any of these.
+  tolerance of 5, 10 or 15 % gives day 7.9 and 20 % gives day 11.9. Measured over 1,300
+  comparisons ([verification-report.md](verification-report.md)): at the default 15 % there
+  were no false alarms, every fall of qP to 55 % was found, 84 % of falls to 70 % and 20 % of
+  falls to 85 %; at 5 % one normal comparison in seven raised a false alarm.
 - Assumption: culture ages up to 6 h apart are compared as equal. Early in a culture, when
   titer is small and rising fast, that alone can exceed the tolerance for a sample or two; the
   requirement that every later sample stays below is what keeps such samples from counting.
@@ -177,6 +179,9 @@ Example: recovery 73.4 % against 93.6 % is 20.2 points below, a shortfall at the
 A yield of 89.4 % against 97.0 % is 7.6 points below: within.
 
 - `insufficient`: either value is missing. `suspect`: either value is `suspect`.
+- Measured ([verification-report.md](verification-report.md)): at the default 10 points, no
+  false alarms on either step; a true recovery of 74 % is always found, 80 % in 88 % of
+  comparisons, 86 % never.
 - Assumption: one tolerance for both steps. In the demo the computed yield already spreads
   from 89 to 97 % across batches whose true yield is about 93 %, because harvest mass rests
   on a single titer result; a tolerance much under 10 points would flag normal batches on yield.

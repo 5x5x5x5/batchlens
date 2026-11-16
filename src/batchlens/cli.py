@@ -1,4 +1,4 @@
-"""Command line: ``batchlens serve``, ``check``, ``seed-demo`` and ``demo-plant``.
+"""Command line: ``batchlens serve``, ``check``, ``seed-demo``, ``demo-plant`` and ``benchmark``.
 
 Settings come from the environment (``batchlens.config``).
 """
@@ -18,6 +18,13 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int, default=int(os.environ.get("BATCHLENS_PORT", "9100")))
     commands.add_parser("check", help="Check the app key and that PlantCraft answers.")
     commands.add_parser("seed-demo", help="Load the four synthetic demo batches into the database.")
+    bench = commands.add_parser(
+        "benchmark",
+        help="Score the findings against ground truth over many seeded batches; write the report.",
+    )
+    bench.add_argument("--out", help="Where to write the report (Markdown).")
+    bench.add_argument("--batches", type=int, default=None, help="Seeds of every variant.")
+    bench.add_argument("--references", type=int, default=None, help="Reference batches.")
     plant = commands.add_parser(
         "demo-plant",
         help="Write the synthetic plant as files PlantCraft imports (a CSV and a plant map).",
@@ -56,6 +63,21 @@ def main(argv: list[str] | None = None) -> int:
             log_config=None,
             access_log=False,
         )
+        return 0
+
+    if args.command == "benchmark":
+        from pathlib import Path
+
+        from batchlens.benchmark import run as benchmark
+        from batchlens.benchmark.report import render
+
+        result = benchmark.run(
+            args.batches or benchmark.DEFAULT_BATCHES,
+            args.references or benchmark.DEFAULT_REFERENCES,
+        )
+        if args.out:
+            Path(args.out).write_text(render(result), encoding="utf-8")
+        print(json.dumps({"status": "ok", **result["counts"], "report": args.out}))
         return 0
 
     if args.command == "demo-plant":

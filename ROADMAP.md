@@ -14,16 +14,15 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | The synthetic plant as files a live PlantCraft imports (`batchlens demo-plant`) | Done, verified on PlantCraft 0.6.0 under `make dev` |
 | First evidence-linked finding: where the titer left the reference, and the harvest mass difference | Done, oracle-tested, on the batch page |
 | Findings for both step recoveries, evidence beside a divergence, reference overlay on VCD and titer | Done, tested, on the batch page |
+| A fifth, badly recorded demo batch that is flagged rather than answered | Done, tested |
+| Benchmark over 320 seeded batches and the verification report | Done; a test keeps the report current |
 
 ## Next, in the intended order (proposed)
 
-1. A benchmark over many seeded normal and faulty batches, including missing windows and
-   misaligned sample times (the fourth scenario of the original proposal: a data problem
-   the analysis must flag rather than answer), publishing false positives, misses and incomplete-data behaviour.
-2. An as-of control in the interface, then editing (samples, reference designation) with audit.
-3. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
+1. An as-of control in the interface, then editing (samples, reference designation) with audit.
+2. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
    filtration, UF/DF), where pools split and merge.
-4. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
+3. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
    verified calculations.
 
 Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything
