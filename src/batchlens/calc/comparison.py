@@ -1,8 +1,10 @@
-"""A batch against the reference batch: where its titer left the reference's.
+"""A batch against the reference batch: where its titer left the reference's, and whether a
+step recovered less than the reference's did.
 
-An observation, not a diagnosis: it says at which sample the titer was first, and from then on
-always, below the reference by more than a tolerance. It says nothing about why, and it is the
-first sample at which the gap is *seen*, which is later than whatever began it.
+Observations, not diagnoses. The divergence says at which sample the titer was first, and from
+then on always, below the reference by more than a tolerance; it is the first sample at which
+the gap is *seen*, which is later than whatever began it. The shortfall says a recovery is
+lower than the reference's by more than a tolerance. Neither says why.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from batchlens.calc.results import (
+    SUSPECT,
     USABLE,
     Measurement,
     Reason,
@@ -27,7 +30,10 @@ DIVERGENCE_VERSION = "titer_divergence/1"
 DIVERGENCE_TOLERANCE_FRACTION = 0.15
 # A sample is compared with the reference sample nearest in culture age, at most this far away.
 PAIRING_WINDOW_HOURS = 6.0
-# Both are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
+SHORTFALL_VERSION = "recovery_shortfall/1"
+# A yield or recovery lower than the reference's by more than this many percentage points.
+RECOVERY_TOLERANCE_POINTS = 10.0
+# All three are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
 
 
 def _problems(titer: Sequence[Measurement]) -> list[Reason]:
@@ -128,3 +134,37 @@ def titer_divergence(
         },
     )
     return answer(age(sample, batch_start), USABLE, [found, *notes], inputs)
+
+
+def recovery_shortfall(
+    value: Result, reference: Result, *, tolerance_points: float = RECOVERY_TOLERANCE_POINTS
+) -> Result:
+    """How many percentage points a yield or recovery is below the reference batch's, when that
+    is more than the tolerance; no value (``within_reference``) otherwise, also when it is
+    above. ``insufficient`` when either has no value."""
+
+    metric, unit = f"{value.metric}_shortfall", "percentage points"
+    for part in (value, reference):
+        if part.value is None:
+            reason = Reason("input_not_usable", {"metric": part.metric, "status": part.status})
+            return insufficient(metric, unit, SHORTFALL_VERSION, reason)
+    compared = {
+        "metric": value.metric,
+        "value": value.value,
+        "reference_value": reference.value,
+        "tolerance_points": float(tolerance_points),
+    }
+    short = reference.value - value.value
+    below = short > tolerance_points
+    reasons = [Reason("below_reference" if below else "within_reference", compared)]
+    if SUSPECT in (value.status, reference.status):
+        reasons.append(Reason("input_suspect", {"metric": value.metric}))
+    return Result(
+        metric,
+        short if below else None,
+        unit,
+        SUSPECT if len(reasons) > 1 else USABLE,
+        tuple(reasons),
+        value.inputs + reference.inputs,
+        SHORTFALL_VERSION,
+    )

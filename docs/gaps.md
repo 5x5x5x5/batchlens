@@ -24,5 +24,7 @@ Known gaps, with the date they were found.
 | 2026-11-15 | Review, minor: a 403 or 422 from PlantCraft on one asset fails the whole list, metrics or trends route instead of becoming a reason. | Open, owner to decide |
 | 2026-11-15 | Titer divergence (`titer_divergence`): the answer depends on the tolerance (15 % gives day 7.9 for the demo's reduced-productivity batch, 20 % gives day 11.9), and it reports when a gap is first seen, not when it began. No sensitivity or uncertainty is shown on the page. | Open |
 | 2026-11-15 | Titer divergence compares with one reference batch, not a set of comparable batches, and only looks for a titer below it. | Open, planned (benchmark) |
-| 2026-11-15 | The Protein A recovery loss of the demo raises no finding; it is visible only as a difference in the metrics table. | Open, next task |
-| 2026-11-15 | A finding is not shown with its supporting evidence (growth, glucose, lactate at the same samples), which the original proposal asks for. | Open, planned |
+| 2026-11-15 | The Protein A recovery loss of the demo raised no finding. | Closed: `recovery_shortfall` |
+| 2026-11-15 | A finding was not shown with its supporting evidence. | Closed: evidence tables under a divergence |
+| 2026-11-16 | Evidence compares samples up to 6 h apart in culture age. For analytes that move within a day (glucose between feeds) the timing difference can exceed and even reverse the real difference; the page says nothing is concluded but does not warn about this. | Open |
+| 2026-11-16 | Shown values and their shown difference do not always subtract exactly (7,410 g and 9,230 g with a difference of -1,830 g): each is rounded from the full value on its own. | Open, by design |

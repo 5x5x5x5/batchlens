@@ -118,55 +118,154 @@ def beside_reference(
     return found
 
 
+# Each step recovery a finding is raised for, and the mass that comes out of that step.
+STEPS = {
+    "harvest_to_load_yield": "protein_a_load_mass",
+    "protein_a_recovery": "protein_a_eluate_mass",
+}
+
+
+def _consequence(
+    metric: str, results: dict[str, calc.Result], reference: dict[str, calc.Result]
+) -> dict[str, Any]:
+    """A mass of this batch against the reference batch's, with the status of this batch's."""
+
+    own, other = results[metric], reference[metric]
+    both = own.value is not None and other.value is not None
+    return {
+        "metric": metric,
+        "unit": own.unit,
+        "status": own.status,
+        "value": own.value,
+        "reference": other.value,
+        "difference": own.value - other.value if both else None,
+    }
+
+
+def _evidence(
+    record: BatchRecord,
+    reference: BatchRecord,
+    culture_start: datetime,
+    pairs: list[tuple[str, str, str]],
+    as_of: datetime | None,
+) -> list[dict[str, Any]]:
+    """Every result of the samples a divergence rests on, beside the reference sample's result
+    of the same analyte: numbers to read, with nothing concluded from them."""
+
+    def usable(batch: BatchRecord) -> dict[str, Any]:
+        return {
+            result.result_id: result
+            for result in batch.results
+            if result.validity == "valid" and (as_of is None or result.result_available_at <= as_of)
+        }
+
+    own, other = usable(record), usable(reference)
+    collected = {sample.sample_id: sample.collected_at for sample in record.samples}
+    groups = []
+    for at, result_id, reference_result_id in pairs:
+        sample_id, reference_sample_id = (
+            own[result_id].sample_id,
+            other[reference_result_id].sample_id,
+        )
+        beside = {r.analyte: r for r in other.values() if r.sample_id == reference_sample_id}
+        rows = []
+        for result in sorted(own.values(), key=lambda r: r.analyte):
+            if result.sample_id != sample_id:
+                continue
+            match = beside.get(result.analyte)
+            same_unit = match is not None and match.unit == result.unit
+            rows.append(
+                {
+                    "analyte": result.analyte,
+                    "unit": result.unit,
+                    "result_id": result.result_id,
+                    "value": result.value,
+                    "reference_result_id": match.result_id if match else None,
+                    "reference_value": match.value if same_unit else None,
+                    "difference": result.value - match.value if same_unit else None,
+                }
+            )
+        groups.append(
+            {
+                "at": at,
+                "sample_id": sample_id,
+                "reference_sample_id": reference_sample_id,
+                "culture_day": (collected[sample_id] - culture_start).total_seconds() / 86400,
+                "results": rows,
+            }
+        )
+    return groups
+
+
 def findings(
     record: BatchRecord,
     reference: BatchRecord | None,
-    compared: list[dict[str, Any]],
+    results: list[calc.Result],
+    reference_results: list[calc.Result] | None,
     *,
     as_of: datetime | None = None,
 ) -> list[dict[str, Any]]:
-    """What stands out against the reference batch, each finding in three separate parts:
+    """What stands out against the reference batch. Always the same findings in the same
+    order, each in separate parts:
 
-    - ``observation``: where the titer left the reference's (``calc.titer_divergence``), with
-      the ids of the results it rests on;
-    - ``consequence``: when it did, the product mass at harvest against the reference's, taken
-      from ``compared`` (the output of ``beside_reference``), with its own status;
+    - ``observation``: a ``calc`` result with the ids it rests on: where the titer left the
+      reference's, and for each step whether it recovered less than the reference's did;
+    - ``consequence``: when something was observed, a product mass against the reference's
+      (at harvest for the titer, out of the step for a recovery), with its own status;
+    - ``evidence``: for a divergence, the other results of the same samples beside the
+      reference's;
     - ``cause``: always none. The app observes and calculates; it attributes nothing.
 
     No findings without a reference batch to compare with.
     """
 
-    if reference is None:
+    if reference is None or reference_results is None:
         return []
+    own = {result.metric: result for result in results}
+    other = {result.metric: result for result in reference_results}
     culture, reference_culture = (item.phase("production_culture") for item in (record, reference))
+    evidence: list[dict[str, Any]] = []
     if culture is None or reference_culture is None:
-        observation = calc.insufficient(
+        divergence = calc.insufficient(
             "titer_divergence", "days", DIVERGENCE_VERSION, calc.Reason("phase_missing")
         )
     else:
-        observation = calc.titer_divergence(
+        divergence = calc.titer_divergence(
             measurements(record, "titer"),
             measurements(reference, "titer"),
             batch_start=culture.start,
             reference_start=reference_culture.start,
             as_of=as_of,
         )
-    consequence = None
-    if observation.value is not None:
-        harvest = next(item for item in compared if item["metric"] == "harvest_mass")
-        consequence = {
-            "metric": "harvest_mass",
-            "unit": harvest["unit"],
-            "status": harvest["status"],
-            "value": harvest["value"],
-            "reference": harvest["reference"]["value"] if harvest["reference"] else None,
-            "difference": harvest["difference"],
-        }
-    return [
+        if divergence.value is not None:
+            seen = divergence.reasons[0].values
+            pairs = [
+                ("divergence", seen["result_id"], seen["reference_result_id"]),
+                ("last_sample", divergence.inputs[-2], divergence.inputs[-1]),
+            ]
+            evidence = _evidence(record, reference, culture.start, pairs, as_of)
+    found = [
         {
             "finding": "titer_divergence",
-            "observation": observation.to_dict(),
-            "consequence": consequence,
+            "observation": divergence.to_dict(),
+            "consequence": _consequence("harvest_mass", own, other)
+            if divergence.value is not None
+            else None,
+            "evidence": evidence,
             "cause": None,
         }
     ]
+    for step, mass_out in STEPS.items():
+        shortfall = calc.recovery_shortfall(own[step], other[step])
+        found.append(
+            {
+                "finding": shortfall.metric,
+                "observation": shortfall.to_dict(),
+                "consequence": _consequence(mass_out, own, other)
+                if shortfall.value is not None
+                else None,
+                "evidence": [],
+                "cause": None,
+            }
+        )
+    return found

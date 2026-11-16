@@ -3,6 +3,36 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Recovery findings, evidence and the reference overlay
+
+Branch `mvp-findings`. The owner asked for a finding on both steps, left the tolerance to the
+agent, and asked for pull requests to be merged by the agent once CI passes.
+
+- **Built:** `calc.recovery_shortfall` (4 tests run red first); `analysis.metrics.findings`
+  now answers three findings for every compared batch, with `evidence` under a divergence;
+  the samples route gives each sample its culture day and, with `align_to`, the instant of the
+  same culture age on another batch's timeline (8 API tests run red first); the page shows
+  the findings, evidence tables and the reference batch drawn over VCD and titer (3 Vitest
+  tests run red first); a third browser journey reads the recovery finding of `BL-0004`.
+- **Rulings:**
+  - One tolerance for both steps, 10 percentage points (`RECOVERY_TOLERANCE_POINTS`). At that
+    value the demo's yield spread (89 to 97 %, assay noise on one titer) flags nothing and the
+    Protein A loss (20 points) is found.
+  - The consequence of a step shortfall is the mass that comes out of that step against the
+    reference's (load mass for the yield, eluate mass for the recovery).
+  - Findings that found nothing are still listed ("within"), so a reader sees what was checked.
+  - Evidence is the other results of the diverging sample and of the last compared sample,
+    beside the reference sample's, with differences and no interpretation.
+  - The overlay places the reference's samples on the batch's own time axis at equal culture
+    age; the server computes those instants, so no arithmetic moved into the interface.
+- **Learned from looking at the page:** at the divergence, the batch's glucose reads 1.63 g/L
+  below the reference although the generator makes it 0.8 g/L higher at equal age: the two
+  samples are hours apart on a daily feed sawtooth. Recorded as an assumption and a gap. It is
+  a good example of why the app lists evidence and concludes nothing.
+- **Seen in the browser:** `docs/images/findings/titer-divergence.png`, `recovery-shortfall.png`.
+- **Final checks:** `make ci` exit 0 (translations 120/120 and 2/2, ruff 85 files, Vitest 21
+  passed, pytest 157 passed, 0 skipped); `make e2e` exit 0 (5 passed).
+
 ## 2026-11-15: The first finding, titer divergence from the reference (roadmap item 2)
 
 Branch `findings`, from `main` after pull requests 1 and 2 were merged. The owner chose the rule

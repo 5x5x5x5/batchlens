@@ -356,11 +356,143 @@ def findings_of(client, batch_id: str, **params) -> list[dict]:
     return answer.json()["findings"]
 
 
+def finding_of(client, batch_id: str, kind: str, **params) -> dict:
+    found = [f for f in findings_of(client, batch_id, **params) if f["finding"] == kind]
+    assert len(found) == 1, [f["finding"] for f in findings_of(client, batch_id, **params)]
+    return found[0]
+
+
+FINDINGS = ["titer_divergence", "harvest_to_load_yield_shortfall", "protein_a_recovery_shortfall"]
+
+
+def test_every_compared_batch_gets_the_same_three_findings_in_the_same_order(seeded, client):
+    for batch_id in ("BL-0002", "BL-0003", "BL-0004"):
+        assert [f["finding"] for f in findings_of(client, batch_id)] == FINDINGS
+        assert all(f["cause"] is None for f in findings_of(client, batch_id))
+
+
+def test_the_batch_that_lost_product_in_protein_a_gets_a_recovery_finding(seeded, client):
+    finding = finding_of(client, "BL-0004", "protein_a_recovery_shortfall")
+    observation = finding["observation"]
+    assert (observation["status"], observation["unit"]) == ("usable", "percentage points")
+    recovery = metrics_of(client, "BL-0004")["protein_a_recovery"]
+    assert observation["value"] == pytest.approx(recovery["reference"]["value"] - recovery["value"])
+    assert observation["value"] > 15
+    assert codes(observation) == ["below_reference"]
+    # It rests on the pool measurements of both batches.
+    assert set(observation["inputs"]) == {
+        "BL-0004-protein_a_eluate",
+        "BL-0004-protein_a_load",
+        "BL-0001-protein_a_eluate",
+        "BL-0001-protein_a_load",
+    }
+    # The consequence: what came out of the step, against the reference.
+    eluate = metrics_of(client, "BL-0004")["protein_a_eluate_mass"]
+    assert finding["consequence"] == {
+        "metric": "protein_a_eluate_mass",
+        "unit": "g",
+        "status": "usable",
+        "value": eluate["value"],
+        "reference": eluate["reference"]["value"],
+        "difference": eluate["difference"],
+    }
+    assert finding["evidence"] == []
+    # Its culture was normal, and so was its yield into the step, within the tolerance.
+    assert codes(finding_of(client, "BL-0004", "titer_divergence")["observation"]) == [
+        "no_divergence"
+    ]
+    step_yield = finding_of(client, "BL-0004", "harvest_to_load_yield_shortfall")
+    assert codes(step_yield["observation"]) == ["within_reference"]
+    assert step_yield["consequence"] is None
+
+
+@pytest.mark.parametrize("batch_id", ["BL-0002", "BL-0003"])
+def test_batches_with_a_normal_capture_step_get_no_recovery_shortfall(seeded, client, batch_id):
+    for kind in FINDINGS[1:]:
+        observation = finding_of(client, batch_id, kind)["observation"]
+        assert (observation["status"], observation["value"]) == ("usable", None)
+        assert codes(observation) == ["within_reference"]
+
+
+def test_a_recovery_finding_waits_for_the_pool_measurements(seeded, client):
+    capture = CAMPAIGN["BL-0004"].record.phases[2]
+    finding = finding_of(
+        client, "BL-0004", "protein_a_recovery_shortfall", as_of=capture.start.isoformat()
+    )
+    assert finding["observation"]["status"] == "insufficient"
+    assert codes(finding["observation"]) == ["input_not_usable"]
+
+
+def test_the_divergence_comes_with_the_other_results_of_the_same_samples_as_evidence(
+    seeded, client
+):
+    finding = finding_of(client, "BL-0003", "titer_divergence")
+    seen = finding["observation"]["reasons"][0]["values"]
+    at_divergence, at_last = finding["evidence"]
+    assert (at_divergence["at"], at_last["at"]) == ("divergence", "last_sample")
+    assert at_divergence["sample_id"] == seen["result_id"].removesuffix("-titer")
+    assert at_divergence["reference_sample_id"] == seen["reference_result_id"].removesuffix(
+        "-titer"
+    )
+    assert at_last["sample_id"] == "BL-0003-S15" and at_last["reference_sample_id"] == "BL-0001-S15"
+    for group in (at_divergence, at_last):
+        assert 7 < group["culture_day"] < 15
+        assert [row["analyte"] for row in group["results"]] == [
+            "glucose",
+            "lactate",
+            "titer",
+            "vcd",
+            "viability",
+        ]
+        for row in group["results"]:
+            assert row["result_id"] == f"{group['sample_id']}-{row['analyte']}"
+            assert row["reference_result_id"] == f"{group['reference_sample_id']}-{row['analyte']}"
+            assert row["unit"] and row["value"] is not None and row["reference_value"] is not None
+            assert row["difference"] == pytest.approx(row["value"] - row["reference_value"])
+    # The numbers are there to be read; nothing is concluded from them.
+    last = {row["analyte"]: row for row in at_last["results"]}
+    assert last["lactate"]["difference"] > 1 and last["titer"]["difference"] < -1
+    assert "interpretation" not in finding and finding["cause"] is None
+    # No divergence, no evidence.
+    assert finding_of(client, "BL-0002", "titer_divergence")["evidence"] == []
+
+
+def test_evidence_holds_only_what_was_available_at_as_of(seeded, client):
+    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    as_of = (culture.start + timedelta(days=12)).isoformat()
+    finding = finding_of(client, "BL-0003", "titer_divergence", as_of=as_of)
+    last = finding["evidence"][1]
+    # Titers arrive a day late, so the last compared sample is not the last collected one.
+    assert last["sample_id"] < "BL-0003-S13"
+    available = client.get("/api/batches/BL-0003/samples", params={"as_of": as_of}).json()
+    known = {r["result_id"] for sample in available["samples"] for r in sample["results"]}
+    for group in finding["evidence"]:
+        assert {row["result_id"] for row in group["results"]} <= known
+
+
+def test_samples_carry_their_culture_day_and_can_be_laid_over_another_batch(seeded, client):
+    own = client.get("/api/batches/BL-0003/samples").json()["samples"]
+    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    for sample in own:
+        age = (instant(sample["collected_at"]) - culture.start).total_seconds() / 86400
+        assert sample["culture_day"] == pytest.approx(age)
+        assert sample["aligned_at"] is None
+    # The reference batch's samples, placed at the same culture age on BL-0003's timeline.
+    laid = client.get("/api/batches/BL-0001/samples", params={"align_to": "BL-0003"}).json()
+    assert laid["aligned_to"] == "BL-0003"
+    for sample in laid["samples"]:
+        shifted = culture.start + timedelta(days=sample["culture_day"])
+        assert abs((instant(sample["aligned_at"]) - shifted).total_seconds()) < 0.002
+    assert (
+        client.get("/api/batches/BL-0001/samples", params={"align_to": "BL-9999"}).status_code
+        == 404
+    )
+
+
 def test_the_batch_whose_titer_left_the_reference_gets_a_finding_in_three_separate_parts(
     seeded, client
 ):
-    [finding] = findings_of(client, "BL-0003")
-    assert finding["finding"] == "titer_divergence"
+    finding = finding_of(client, "BL-0003", "titer_divergence")
     # The observation: where, with the samples it rests on.
     observation = finding["observation"]
     assert (observation["status"], observation["unit"]) == ("usable", "days")
@@ -391,7 +523,7 @@ def test_the_batch_whose_titer_left_the_reference_gets_a_finding_in_three_separa
 def test_a_batch_that_followed_the_reference_gets_the_finding_that_nothing_diverged(
     seeded, client, batch_id
 ):
-    [finding] = findings_of(client, batch_id)
+    finding = finding_of(client, batch_id, "titer_divergence")
     assert (finding["observation"]["status"], finding["observation"]["value"]) == ("usable", None)
     assert codes(finding["observation"]) == ["no_divergence"]
     assert finding["consequence"] is None and finding["cause"] is None
@@ -404,16 +536,28 @@ def test_the_reference_batch_is_not_compared_with_itself(seeded, client):
 def test_a_finding_uses_only_what_was_available_at_as_of(seeded, client):
     culture = CAMPAIGN["BL-0003"].record.phases[0]
     # Day 6: before the titer left the reference, and before day 6's own titer came in.
-    [early] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(days=6)).isoformat())
+    early = finding_of(
+        client, "BL-0003", "titer_divergence", as_of=(culture.start + timedelta(days=6)).isoformat()
+    )
     assert early["observation"]["value"] is None
     assert codes(early["observation"]) == ["no_divergence", "result_not_yet_available"]
     assert early["consequence"] is None
     # Before any titer of the batch exists there is nothing to compare.
-    [none] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(hours=2)).isoformat())
+    none = finding_of(
+        client,
+        "BL-0003",
+        "titer_divergence",
+        as_of=(culture.start + timedelta(hours=2)).isoformat(),
+    )
     assert none["observation"]["status"] == "insufficient"
     # After the divergence is seen but before harvest: the observation stands, and the
     # consequence says the harvest mass is not there yet rather than leaving it out.
-    [mid] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(days=12)).isoformat())
+    mid = finding_of(
+        client,
+        "BL-0003",
+        "titer_divergence",
+        as_of=(culture.start + timedelta(days=12)).isoformat(),
+    )
     assert mid["observation"]["value"] is not None
     assert (mid["consequence"]["status"], mid["consequence"]["difference"]) == (
         "insufficient",
@@ -429,7 +573,7 @@ def test_without_the_bioreactor_the_observation_stands_and_the_consequence_says_
     try:
         seed_demo(runtime.batches)
         with client_for(runtime, fake) as client:
-            [finding] = findings_of(client, "BL-0003")
+            finding = finding_of(client, "BL-0003", "titer_divergence")
             assert finding["observation"]["value"] is not None  # titers are the app's own records
             assert finding["consequence"]["status"] == "insufficient"
             assert finding["consequence"]["difference"] is None

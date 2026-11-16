@@ -108,14 +108,18 @@ happened to read 5 % low. The app shows that number as it is.
 
 ## What the app finds
 
-Against the reference batch `BL-0001`, with the default tolerance of 15 %:
+Against the reference batch `BL-0001`, with the default tolerances (15 % of titer, 10 points of
+a step recovery). Every compared batch gets the same three findings.
 
-| Batch | Finding |
-|---|---|
-| `BL-0002` | Titer stayed within the tolerance over 15 compared samples |
-| `BL-0003` | Titer left the reference at culture day 7.9 (sample `BL-0003-S09-titer`, 1.681 against 2.008 g/L) and stayed below in all 6 later samples; product mass at harvest 7,317 g against 10,170 g |
-| `BL-0004` | Titer stayed within the tolerance. Its loss is in the Protein A step, which the metrics table shows (recovery 73.4 % against 93.6 %); no finding is raised for a step recovery yet |
+| Batch | Titer | Harvest-to-load yield | Protein A recovery |
+|---|---|---|---|
+| `BL-0002` | Within the tolerance over 15 compared samples | Within (91.9 % against 97.0 %) | Within (91.5 % against 93.6 %) |
+| `BL-0003` | Left the reference at culture day 7.9 (sample `BL-0003-S09-titer`, 1.681 against 2.008 g/L), below in all 6 later samples; 7,317 g against 10,170 g at harvest | Within (91.0 %) | Within (92.6 %) |
+| `BL-0004` | Within the tolerance | Within (89.4 %) | 20 points below (73.4 % against 93.6 %); 7,410 g against 9,230 g in the eluate |
 
 The ground truth says `BL-0003`'s productivity changes from day 7. The app sees it at the next
 sample, day 7.9, and says so: the first sample at which a gap is seen comes after whatever
-began it. No cause is attributed (`images/findings/titer-divergence.png`).
+began it. Under the divergence the page lists the other results of the same samples beside the
+reference's (lactate is 1.72 g/L higher at the last sample), and concludes nothing from them.
+No cause is attributed anywhere (`images/findings/`). The VCD and titer charts draw the
+reference batch over each batch at the same culture age.

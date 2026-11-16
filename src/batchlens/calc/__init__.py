@@ -8,6 +8,8 @@ and its ``calculation_version`` changes with it.
 from batchlens.calc.comparison import (
     DIVERGENCE_TOLERANCE_FRACTION,
     PAIRING_WINDOW_HOURS,
+    RECOVERY_TOLERANCE_POINTS,
+    recovery_shortfall,
     titer_divergence,
 )
 from batchlens.calc.culture import MAX_GAP_DAYS, ivcd, specific_productivity
@@ -35,6 +37,8 @@ from batchlens.calc.results import (
 __all__ = [
     "DIVERGENCE_TOLERANCE_FRACTION",
     "PAIRING_WINDOW_HOURS",
+    "RECOVERY_TOLERANCE_POINTS",
+    "recovery_shortfall",
     "titer_divergence",
     "HARVEST_TITER_WINDOW_HOURS",
     "INSUFFICIENT",

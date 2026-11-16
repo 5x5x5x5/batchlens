@@ -98,8 +98,23 @@ def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser) -> dict[str, Any
 
 
 @router.get("/batches/{batch_id}/samples")
-def batch_samples(batch_id: str, rt: RuntimeDep, _user: CurrentUser, as_of: AsOf) -> dict[str, Any]:
+def batch_samples(
+    batch_id: str,
+    rt: RuntimeDep,
+    _user: CurrentUser,
+    as_of: AsOf,
+    align_to: Annotated[
+        str | None,
+        Query(
+            max_length=64,
+            description="Another batch: each sample also gets the instant of the same culture "
+            "age on that batch's timeline, to lay one batch over the other.",
+        ),
+    ] = None,
+) -> dict[str, Any]:
     record = batch_or_404(rt, batch_id)
+    culture = record.phase("production_culture")
+    other = batch_or_404(rt, align_to).phase("production_culture") if align_to else None
     samples = []
     for sample in record.samples:
         if as_of is not None and sample.collected_at > as_of:
@@ -110,8 +125,22 @@ def batch_samples(batch_id: str, rt: RuntimeDep, _user: CurrentUser, as_of: AsOf
             if result.sample_id == sample.sample_id
             and (as_of is None or result.result_available_at <= as_of)
         ]
-        samples.append({**_plain(sample), "results": sorted(results, key=lambda r: r["analyte"])})
-    return {"batch_id": batch_id, "as_of": _stamp(as_of), "samples": samples}
+        # Culture age: time since the start of the batch's production phase.
+        age = sample.collected_at - culture.start if culture else None
+        samples.append(
+            {
+                **_plain(sample),
+                "culture_day": age.total_seconds() / 86400 if age is not None else None,
+                "aligned_at": _stamp(other.start + age) if other and age is not None else None,
+                "results": sorted(results, key=lambda r: r["analyte"]),
+            }
+        )
+    return {
+        "batch_id": batch_id,
+        "as_of": _stamp(as_of),
+        "aligned_to": align_to,
+        "samples": samples,
+    }
 
 
 @router.get("/batches/{batch_id}/metrics")
@@ -128,13 +157,14 @@ def batch_metrics_route(
     reference = rt.batches.reference()
     if reference is not None and reference.batch.batch_id == batch_id:
         reference = None  # the reference batch is not compared with itself
-    compared = beside_reference(metrics_of(record), metrics_of(reference) if reference else None)
+    results = metrics_of(record)
+    reference_results = metrics_of(reference) if reference else None
     return {
         "batch_id": batch_id,
         "as_of": _stamp(as_of),
         "reference_batch_id": reference.batch.batch_id if reference else None,
-        "metrics": compared,
-        "findings": findings(record, reference, compared, as_of=as_of),
+        "metrics": beside_reference(results, reference_results),
+        "findings": findings(record, reference, results, reference_results, as_of=as_of),
     }
 
 

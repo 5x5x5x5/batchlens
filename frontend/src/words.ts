@@ -115,6 +115,7 @@ export function reasonText(reason: Reason): string {
     case "signal_not_found": return v.role
       ? t("{asset} has no {role} signal in PlantCraft.", { asset: text("asset_id"), role: roleWord(text("role")) })
       : t("Signal {signal} was not found in PlantCraft.", { signal: text("signal_id") });
+    case "within_reference": return t("{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).", { metric: metricName(text("metric")), tolerance: text("tolerance_points"), value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1) });
     case "no_divergence": return t("Titer stayed within {tolerance} % of the reference batch at the end of {pairs} compared samples.", { tolerance: text("tolerance_percent"), pairs: text("pairs") });
     case "fewer_than_two_reference_pairs": return t("Fewer than two titer samples could be compared with the reference batch.");
     case "samples_without_reference_pair": return t("Left out, with no reference sample within {hours} h of the same culture age: {ids}.", { hours: text("pairing_window_hours"), ids: (v.ids as string[] | undefined ?? []).join(", ") });
