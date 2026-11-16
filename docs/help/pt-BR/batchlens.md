@@ -3,8 +3,8 @@
 **Demonstração sintética · não GxP · não usar para controle de processo, liberação ou
 disposição de lotes.**
 
-O BatchLens acompanha lotes de anticorpos da cultura de produção até a etapa de captura por
-Proteína A e mostra, para cada lote, quanto produto havia em cada ponto e de onde vem cada
+O BatchLens acompanha lotes de anticorpos da cultura de produção, pelo trem de purificação, até a
+substância ativa e mostra, para cada lote, quanto produto havia em cada ponto e de onde vem cada
 número. Todos os lotes aqui são sintéticos: feitos por um gerador, não medidos em planta alguma.
 
 ## Lotes

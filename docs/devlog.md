@@ -3,6 +3,34 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A live plant inside the suite, and the documents reviewed for publication
+
+The owner asked for the suite's modules in the mAb demo, chose a live plant over fixed past
+dates, and asked for the documents to be reviewed before the repository goes public.
+
+- **Built:** `demo_campaign(live_from)` moves the five batches in time and adds `BL-0006`,
+  running (`tests/test_live.py`: moving a batch changes no value). `api.deps.horizon` cuts a
+  running batch at now on every route. `batchlens seed-demo --live`, `demo-plant --live-from`.
+  `tools/gateway.py` serves PlantCraft and every app at one address; `tools/seed_suite.py`
+  gives View, Alarms and Documents the plant. A drawing of the process train on the batch
+  page.
+- **Ruling:** the live batch is stored whole and cut at read time, not fed in record by
+  record. It reuses the as-of logic every route already had and its tests; storing only the
+  past would have needed phases without an end throughout the store and the calculations.
+  Cost if wrong: a route that forgets the cut shows the future (`docs/gaps.md`).
+- **Ruling:** the fixed campaign stays what the tests, the benchmark and the tables use.
+- **Found:** PlantCraft 0.6.0's app switcher cannot open an app listed at another origin, so
+  its own launcher's `--app` does not work from the switcher; View's and Alarms' starters
+  look for control loops and make nothing for a plant without them.
+- **Seen in a browser (PlantCraft 0.6.0, fresh workspace):** `BL-0006` running with its titer
+  finding and trends up to the last half hour; View's dashboard and process display with
+  current values (`docs/images/suite/`).
+- **Documents:** `docs/STATUS.md` cut to a few lines (the next tasks are in `ROADMAP.md`; the
+  app standard requires the file); README, demo, roadmap, gaps and structure brought up to
+  date.
+- **Not done:** Historian, Analytics and Models hold nothing of the plant; older screenshots
+  not retaken.
+
 ## 2026-11-16: The app is named BatchLens
 
 The name `make rename` gave the app is gone from everything but the older entries below, which

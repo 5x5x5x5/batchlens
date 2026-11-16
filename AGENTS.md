@@ -19,8 +19,8 @@ https://github.com/PlantCraft/plantcraft-app-template.
 
 ## Start here
 
-1. Read `README.md`, `docs/README.md` (what each document is) and `docs/STATUS.md` (the next
-   task).
+1. Read `README.md`, `docs/README.md` (what each document is) and `ROADMAP.md` (what is
+   proposed next).
 2. `make test-fast` while working, `make ci` before every commit, `make e2e` when you touched a
    page a person uses.
 3. Commit messages start with the app id (`batchlens: ...`); add an entry to `docs/devlog.md`
@@ -166,8 +166,10 @@ decisions, reproducible results and honest reporting matter more than breadth.
   is made with `uv venv --seed --python 3.12 ~/.venvs/batchlens`, outside the tree (a `.venv`
   inside it gets swept up by tests that walk the folder; `docs/gaps.md`); install by hand with
   `uv pip`, never bare `pip`.
-- Start of a session: `git status`, then `docs/STATUS.md`, `docs/gaps.md` and the last devlog
+- Start of a session: `git status`, then `ROADMAP.md`, `docs/gaps.md` and the last devlog
   entries. Take one small task with a stated acceptance test.
+- `var/` at the root is the app's default data folder and is not tracked. Never write there
+  while developing; set `BATCHLENS_DATA_DIR`.
 - Type hints on public functions, the `logging` module rather than `print`, `ruff` clean.
 - Done means: tests written first and passing, bad and missing data handled, `make ci` green,
   `make e2e` green when a page changed, and the documents say what is now true.
