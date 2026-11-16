@@ -111,6 +111,28 @@ def volume(
     return calc.Online(signal["id"], signal.get("unit") or "", points)
 
 
+def volume_between(
+    client: PlantCraftClient, asset_id: str, start: datetime, end: datetime
+) -> calc.Online | calc.Reason:
+    """The recorded values of an asset's volume signal between two instants, or why not."""
+
+    signal = _signal(client, asset(client, asset_id), asset_id, "volume")
+    if isinstance(signal, calc.Reason):
+        return signal
+    points: list[tuple[datetime, float]] = []
+    if start < end:
+        missing = calc.Reason("signal_not_found", {"asset_id": asset_id, "role": "volume"})
+        series = _read(lambda: client.series(signal["id"], start, end), missing)
+        if isinstance(series, calc.Reason):
+            return series
+        points = [
+            (_instant(stamp), float(value))
+            for stamp, value in zip(series["t"], series["v"])
+            if isinstance(value, int | float) and not isinstance(value, bool)
+        ]
+    return calc.Online(signal["id"], signal.get("unit") or "", points)
+
+
 def _step_means(
     stamps: list[str], values: list[Any], start: datetime, end: datetime, step: int
 ) -> tuple[list[str], list[float | None]]:

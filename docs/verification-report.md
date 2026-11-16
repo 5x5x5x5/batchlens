@@ -12,7 +12,7 @@ measures whether the analysis does what it says on data shaped like its own demo
 says nothing about real processes, real assay noise or real historians, and it is not a
 validation of anything.
 
-- Generator: `synthetic-generator/3`, 20 seeds of every variant.
+- Generator: `synthetic-generator/4`, 20 seeds of every variant.
 - Batches: 20 normal, 180 with reduced specific
   productivity (from culture day 5, 7, 9; to
   55 %, 70 %, 85 % of nominal), 60 with

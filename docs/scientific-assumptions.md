@@ -52,6 +52,7 @@ found"; its reason then says so (`no_divergence`).
 | `PAIRING_WINDOW_HOURS` | 6 h | `calc/comparison.py` | A sample is compared with the reference sample nearest in culture age, at most this far away |
 | `MERGE_TOLERANCE_PERCENT` | 3 % | `calc/mass.py` | A merged pool's mass may differ from the sum of its parts by this much before it is `suspect` |
 | `INOCULATION_TOLERANCE_FRACTION` | 0.20 | `calc/comparison.py` | An inoculation density below the reference's by more than this fraction of the reference's is a shortfall |
+| `TRANSFER_TOLERANCE_PERCENT` | 5 % | `calc/mass.py` | The volume a vessel's signal shows arriving may differ from the recorded volume of a transfer by this much before it is `suspect` |
 | `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
 
 ## The calculations
@@ -278,6 +279,27 @@ within the tolerance.
 - Consequence shown with it: the harvest mass against the reference's. Evidence shown with
   it: each batch's last sample of the N-1 seed passage. Neither is offered as the cause.
 
+### 14. Transfer balance (`transfer_balance/1`), `%`
+
+`balance = 100 * (arrived - recorded) / recorded`. `recorded` is the volume written on the
+transfer; `arrived` is the destination vessel's volume signal just after the transfer minus
+just before it: the last value at or before its start and the first at or after its end, each
+no further away than `VOLUME_MAX_AGE_SECONDS`.
+
+Example: a feed recorded as 60.0 L; the bioreactor read 1400.5 L before and 1461.7 L after.
+`arrived = 61.2`, `balance = 100 * 1.2 / 60 = 2.0 %`. Recorded as 6.0 L with 60.0 L arriving,
+the balance is 900 % and `suspect`.
+
+- `suspect`: outside `TRANSFER_TOLERANCE_PERCENT`. The record and the vessel disagree; the
+  app does not decide which is wrong and changes neither.
+- `insufficient`: the destination has no volume signal; no value close enough on either side
+  (a vessel that recorded nothing before its culture began, a hole in the historian); the
+  transfer had not ended at `as_of`; a recorded volume of zero.
+- `invalid`: a unit other than `L` on either side; a negative or non-finite value.
+- Assumptions: nothing else entered or left the vessel during the transfer (no sampling, no
+  evaporation, no base addition), and only the destination is checked: the source vessels of
+  the demo have no volume signal.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -362,6 +384,7 @@ passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L 
 |---|---|---|
 | Seed passages | Exponential growth from 0.5 for three days at `ln(7) / 3` = 0.649 /day (x 1 ± 2 %); four counts per passage (an hour after seeding, daily within ± 3 h, an hour before the transfer), each with a viability | Its own random stream, so earlier values did not change |
 | Density a vessel starts at | The target 0.5, or, when the vessel before it held too few cells for that, all of them diluted into the new volume: `min(0.5, X_end * V_before / V_start)` | 50 L into 250 L into 1400 L |
+| Transfers | One record for each seed passage moved on, the inoculation and each of the ten feeds, with the volume recorded: what reaches the target density in the next vessel (or all there is), 60 L per feed, each x 1 ± 0.5 %. Passages and the inoculation take 30 min, a feed 10 min and ends when the bioreactor's volume steps | Its own random stream. A feed may be recorded with a digit dropped (a tenth of its volume); the feed itself is unchanged |
 | Viable cell density | Logistic growth from the density the culture started at (0.5 unless N-1 fell short) to a peak, times `exp(-0.03 * (day - 9))` after day 9 | Peak 20 (x 1 ± 3 %), rate 0.75 /day (x 1 ± 2 %), in `1e6 cells/mL` |
 | Titer | Running sum of `qP * dIVCD / 1000`, IVCD by trapezoid over the noise-free density at the sample times | qP 30 pg/cell/day (x 1 ± 2 %) |
 | Viability | `98 - 0.05 * day²` % | |

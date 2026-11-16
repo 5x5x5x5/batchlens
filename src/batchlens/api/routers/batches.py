@@ -13,6 +13,7 @@ from plantcraft_sdk.utc import utc_iso
 
 from batchlens.analysis.downstream import downstream
 from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
+from batchlens.analysis.transfers import transfers, windows
 from batchlens.api import deps, plant
 from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, batch_or_404
 from batchlens.batches.drafts import SampleTimeCorrection
@@ -223,6 +224,10 @@ def metrics_answer(
     # One list of findings: the culture's and the capture step's, then the later steps'.
     found = findings(record, reference, results, reference_results, as_of=as_of)
     found += train.pop("findings")
+    volumes = {
+        asset_id: plant.volume_between(client, asset_id, start, end)
+        for asset_id, (start, end) in windows(record, as_of).items()
+    }
     return {
         "batch_id": batch_id,
         "as_of": _stamp(asked),
@@ -231,6 +236,8 @@ def metrics_answer(
         "findings": found,
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
+        # What was moved into which vessel, each against that vessel's volume signal.
+        "transfers": transfers(record, volumes, as_of=as_of),
     }
 
 

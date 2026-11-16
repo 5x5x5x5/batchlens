@@ -450,3 +450,67 @@ def test_an_inoculation_density_that_cannot_be_compared_is_insufficient():
     )
     zero = calc.inoculation_shortfall(density(0.2), density(0.0))
     assert (zero.value, zero.status, codes(zero)) == (None, "insufficient", ["zero_denominator"])
+
+
+def tank(*points: tuple[float, float], unit: str = "L") -> Online:
+    """A vessel's volume signal: (minutes from T0, litres)."""
+
+    return Online("vol", unit, [(T0 + timedelta(minutes=m), v) for m, v in points])
+
+
+FEED = {"start": T0 + timedelta(minutes=10), "end": T0 + timedelta(minutes=20)}
+
+
+def test_transfer_balance_is_what_arrived_against_what_was_recorded_in_percent():
+    signal = tank((0, 1400.0), (10, 1400.5), (20, 1461.7), (30, 1461.0))
+    result = calc.transfer_balance("T1", 60.0, "L", signal, **FEED)
+    # Arrived: 1461.7 - 1400.5 = 61.2 L. 100 * (61.2 - 60) / 60 = 2.0 %.
+    assert (result.metric, result.unit, result.status) == ("transfer_balance", "%", "usable")
+    assert result.value == pytest.approx(2.0)
+    assert codes(result) == ["transfer_balanced"]
+    assert result.reasons[0].values["arrived"] == pytest.approx(61.2)
+    assert result.inputs == ("T1", "vol") and result.calculation_version == "transfer_balance/1"
+
+
+def test_a_transfer_whose_record_and_vessel_disagree_is_suspect_with_its_value_shown():
+    signal = tank((10, 1400.0), (20, 1460.0))
+    result = calc.transfer_balance("T1", 6.0, "L", signal, **FEED)  # a digit dropped
+    assert (result.status, codes(result)) == ("suspect", ["outside_transfer_tolerance"])
+    assert result.value == pytest.approx(900.0)
+    assert result.reasons[0].values == {"arrived": 60.0, "recorded": 6.0, "tolerance_percent": 5.0}
+
+
+def test_a_transfer_with_no_volume_value_close_on_either_side_is_insufficient():
+    late = tank((10, 1400.0), (40, 1460.0))  # nothing within 900 s after the end
+    result = calc.transfer_balance("T1", 60.0, "L", late, **FEED)
+    assert (result.value, result.status) == (None, "insufficient")
+    assert result.reasons[0].code == "no_volume_near_transfer"
+    assert result.reasons[0].values["side"] == "after"
+    none_before = calc.transfer_balance("T1", 60.0, "L", tank((20, 1460.0)), **FEED)
+    assert none_before.reasons[0].values["side"] == "before"
+    # As of a moment before it ended, it had not happened; a value recorded later is not used.
+    signal = tank((10, 1400.0), (20, 1460.0))
+    during = calc.transfer_balance(
+        "T1", 60.0, "L", signal, **FEED, as_of=T0 + timedelta(minutes=15)
+    )
+    assert (during.status, codes(during)) == ("insufficient", ["transfer_not_ended"])
+
+
+@pytest.mark.parametrize(
+    ("recorded", "unit", "signal_unit", "code"),
+    [
+        (60.0, "kg", "L", "wrong_unit"),
+        (60.0, "L", "m3", "wrong_unit"),
+        (-60.0, "L", "L", "negative_value"),
+        (float("nan"), "L", "L", "non_finite_value"),
+    ],
+)
+def test_transfer_balance_is_invalid_when_an_input_breaks_a_rule(recorded, unit, signal_unit, code):
+    signal = tank((10, 1400.0), (20, 1460.0), unit=signal_unit)
+    result = calc.transfer_balance("T1", recorded, unit, signal, **FEED)
+    assert (result.value, result.status, codes(result)) == (None, "invalid", [code])
+
+
+def test_a_recorded_volume_of_zero_is_insufficient_never_a_division_by_zero():
+    result = calc.transfer_balance("T1", 0.0, "L", tank((10, 1400.0), (20, 1460.0)), **FEED)
+    assert (result.status, codes(result)) == ("insufficient", ["zero_denominator"])

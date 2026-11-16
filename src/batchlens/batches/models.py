@@ -108,6 +108,30 @@ class PoolLink:
     provenance: str
 
 
+TRANSFER_KINDS = ("passage", "inoculation", "feed")
+
+
+@dataclass(frozen=True)
+class Transfer:
+    """Material moved from one asset into another between two instants, as it was recorded:
+    a seed passage moved on, the production culture inoculated, a feed added. The volume is
+    the recorded one (a totaliser, a weight, a batch record entry), not read from a signal.
+    ``from_lot_id`` names the solution lot drawn from; empty when the material is the batch's
+    own."""
+
+    transfer_id: str
+    batch_id: str
+    kind: str
+    from_asset_id: str
+    to_asset_id: str
+    start: datetime
+    end: datetime
+    volume: float
+    volume_unit: str
+    from_lot_id: str
+    provenance: str
+
+
 @dataclass(frozen=True)
 class Correction:
     """A change a person made to a record: the value before, the value after, who, when and
@@ -134,6 +158,7 @@ class BatchRecord:
     results: tuple[AssayResult, ...]
     pools: tuple[PoolMeasurement, ...]
     links: tuple[PoolLink, ...] = ()
+    transfers: tuple[Transfer, ...] = ()
 
     def phase(self, kind: str) -> PhaseExecution | None:
         return next((phase for phase in self.phases if phase.kind == kind), None)

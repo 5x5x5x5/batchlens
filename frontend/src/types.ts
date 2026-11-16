@@ -61,6 +61,8 @@ export interface Finding {
 
 export interface Evidence {
   at: string; sample_id: string; reference_sample_id: string; culture_day: number;
+  /** Hours since the last feed before each sample; null before the first feed. */
+  hours_since_feed?: number | null; reference_hours_since_feed?: number | null;
   results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null }>;
 }
 
@@ -73,7 +75,14 @@ export interface Downstream {
   genealogy: Array<{ pool: string; measurement_id: string; mass: Result; sources: string[]; merge_balance: Result | null }>;
 }
 
-export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[]; downstream: Downstream }
+export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[]; downstream: Downstream; transfers: Transfer[] }
+
+/** Material moved from one asset into another, as recorded, with its balance against the
+ * destination's volume signal. In an as-of view of one under way, `end` and `volume` are null. */
+export interface Transfer {
+  transfer_id: string; kind: string; from_asset_id: string; to_asset_id: string; from_lot_id: string;
+  start: string; end: string | null; volume: number | null; volume_unit: string; balance: Result;
+}
 
 export interface AssayResult { result_id: string; sample_id: string; analyte: string; value: number; unit: string; method: string; result_available_at: string; validity: string; provenance: string }
 

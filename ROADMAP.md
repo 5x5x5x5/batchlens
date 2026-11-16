@@ -28,6 +28,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Three control loops on the bioreactor (value, setpoint, output every 30 s), judged by Analytics' loop monitor, with View's and Alarms' own first steps | Done, tested (generator and files); the modules' side by script, seen in a browser |
 | The seed train: N-2 and N-1 passages as phase executions of the batch, a growth rate per passage, the inoculation density; a low-inoculum scenario in the generator | Done, oracle-tested, on the batch page |
 | A sixth finished demo batch with a low inoculum, and a finding for a culture that began below the reference's density, with the last N-1 sample as evidence | Done, oracle-tested, on the batch page |
+| Transfers: one record per seed passage, inoculation and feed, each checked against the destination vessel's volume signal; a mis-recorded feed flagged; evidence says how long after a feed each sample was taken | Done, oracle-tested, on the batch page |
 
 ## Next, in the intended order
 
@@ -36,9 +37,9 @@ backward (what went into each step) before the chain forward.
 
 1. Seed train, the rest: the seed reactors' online signals. (The passages, their growth
    rates, the inoculation density, its finding and a demo batch that shows it are done.)
-2. Transfers: one record (from asset, to asset, window, recorded volume, the lot or batch on
-   each end) and a transfer balance, first on inoculation and feeds; evidence paired by hours
-   since the last feed.
+2. Transfers, the rest: the source side of a transfer (needs volume signals on the seed
+   reactors and the feed tank); evidence paired by hours since the last feed, not only
+   labelled with them. (The record, the balance and the flag are done.)
 3. A set of comparable batches in place of one reference batch.
 4. Media lots, then buffer lots (one mix tank and three hold tanks: Protein A elution,
    cation-exchange elution, diafiltration), as batches of their own kind; which lot each step

@@ -79,6 +79,14 @@ const DOWNSTREAM: Metrics["downstream"] = {
 const metric = (name: string, more: Partial<Metrics["metrics"][number]>) => ({ metric: name, value: null, unit: "g", status: "usable", reasons: [], inputs: [], calculation_version: `${name}/1`, reference: null, difference: null, ...more });
 const METRICS: Metrics = {
   batch_id: "BL-0002", as_of: null, reference_batch_id: "BL-0001", downstream: DOWNSTREAM,
+  transfers: [
+    { transfer_id: "BL-0002-T03", kind: "feed", from_asset_id: "MH-1201", to_asset_id: "BR-2001", from_lot_id: "", start: "2026-07-25T05:50:00.000Z", end: "2026-07-25T06:00:00.000Z", volume: 60.2, volume_unit: "L",
+      balance: { metric: "transfer_balance", value: 1.2, unit: "%", status: "usable", inputs: ["BL-0002-T03", "sig"], calculation_version: "transfer_balance/1", reasons: [{ code: "transfer_balanced", values: { arrived: 60.9, recorded: 60.2, tolerance_percent: 5 } }] } },
+    { transfer_id: "BL-0002-T04", kind: "feed", from_asset_id: "MH-1201", to_asset_id: "BR-2001", from_lot_id: "", start: "2026-07-26T05:50:00.000Z", end: "2026-07-26T06:00:00.000Z", volume: 6, volume_unit: "L",
+      balance: { metric: "transfer_balance", value: 900, unit: "%", status: "suspect", inputs: ["BL-0002-T04", "sig"], calculation_version: "transfer_balance/1", reasons: [{ code: "outside_transfer_tolerance", values: { arrived: 60, recorded: 6, tolerance_percent: 5 } }] } },
+    { transfer_id: "BL-0002-T02", kind: "inoculation", from_asset_id: "BR-1002", to_asset_id: "BR-2001", from_lot_id: "", start: "2026-07-22T05:30:00.000Z", end: "2026-07-22T06:00:00.000Z", volume: 201.3, volume_unit: "L",
+      balance: { metric: "transfer_balance", value: null, unit: "%", status: "insufficient", inputs: [], calculation_version: "transfer_balance/1", reasons: [{ code: "no_volume_near_transfer", values: { side: "before", max_age_seconds: 900 } }] } },
+  ],
   findings: [{
     finding: "titer_divergence",
     observation: {
@@ -356,6 +364,19 @@ describe("one batch", () => {
     expect(text).toContain("BL-0002-protein_a_eluate_cycle_1, BL-0002-protein_a_eluate_cycle_2");
     expect(text).toContain("+4.2 %");
     expect(text).toContain("The merged pool differs from the sum of its parts by more than 3 %.");
+  });
+
+  it("lists the transfers, flags one whose record and vessel disagree, and says why one was not checked", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const rows = [...host.querySelectorAll('[data-section="transfers"] tbody tr')].map((row) => row.textContent ?? "");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toContain("FeedBL-0002-T03MH-1201BR-2001");
+    expect(rows[0]).toContain("60.2 L+1.2 %Usable");
+    expect(rows[1]).toContain("6 L+900.0 %Suspect");
+    expect(rows[1]).toContain("The vessel's volume rose by 60.0 L against 6 L recorded (the tolerance is 5 %).");
+    expect(rows[2]).toContain("Inoculation");
+    expect(rows[2]).toContain("Not checkedInsufficient");
+    expect(rows[2]).toContain("No volume value within 900 s before the transfer.");
   });
 
   it("lists every assay result with its collection and availability times", async () => {

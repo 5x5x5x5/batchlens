@@ -22,6 +22,7 @@ DETAIL += ["/api/batches/{id}/trends"]
 WITH_AS_OF = DETAIL[1:]
 ROUTES = ["/api/batches", *(path.format(id="BL-0001") for path in DETAIL)]
 CAMPAIGN = {o.record.batch.batch_id: o for o in demo_campaign()[0]}
+TRUTH = demo_campaign()[1]
 
 
 def instant(text: str) -> datetime:
@@ -491,6 +492,80 @@ def test_the_low_inoculum_finding_uses_only_what_was_available_at_as_of(seeded, 
     assert found["observation"]["value"] > 50
     assert found["consequence"]["difference"] is None
     assert [group["at"] for group in found["evidence"]] == ["seed_n1_end"]
+
+
+def transfers_of(client, batch_id: str, **params) -> list[dict]:
+    return client.get(f"/api/batches/{batch_id}/metrics", params=params).json()["transfers"]
+
+
+def test_every_feed_is_checked_against_the_bioreactors_volume(seeded, client):
+    rows = transfers_of(client, "BL-0001")
+    assert [row["kind"] for row in rows] == ["passage", "inoculation", *["feed"] * 10]
+    for feed in rows[2:]:
+        assert (feed["from_asset_id"], feed["to_asset_id"]) == ("MH-1201", "BR-2001")
+        assert feed["volume"] == pytest.approx(60, abs=1) and feed["volume_unit"] == "L"
+        balance = feed["balance"]
+        assert balance["status"] == "usable" and abs(balance["value"]) < 5
+        assert codes(balance) == ["transfer_balanced"]
+        assert balance["inputs"] == [feed["transfer_id"], BIO_SIGNALS["volume"]]
+    # The seed reactor has no volume signal, and the bioreactor recorded nothing before its
+    # culture began: neither transfer is checked, and each says why.
+    passage, inoculation = rows[:2]
+    assert (passage["from_asset_id"], passage["to_asset_id"]) == ("BR-1001", "BR-1002")
+    assert (passage["balance"]["status"], codes(passage["balance"])) == (
+        "insufficient",
+        ["signal_not_found"],
+    )
+    assert inoculation["to_asset_id"] == "BR-2001" and 150 < inoculation["volume"] < 250
+    assert codes(inoculation["balance"]) == ["no_volume_near_transfer"]
+
+
+def test_a_feed_recorded_with_a_digit_dropped_is_flagged_not_corrected(seeded, client):
+    assert TRUTH["BL-0005"].mis_recorded_transfer == "BL-0005-T09"
+    rows = {row["transfer_id"]: row for row in transfers_of(client, "BL-0005")}
+    bad = rows["BL-0005-T09"]
+    assert bad["volume"] == pytest.approx(6, abs=0.2)  # as recorded: the app changes nothing
+    assert bad["balance"]["status"] == "suspect" and bad["balance"]["value"] > 800
+    assert codes(bad["balance"]) == ["outside_transfer_tolerance"]
+    assert bad["balance"]["reasons"][0]["values"]["arrived"] == pytest.approx(60, abs=3)
+    others = [row for key, row in rows.items() if key != "BL-0005-T09" and row["kind"] == "feed"]
+    assert len(others) == 9 and all(row["balance"]["status"] == "usable" for row in others)
+    # The low-inoculum batch moved the whole N-1 vessel.
+    low = transfers_of(client, "BL-0006")[1]
+    assert low["kind"] == "inoculation" and low["volume"] == pytest.approx(250, abs=4)
+
+
+def test_transfers_in_an_as_of_view_are_only_those_begun_and_balanced_only_once_ended(
+    seeded, client
+):
+    culture = CAMPAIGN["BL-0002"].record.phase("production_culture")
+    # Five minutes into the first feed (it takes ten, ending at culture day 3).
+    during = (culture.start + timedelta(days=3, minutes=-5)).isoformat()
+    rows = transfers_of(client, "BL-0002", as_of=during)
+    assert [row["kind"] for row in rows] == ["passage", "inoculation", "feed"]
+    feed = rows[-1]
+    assert feed["end"] is None and feed["volume"] is None
+    assert codes(feed["balance"]) == ["transfer_not_ended"]
+    after = (culture.start + timedelta(days=3, minutes=1)).isoformat()
+    feed = transfers_of(client, "BL-0002", as_of=after)[-1]
+    assert feed["end"] is not None and feed["balance"]["status"] == "usable"
+
+
+def test_evidence_says_how_long_after_a_feed_each_sample_was_taken(seeded, client):
+    finding = finding_of(client, "BL-0003", "titer_divergence")
+    # At the divergence (culture day 8): daily feeds, daily samples within three hours of the
+    # same clock time. The last sample (day 14) comes two days after the last feed (day 12).
+    at_divergence, last = finding["evidence"]
+    for key in ("hours_since_feed", "reference_hours_since_feed"):
+        assert 0 <= at_divergence[key] < 27 and 40 < last[key] < 52
+    record = CAMPAIGN["BL-0003"].record
+    sample = next(s for s in record.samples if s.sample_id == finding["evidence"][0]["sample_id"])
+    feeds = [t.end for t in record.transfers if t.kind == "feed" and t.end <= sample.collected_at]
+    expected = (sample.collected_at - max(feeds)).total_seconds() / 3600
+    assert finding["evidence"][0]["hours_since_feed"] == pytest.approx(expected)
+    # The N-1 sample beside a low inoculation was taken before any feed.
+    low = finding_of(client, "BL-0006", "inoculation_density_shortfall")["evidence"][0]
+    assert low["hours_since_feed"] is None and low["reference_hours_since_feed"] is None
 
 
 @pytest.mark.parametrize("batch_id", ["BL-0002", "BL-0003"])

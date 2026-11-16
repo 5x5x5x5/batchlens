@@ -25,12 +25,13 @@ from batchlens.batches.models import (
     PoolLink,
     PoolMeasurement,
     Sample,
+    Transfer,
 )
 
 # Raised when what the generator makes changes, so a database seeded by an older one is
 # recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
-# 3: the seed train before the production culture.
-VERSION = "synthetic-generator/3"
+# 3: the seed train before the production culture. 4: transfers.
+VERSION = "synthetic-generator/4"
 PRODUCT = "mAb-X"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"
@@ -41,6 +42,8 @@ SEED_TRAIN = (("seed_n2", "BR-1001", 50.0), ("seed_n1", "BR-1002", 250.0))
 SEED_DAYS = 3
 SEED_DENSITY = 0.5  # 1e6 cells/mL, the target after every transfer, the production one too
 SEED_RATE = math.log(7.0) / SEED_DAYS  # per day
+FEED_TANK = "MH-1201"  # the feed medium's hold tank
+TRANSFER_MINUTES = {"passage": 30, "inoculation": 30, "feed": 10}  # how long each takes
 HARVEST_SKID = "HV-2101"
 PROTEIN_A_SKID = "CH-3001"
 # The rest of the purification train, in process order:
@@ -125,6 +128,9 @@ class Scenario:
     # Record-keeping problems, not process ones: the culture itself is unchanged.
     # The sample (counted from 0) whose collection time was keyed in as the one before it.
     mis_keyed_sample: int | None = None
+    # The feed (counted from 0) whose volume was written down with a digit dropped: 6 L for
+    # 60 L. The feed itself was the usual one.
+    mis_recorded_feed: int | None = None
     # Culture days between which the historian kept nothing.
     online_gap_days: tuple[float, float] | None = None
     # A purification step's nominal yield, where it is not DOWNSTREAM's: {phase kind: fraction}.
@@ -160,6 +166,7 @@ class GroundTruth:
     # The true growth rate of each seed passage, per day: {phase kind: rate}.
     seed_growth_rates: dict[str, float] = field(default_factory=dict)
     inoculation_density: float = SEED_DENSITY  # 1e6 cells/mL, the production culture's start
+    mis_recorded_transfer: str | None = None  # the transfer id
 
 
 def _vcd(day: float, peak: float, rate: float, first: float = SEED_DENSITY) -> float:
@@ -303,6 +310,27 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
     # before it held too few cells; the production culture likewise (``first``).
     seeding = random.Random(f"{seed}/seed-train")
     seed_phases, seed_samples, seed_results, seed_rates = [], [], [], {}
+    # Transfers, again from a generator of their own.
+    moving = random.Random(f"{seed}/transfers")
+    transfers: list[Transfer] = []
+
+    def moved(kind: str, source: str, target: str, end: datetime, litres: float) -> None:
+        transfers.append(
+            Transfer(
+                f"{batch_id}-T{len(transfers) + 1:02d}",
+                batch_id,
+                kind,
+                source,
+                target,
+                end - timedelta(minutes=TRANSFER_MINUTES[kind]),
+                end,
+                round(litres, 1),
+                VOLUME_UNIT,
+                "",
+                provenance,
+            )
+        )
+
     first, passage_start = SEED_DENSITY, start - timedelta(days=SEED_DAYS * len(SEED_TRAIN))
     for position, (kind, asset_id, litres) in enumerate(SEED_TRAIN):
         factor = scenario.n1_growth_factor if kind == "seed_n1" else 1.0
@@ -346,8 +374,27 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
             SEED_TRAIN[position + 1][2] if position + 1 < len(SEED_TRAIN) else START_LITRES
         )
         grown = first * math.exp(rate_here * SEED_DAYS)
+        last = position + 1 == len(SEED_TRAIN)
+        moved(
+            "inoculation" if last else "passage",
+            asset_id,
+            BIOREACTOR if last else SEED_TRAIN[position + 1][1],
+            phase.end,
+            # What reaches the target density in the next vessel, or all there is.
+            min(litres, SEED_DENSITY * next_litres / grown) * moving.gauss(1, 0.005),
+        )
         first = min(SEED_DENSITY, grown * litres / next_litres)
         passage_start = phase.end
+    for feed in range(FEEDS):
+        litres = FEED_LITRES * moving.gauss(1, 0.005)
+        if feed == scenario.mis_recorded_feed:
+            litres /= 10
+        moved("feed", FEED_TANK, BIOREACTOR, start + timedelta(days=FIRST_FEED_DAY + feed), litres)
+    mis_recorded = (
+        None
+        if scenario.mis_recorded_feed is None
+        else transfers[len(SEED_TRAIN) + scenario.mis_recorded_feed].transfer_id
+    )
 
     # Roughly daily samples at irregular times: one an hour after inoculation, then each day
     # within three hours of the same clock time.
@@ -506,6 +553,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         tuple(sorted([*seed_results, *results], key=lambda result: result.result_id)),
         tuple(sorted(pools, key=lambda item: (item.measured_at, item.measurement_id))),
         tuple(links),
+        tuple(transfers),
     )
     truth_out = GroundTruth(
         batch_id,
@@ -524,6 +572,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         true_yields,
         seed_rates,
         first,
+        mis_recorded,
     )
     return Observations(record, _online(rng, start, scenario.online_gap_days)), truth_out
 
@@ -588,6 +637,7 @@ def demo_campaign(
                 start(4),
                 label="data_problem",
                 mis_keyed_sample=8,
+                mis_recorded_feed=6,
                 online_gap_days=(13.4, 14.25),
             ),
             105,
