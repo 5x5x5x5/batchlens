@@ -6,12 +6,12 @@ id = "batchlens"
 name = "BatchLensCraft"
 version = "0.2.0"
 category = "Example"
-summary = "Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery."
+summary = "Batch analytics for mAb manufacturing on synthetic data: from cell density to drug substance."
 description = """\
-BatchLens follows five synthetic antibody batches from production culture to Protein A capture: \
-integral of viable cell density, specific productivity, product mass at harvest, the mass loaded \
-and eluted, yield and recovery, each with its status, reasons and inputs. Synthetic data only, \
-non-GxP: not for process control, release or batch disposition."""
+BatchLens follows simulated antibody batches from production culture through purification to \
+drug substance: integral of viable cell density, specific productivity, product mass at harvest, \
+each step's yield and what is left of the harvest, each with its status, reasons and inputs. \
+Synthetic data only: not for process control, release or batch disposition."""
 # "Dev Publisher" matches PlantCraft's development key (`make dev-package`); a real release names
 # the company whose key the stack trusts (the template's packaging guide).
 publisher = "Dev Publisher"

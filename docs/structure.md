@@ -74,7 +74,7 @@ in the interface, a router or a store.
 | `main.tsx` | Starts the app: theme, language, the frame |
 | `App.tsx` | The frame (`SuiteShell`), the banner and the routes |
 | `pages.tsx` | `NAV` (the sidebar) and the guided tour |
-| `DemoBanner.tsx` | The synthetic, non-GxP banner shown on every page |
+| `DemoBanner.tsx` | The banner on every page: synthetic data, simulated batches |
 | `BatchesPage.tsx` | The batch list |
 | `BatchPage.tsx` | One batch: phases, metrics, pools, trends, assay results |
 | `ProcessTrain.tsx` | The process train as a drawing, a symbol per step, with each step's state |

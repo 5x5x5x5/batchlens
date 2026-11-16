@@ -2,7 +2,7 @@
 
 # BatchLens
 
-**Synthetic demo · non-GxP · not for process control, release or batch disposition.**
+**Synthetic data · simulated batches · not for process control, release or batch disposition.**
 
 *Why did this batch yield less recoverable antibody than comparable batches?*
 
@@ -105,7 +105,7 @@ alone needs no PlantCraft: the tests run against the SDK's fake.
 - **Synthetic only.** Every batch, sample, signal and tolerance comes from a seeded generator
   with hand-chosen, illustrative parameters. Nothing comes from a real facility, employer or
   client.
-- **Not GxP.** Not an MES, LIMS or QMS; not validated; no release, disposition or control
+- **Not validated.** Not an MES, LIMS or QMS; no release, disposition or control
   decision. The generator is a shape generator, not a mechanistic or validated model.
 - **Plant data stays in PlantCraft.** The app keeps batches, phases, samples, assay results and
   pool measurements in its own database, stores only the ids of assets, and reads signals and

@@ -3,6 +3,17 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The banner, and going public
+
+- **Owner's ruling:** the banner reads "Synthetic data · simulated batches · not for process
+  control, release or batch disposition". "Non-GxP" is dropped from it and from the app's
+  descriptions, because the work is headed towards monitoring GxP processes. Nothing claims
+  validation or GxP compliance; the README still says the app is not validated.
+- **Ruling:** the clause "not for process control, release or batch disposition" stays on the
+  banner; the owner asked for the first two parts and for "non-GxP" to go.
+- The owner accepted the commit email being visible and asked for the repository to be made
+  public.
+
 ## 2026-11-16: A live plant inside the suite, and the documents reviewed for publication
 
 The owner asked for the suite's modules in the mAb demo, chose a live plant over fixed past

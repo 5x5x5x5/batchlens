@@ -57,4 +57,3 @@ Known gaps, with the date they were found.
 | 2026-11-16 | The live bioreactor is a CSV file written again every minute with a value every 10 minutes: PlantCraft reads it on request, nothing is pushed, and the newest value can be up to 10 minutes old. The alarm rules' limits are illustrative and the demo's signals never cross them. | Open |
 | 2026-11-16 | A running batch can show a titer finding that rests on one sample below the reference, with no later sample reported yet. The page says so; the rule does not wait for a second sample. | Open, owner to decide |
 | 2026-11-16 | `tools/run_demo.sh --reset` deletes what the suite's modules stored under the PlantCraft checkout's `var/` (dashboards, rules, documents made in the demo). | By design, stated in the script |
-| 2026-11-16 | `docs/images/findings/correction.png` was taken before the process train and the app's present name in the sidebar; the other screenshots are current. | Open |

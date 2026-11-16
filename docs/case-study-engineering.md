@@ -202,4 +202,4 @@ with none gets its dashboard, display and rules from a script of this repository
 - **A simple train.** Downstream is one pool in and one pool out per step, with one merge (two
   capture cycles into one eluate). Splits, side streams, repeated cycles of a polishing
   column and material carried between batches are not modelled.
-- **Not validated, not GxP**, and the generator is not a mechanistic model.
+- **Not validated**, and the generator is not a mechanistic model.
