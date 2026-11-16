@@ -287,17 +287,19 @@ days before the day the demo first starts. Moving a batch changes none of its va
 For the suite's loop monitoring the bioreactor has three control loops: temperature, pH and
 dissolved oxygen (`generator.loop_series`). BatchLens computes nothing from them.
 
-- Each has a fast value, a setpoint and an output every 30 seconds. The fast value passes
-  through every recorded 10-minute value of the same signal, with straight lines between and a
-  little noise that is zero at the recorded instants.
+- Each has a fast value, a setpoint and an output every 30 seconds. The fast value follows the
+  recorded 10-minute values of the same signal, with straight lines between and a little noise
+  that is zero at the recorded instants. For temperature and pH it passes through every
+  recorded value. For dissolved oxygen it keeps 15 % of the recorded value's distance from the
+  setpoint, as a controller's filtered measurement would: the recorded signal scatters by
+  1.5 % around 40 %, which a loop monitor reads as a loop that does not hold.
 - Setpoints: 7.0 pH, 40 % air saturation, and 36.5 °C falling to 33.0 °C at the planned shift.
 - The output is a load that moves over the culture (an S-curve between two hand-chosen
   values) plus a gain times the error, plus noise, clipped to 0 to 100 %.
 - Assumption: this is the shape of a loop that is working, not a controller model. There are
   no dynamics, no integral action, no valve, no disturbance. A loop monitor's verdict on these
-  signals describes the generator's noise, not a process: PlantCraft Analytics rates the
-  dissolved oxygen loop poorly because the recorded value was generated with a standard
-  deviation of 1.5 % around its setpoint.
+  signals describes the generator's noise, not a process. The three loops are made to look
+  healthy (PlantCraft Analytics rates them between 90 and 98 %).
 - Only the last 48 hours are written to the loops' file; nothing is made across a hole in the
   recorded values.
 
