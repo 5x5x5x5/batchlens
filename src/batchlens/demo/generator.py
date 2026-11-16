@@ -581,6 +581,11 @@ CAMPAIGN_START = datetime(2026, 7, 1, 6, 0, tzinfo=UTC)
 DAYS_BETWEEN_BATCHES = 21
 
 
+# The last three batches of the campaign before this one: normal, kept to compare with.
+EARLIER = (("BK-0007", 97), ("BK-0008", 98), ("BK-0009", 99))
+# The batches the demo marks as comparable (ordinary batch context a person assigns, like the
+# reference): the earlier campaign's and this campaign's first two.
+COMPARABLE = ("BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002")
 LIVE_BATCH = "BL-0007"
 LIVE_CULTURE_DAYS = 9  # how far into its culture the live batch is when the demo starts
 
@@ -596,7 +601,8 @@ def live_start(now: datetime) -> datetime:
 def demo_campaign(
     live_from: datetime | None = None,
 ) -> tuple[list[Observations], dict[str, GroundTruth]]:
-    """The six demo batches, one after another on the same bioreactor (docs/demo.md).
+    """The demo batches, one after another on the same bioreactor (docs/demo.md): three
+    normal ones from an earlier campaign (``EARLIER``), then the six of this campaign.
 
     With ``live_from`` (``live_start``), the same six moved in time to end before a seventh,
     ``LIVE_BATCH``, whose culture begins then: generated whole like the others, its later
@@ -613,6 +619,10 @@ def demo_campaign(
         return first + timedelta(days=DAYS_BETWEEN_BATCHES * index)
 
     scenarios = [
+        *(
+            (Scenario(batch_id, start(index - len(EARLIER))), seed)
+            for index, (batch_id, seed) in enumerate(EARLIER)
+        ),
         (Scenario("BL-0001", start(0), is_reference=True), 101),
         (Scenario("BL-0002", start(1)), 102),
         (

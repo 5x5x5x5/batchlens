@@ -9,6 +9,7 @@
 | ``pool_measurements`` | a pool's volume and concentration |
 | ``pool_links`` | genealogy: material of one pool went into another |
 | ``transfers`` | material moved from one asset into another, with the recorded volume |
+| ``comparable_batches`` | the batches a person marked as comparable: the set a batch is read against |
 | ``corrections`` | what a person changed: the record, the value before and after, who, when, why |
 
 Assets, signals and online values stay in PlantCraft: a phase execution keeps only the asset's
@@ -159,6 +160,9 @@ class BatchStore(Store):
         provenance TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS transfers_batch ON transfers (batch_id, start_at);
+    CREATE TABLE IF NOT EXISTS comparable_batches (
+        batch_id TEXT PRIMARY KEY
+    );
     CREATE TABLE IF NOT EXISTS corrections (
         correction_id TEXT PRIMARY KEY,
         batch_id TEXT NOT NULL,
@@ -306,3 +310,22 @@ class BatchStore(Store):
 
         with self._lock, self._connect() as connection:
             connection.execute("UPDATE batches SET is_reference = (batch_id = ?)", (batch_id,))
+
+    def comparable_ids(self) -> list[str]:
+        """The batches marked as comparable, oldest first."""
+
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                "SELECT c.batch_id FROM comparable_batches c JOIN batches b USING (batch_id) "
+                "ORDER BY b.created_at, b.batch_id"
+            ).fetchall()
+        return [row["batch_id"] for row in rows]
+
+    def set_comparable(self, batch_id: str, comparable: bool) -> None:
+        with self._lock, self._connect() as connection:
+            if comparable:
+                connection.execute(
+                    "INSERT OR IGNORE INTO comparable_batches (batch_id) VALUES (?)", (batch_id,)
+                )
+            else:
+                connection.execute("DELETE FROM comparable_batches WHERE batch_id = ?", (batch_id,))

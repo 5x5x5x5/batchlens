@@ -50,9 +50,14 @@ def test_different_seeds_differ():
     assert first.online != second.online
 
 
-def test_six_batches_run_one_after_another_on_the_same_bioreactor(campaign):
+def test_nine_batches_run_one_after_another_on_the_same_bioreactor(campaign):
     batches, _ = campaign
-    assert sorted(batches) == [f"BL-000{n}" for n in range(1, 7)]
+    assert sorted(batches) == [
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        *(f"BL-000{n}" for n in range(1, 7)),
+    ]
     windows = []
     for observations in batches.values():
         kinds = [phase.kind for phase in observations.record.phases]
@@ -72,7 +77,11 @@ def test_six_batches_run_one_after_another_on_the_same_bioreactor(campaign):
             assert culture.start <= points[0][0] and points[-1][0] <= culture.end
     windows.sort()
     assert all(end < start for (_, end), (start, _) in zip(windows, windows[1:]))
-    assert [o.record.batch.is_reference for o in batches.values()] == [True, *[False] * 5]
+    assert [o.record.batch.is_reference for o in batches.values()] == [
+        *[False] * 3,
+        True,
+        *[False] * 5,
+    ]
 
 
 def test_the_data_problem_batch_has_a_normal_culture_recorded_badly(campaign):
@@ -306,15 +315,15 @@ def test_calc_and_the_generator_use_the_standard_library_only(package):
                     )
 
 
-def loops_of(index: int, first_day: float, last_day: float):
-    batch = demo_campaign()[0][index]
+def loops_of(batch_id: str, first_day: float, last_day: float):
+    batch = next(o for o in demo_campaign()[0] if o.record.batch.batch_id == batch_id)
     start = batch.record.phase("production_culture").start
     since, until = start + timedelta(days=first_day), start + timedelta(days=last_day)
     return batch, start, loop_series(batch, since, until)
 
 
 def test_a_loops_fast_value_passes_through_every_recorded_value():
-    batch, start, loops = loops_of(0, 3.0, 4.0)
+    batch, start, loops = loops_of("BL-0001", 3.0, 4.0)
     assert set(loops) == {f"{role}.{part}" for role in LOOP_ROLES for part in ("pv", "sp", "op")}
     for role in LOOP_ROLES:
         fast = dict(loops[f"{role}.pv"])
@@ -331,15 +340,15 @@ def test_a_loops_fast_value_passes_through_every_recorded_value():
 
 
 def test_any_window_gives_the_same_loop_values():
-    _, _, whole = loops_of(0, 3.0, 4.0)
-    _, _, part = loops_of(0, 3.5, 3.6)
+    _, _, whole = loops_of("BL-0001", 3.0, 4.0)
+    _, _, part = loops_of("BL-0001", 3.5, 3.6)
     for key, points in part.items():
         assert points and set(points) <= set(whole[key])
 
 
 def test_the_temperature_setpoint_makes_the_planned_shift_and_the_others_hold():
-    _, _, before = loops_of(0, 5.0, 5.1)
-    _, _, after = loops_of(0, 7.0, 7.1)
+    _, _, before = loops_of("BL-0001", 5.0, 5.1)
+    _, _, after = loops_of("BL-0001", 7.0, 7.1)
     assert {value for _, value in before["temperature.sp"]} == {36.5}
     assert {value for _, value in after["temperature.sp"]} == {33.0}
     assert {value for _, value in after["ph.sp"]} == {7.0}
@@ -348,7 +357,7 @@ def test_the_temperature_setpoint_makes_the_planned_shift_and_the_others_hold():
 
 def test_a_loops_output_answers_the_error_between_setpoint_and_value():
     # More oxygen when dissolved oxygen is below its setpoint than when it is above.
-    _, _, loops = loops_of(0, 10.0, 12.0)
+    _, _, loops = loops_of("BL-0001", 10.0, 12.0)
     pairs = list(zip(loops["do.pv"], loops["do.op"]))
     below = [op for (_, pv), (_, op) in pairs if pv < 39.8]
     above = [op for (_, pv), (_, op) in pairs if pv > 40.2]
@@ -357,13 +366,13 @@ def test_a_loops_output_answers_the_error_between_setpoint_and_value():
 
 def test_no_loop_value_is_made_across_a_hole_in_the_record():
     # The fifth batch's historian kept nothing from culture day 13.4 on.
-    batch, start, loops = loops_of(4, 13.0, 14.25)
+    batch, start, loops = loops_of("BL-0005", 13.0, 14.25)
     last = max(moment for moment, _ in loops["ph.pv"])
     assert last < start + timedelta(days=13.4)
     assert last >= batch.online["ph"][-1][0] - timedelta(minutes=10)
 
 
 def test_the_dissolved_oxygen_loop_holds_its_value_close_to_the_setpoint():
-    _, _, loops = loops_of(0, 10.0, 12.0)
+    _, _, loops = loops_of("BL-0001", 10.0, 12.0)
     values = [value for _, value in loops["do.pv"]]
     assert sum(abs(value - 40.0) <= 0.4 for value in values) / len(values) > 0.9

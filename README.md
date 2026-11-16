@@ -28,8 +28,9 @@ The purification train of the batch with the poor capture step, and its pool gen
 
 ## What it shows
 
-Seven batches on one 2,000 L bioreactor. Six are finished, each followed by harvest and the
-purification train; the seventh is running now:
+Seven batches of one campaign on one 2,000 L bioreactor. Six are finished, each followed by
+harvest and the purification train; the seventh is running now. Three normal batches of the
+campaign before (`BK-0007` to `BK-0009`) are kept to compare with:
 
 | Batch | What happened | What the app says |
 |---|---|---|

@@ -514,3 +514,44 @@ def test_transfer_balance_is_invalid_when_an_input_breaks_a_rule(recorded, unit,
 def test_a_recorded_volume_of_zero_is_insufficient_never_a_division_by_zero():
     result = calc.transfer_balance("T1", 0.0, "L", tank((10, 1400.0), (20, 1460.0)), **FEED)
     assert (result.status, codes(result)) == ("insufficient", ["zero_denominator"])
+
+
+def recovery(value: float | None, name: str = "x") -> Result:
+    status = "usable" if value is not None else "insufficient"
+    return Result("protein_a_recovery", value, "%", status, (), (name,), "ratio_percent/1")
+
+
+def test_a_metric_is_placed_among_the_comparable_batches_by_their_median_and_range():
+    others = [recovery(v, f"b{i}") for i, v in enumerate((93.6, 91.1, 92.4, 93.0))]
+    result = calc.set_position(recovery(73.4), others)
+    # Sorted: 91.1, 92.4, 93.0, 93.6. Median (92.4 + 93.0) / 2 = 92.7; 73.4 - 92.7 = -19.3.
+    assert (result.metric, result.unit, result.status) == (
+        "protein_a_recovery_among_comparable",
+        "%",
+        "usable",
+    )
+    assert result.value == pytest.approx(-19.3)
+    assert codes(result) == ["below_comparable_range"]
+    assert result.reasons[0].values == {
+        "count": 4,
+        "median": pytest.approx(92.7),
+        "lowest": 91.1,
+        "highest": 93.6,
+        "without_value": 0,
+    }
+    assert result.inputs == ("x", "b0", "b1", "b2", "b3")
+    assert result.calculation_version == "set_position/1"
+    assert codes(calc.set_position(recovery(92.0), others)) == ["within_comparable_range"]
+    assert codes(calc.set_position(recovery(93.6), others)) == ["within_comparable_range"]
+    assert codes(calc.set_position(recovery(95.0), others[:3])) == ["above_comparable_range"]
+    assert calc.set_position(recovery(95.0), others[:3]).reasons[0].values["median"] == 92.4
+
+
+def test_too_few_comparable_batches_with_a_value_place_nothing():
+    others = [recovery(93.6), recovery(91.1), recovery(None), recovery(None)]
+    result = calc.set_position(recovery(90.0), others)
+    assert (result.value, result.status) == (None, "insufficient")
+    assert codes(result) == ["too_few_comparable_batches"]
+    assert result.reasons[0].values == {"count": 2, "minimum": 3, "without_value": 2}
+    missing = calc.set_position(recovery(None), [recovery(93.6)] * 3)
+    assert (missing.status, codes(missing)) == ("insufficient", ["input_not_usable"])

@@ -53,6 +53,7 @@ found"; its reason then says so (`no_divergence`).
 | `MERGE_TOLERANCE_PERCENT` | 3 % | `calc/mass.py` | A merged pool's mass may differ from the sum of its parts by this much before it is `suspect` |
 | `INOCULATION_TOLERANCE_FRACTION` | 0.20 | `calc/comparison.py` | An inoculation density below the reference's by more than this fraction of the reference's is a shortfall |
 | `TRANSFER_TOLERANCE_PERCENT` | 5 % | `calc/mass.py` | The volume a vessel's signal shows arriving may differ from the recorded volume of a transfer by this much before it is `suspect` |
+| `MINIMUM_COMPARABLE` | 3 | `calc/comparison.py` | With fewer comparable batches than this that have a value, a metric is not placed among them |
 | `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
 
 ## The calculations
@@ -300,6 +301,25 @@ the balance is 900 % and `suspect`.
   evaporation, no base addition), and only the destination is checked: the source vessels of
   the demo have no volume signal.
 
+### 15. A metric among the comparable batches (`set_position/1`), the metric's unit
+
+For one metric: the comparable batches' count, median, lowest and highest value, and this
+batch's difference from the median. The reason says whether the value lies below, within or
+above their range. The batch itself is never in its own set, and every batch is computed as of
+the same moment.
+
+Example, recoveries of 93.6, 91.1, 92.4 and 93.0 %: sorted 91.1, 92.4, 93.0, 93.6, median
+`(92.4 + 93.0) / 2 = 92.7`. A recovery of 73.4 % is `73.4 - 92.7 = -19.3` from the median,
+below the range.
+
+- `insufficient`: the batch's own metric has no value; fewer than `MINIMUM_COMPARABLE`
+  comparable batches have one (those without are counted in the reason, never guessed).
+- **The range of a few batches is not a limit.** With five batches a normal sixth falls
+  outside their range about one time in three for each metric. The page therefore shows the
+  median and the range and draws no verdict from them, and no finding is raised from them.
+- Which batches are comparable is a person's choice, like the reference. The app does not
+  check that they are alike.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -382,6 +402,7 @@ passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L 
 
 | Part | Model | Parameters |
 |---|---|---|
+| Earlier campaign | Three normal batches, `BK-0007` to `BK-0009` (seeds 97 to 99), three weeks apart before the first batch of this campaign | The same model; marked comparable with `BL-0001` and `BL-0002` |
 | Seed passages | Exponential growth from 0.5 for three days at `ln(7) / 3` = 0.649 /day (x 1 ± 2 %); four counts per passage (an hour after seeding, daily within ± 3 h, an hour before the transfer), each with a viability | Its own random stream, so earlier values did not change |
 | Density a vessel starts at | The target 0.5, or, when the vessel before it held too few cells for that, all of them diluted into the new volume: `min(0.5, X_end * V_before / V_start)` | 50 L into 250 L into 1400 L |
 | Transfers | One record for each seed passage moved on, the inoculation and each of the ten feeds, with the volume recorded: what reaches the target density in the next vessel (or all there is), 60 L per feed, each x 1 ± 0.5 %. Passages and the inoculation take 30 min, a feed 10 min and ends when the bioreactor's volume steps | Its own random stream. A feed may be recorded with a digit dropped (a tenth of its volume); the feed itself is unchanged |

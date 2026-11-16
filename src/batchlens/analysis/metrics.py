@@ -142,12 +142,17 @@ def batch_metrics(
 
 
 def beside_reference(
-    results: list[calc.Result], reference: list[calc.Result] | None
+    results: list[calc.Result],
+    reference: list[calc.Result] | None,
+    comparable: list[list[calc.Result]] | None = None,
 ) -> list[dict[str, Any]]:
     """Each result as plain data, with the reference batch's value of the same metric and the
-    difference (this batch minus the reference) when both have a value."""
+    difference (this batch minus the reference) when both have a value, and where it sits
+    among the comparable batches' (``calc.set_position``; none when no batch is comparable).
+    ``comparable`` holds one list of results per comparable batch."""
 
     by_metric = {result.metric: result for result in reference or []}
+    others = [{result.metric: result for result in batch} for batch in comparable or []]
     found = []
     for result in results:
         other = by_metric.get(result.metric)
@@ -157,6 +162,11 @@ def beside_reference(
                 **result.to_dict(),
                 "reference": {"value": other.value, "status": other.status} if other else None,
                 "difference": result.value - other.value if both else None,
+                "comparable": calc.set_position(
+                    result, [batch[result.metric] for batch in others if result.metric in batch]
+                ).to_dict()
+                if others
+                else None,
             }
         )
     return found

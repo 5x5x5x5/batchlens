@@ -3,6 +3,22 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Comparable batches
+
+Third item of the agreed order.
+
+- **Built:** a set of comparable batches a person chooses (its own table; editors add and
+  remove, audited); `calc.set_position`; a column in Metrics with the set's median, range and
+  count; three normal batches of an earlier campaign (`BK-0007` to `BK-0009`) so the set has
+  five members.
+- **Ruling:** median and range are shown, and no verdict is drawn. Seen in the numbers: with
+  five batches, normal values fall just outside the range all the time (`BL-0004` began at
+  0.50 against a range of 0.51 to 0.54). "Outside the range" as a flag would cry wolf.
+- **Ruling:** the findings stay with the one reference batch for now: each names the reference
+  sample it rests on, and a median has no sample id.
+- **Development:** from here on, work happens in a second working copy with its own Python
+  environment, because `make ci` rebuilds the page files the live demo serves.
+
 ## 2026-11-16: Transfers
 
 Second item of the agreed order.

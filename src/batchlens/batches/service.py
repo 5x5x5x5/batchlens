@@ -1,7 +1,8 @@
 """The batches' rules, without HTTP. The routers call these; only this module touches the store.
 
-Batches are loaded by the seed. A person may change two things: a sample's collection time (a
-correction, kept with the value it replaced) and which batch is the reference. The router
+Batches are loaded by the seed. A person may change three things: a sample's collection time
+(a correction, kept with the value it replaced), which batch is the reference, and which
+batches are comparable. The router
 audits each change in PlantCraft.
 """
 
@@ -81,3 +82,17 @@ class BatchService:
         if previous != batch_id:
             self.store.set_reference(batch_id)
         return previous
+
+    def comparable_ids(self) -> list[str]:
+        return self.store.comparable_ids()
+
+    def set_comparable(self, batch_id: str, comparable: bool) -> bool:
+        """Put the batch in the set of comparable batches, or take it out; answers whether
+        that changed anything."""
+
+        if self.store.get(batch_id) is None:
+            raise NotFound(batch_id)
+        if (batch_id in self.store.comparable_ids()) == comparable:
+            return False
+        self.store.set_comparable(batch_id, comparable)
+        return True

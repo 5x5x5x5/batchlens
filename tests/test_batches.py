@@ -43,7 +43,12 @@ def codes(metric: dict) -> list[str]:
 
 
 def test_the_seed_stores_exactly_what_the_generator_made(runtime):
-    assert seed_demo(runtime.batches) == [f"BL-000{n}" for n in range(1, 7)]
+    assert seed_demo(runtime.batches) == [
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        *(f"BL-000{n}" for n in range(1, 7)),
+    ]
     for batch_id, observations in CAMPAIGN.items():
         assert runtime.batches.get(batch_id) == observations.record
     assert runtime.batches.get("BL-9999") is None
@@ -53,7 +58,7 @@ def test_the_seed_stores_exactly_what_the_generator_made(runtime):
 def test_seeding_twice_changes_nothing(seeded):
     before = seeded.batches.get("BL-0002")
     seed_demo(seeded.batches)
-    assert len(seeded.batches.summaries()) == 6
+    assert len(seeded.batches.summaries()) == 9
     assert seeded.batches.get("BL-0002") == before
 
 
@@ -63,10 +68,10 @@ def test_the_command_line_seeds_the_demo(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(logging.root, "handlers", [])
     assert main(["seed-demo"]) == 0
     seeded = json.loads(capsys.readouterr().out)["batches"]
-    assert seeded == [f"BL-000{n}" for n in range(1, 7)]
+    assert seeded == ["BK-0007", "BK-0008", "BK-0009", *(f"BL-000{n}" for n in range(1, 7))]
     runtime = make_runtime(tmp_path, make_fake())
     try:
-        assert len(runtime.batches.summaries()) == 6
+        assert len(runtime.batches.summaries()) == 9
     finally:
         runtime.shutdown()
 
@@ -79,15 +84,15 @@ def test_the_list_gives_each_batch_its_reference_flag_window_and_bioreactor(seed
     assert answer["time_zone"] == "UTC"
     rows = answer["batches"]
     assert [row["batch_id"] for row in rows] == [
-        "BL-0001",
-        "BL-0002",
-        "BL-0003",
-        "BL-0004",
-        "BL-0005",
-        "BL-0006",
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        *(f"BL-000{n}" for n in range(1, 7)),
     ]
-    assert [row["is_reference"] for row in rows] == [True, *[False] * 5]
-    first, record = rows[0], CAMPAIGN["BL-0001"].record
+    # The earlier campaign's three, then this one's, whose first is the reference.
+    assert [row["is_reference"] for row in rows] == [*[False] * 3, True, *[False] * 5]
+    assert [row["is_comparable"] for row in rows] == [*[True] * 5, *[False] * 4]
+    first, record = rows[3], CAMPAIGN["BL-0001"].record
     assert first["product"] == "mAb-X"
     assert instant(first["start"]) == record.phases[0].start
     assert instant(first["end"]) == record.phases[-1].end
@@ -299,7 +304,7 @@ def test_without_the_bioreactor_in_plantcraft_the_app_says_so(tmp_path):
         seed_demo(runtime.batches)
         with client_for(runtime, fake) as client:
             rows = client.get("/api/batches").json()["batches"]
-            assert len(rows) == 6 and rows[0]["asset_name"] is None
+            assert len(rows) == 9 and rows[0]["asset_name"] is None
             found = metrics_of(client, "BL-0001")
             harvest = found["harvest_mass"]
             assert (harvest["status"], harvest["value"]) == ("insufficient", None)
@@ -492,6 +497,43 @@ def test_the_low_inoculum_finding_uses_only_what_was_available_at_as_of(seeded, 
     assert found["observation"]["value"] > 50
     assert found["consequence"]["difference"] is None
     assert [group["at"] for group in found["evidence"]] == ["seed_n1_end"]
+
+
+def test_each_metric_sits_beside_the_comparable_batches_median_and_range(seeded, client):
+    answer = client.get("/api/batches/BL-0004/metrics").json()
+    assert answer["comparable_batch_ids"] == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002"]
+    found = {item["metric"]: item["comparable"] for item in answer["metrics"]}
+    recovery = found["protein_a_recovery"]
+    assert recovery["status"] == "usable" and codes(recovery) == ["below_comparable_range"]
+    seen = recovery["reasons"][0]["values"]
+    assert seen["count"] == 5 and 91 < seen["lowest"] < seen["median"] < seen["highest"] < 94
+    assert recovery["value"] == pytest.approx(73.39 - seen["median"], abs=0.01)
+    assert codes(found["qp"]) == ["within_comparable_range"]
+    # A comparable batch is not read against itself: four others are left.
+    own = client.get("/api/batches/BL-0002/metrics").json()
+    assert "BL-0002" not in own["comparable_batch_ids"]
+    assert own["metrics"][0]["comparable"]["reasons"][0]["values"]["count"] == 4
+    # The badly recorded batch has no IVCD to place.
+    bad = {
+        m["metric"]: m["comparable"]
+        for m in client.get("/api/batches/BL-0005/metrics").json()["metrics"]
+    }
+    assert (bad["ivcd"]["status"], codes(bad["ivcd"])) == ("insufficient", ["input_not_usable"])
+
+
+def test_comparable_batches_are_read_as_of_the_same_moment(seeded, client):
+    culture = CAMPAIGN["BL-0004"].record.phase("production_culture")
+    as_of = (culture.start + timedelta(days=5)).isoformat()
+    found = {
+        m["metric"]: m
+        for m in client.get("/api/batches/BL-0004/metrics", params={"as_of": as_of}).json()[
+            "metrics"
+        ]
+    }
+    # The comparable batches finished long before: their harvest masses are known, this one's not.
+    assert found["harvest_mass"]["value"] is None
+    assert codes(found["harvest_mass"]["comparable"]) == ["input_not_usable"]
+    assert codes(found["ivcd"]["comparable"])[0].endswith("_comparable_range")
 
 
 def transfers_of(client, batch_id: str, **params) -> list[dict]:

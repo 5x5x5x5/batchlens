@@ -40,6 +40,15 @@ function MetricValue({ metric }: { metric: Metric }) {
   return <>{significant(metric.value, metricDigits(metric.metric))} {metric.unit}</>;
 }
 
+/** The comparable batches' median and range of a metric. No verdict: a range of a few batches
+ * is what those batches happened to give. */
+function Among({ result, digits }: { result?: Result | null; digits: number }) {
+  if (!result) return null;
+  const seen = result.reasons.find((reason) => reason.code.endsWith("_comparable_range"))?.values;
+  if (!seen) return <span className="muted">{result.reasons.map(reasonText).join(" ")}</span>;
+  return <>{significant(Number(seen.median), digits)}<small>{t("{lowest} to {highest}, {count} batches", { lowest: significant(Number(seen.lowest), digits), highest: significant(Number(seen.highest), digits), count: String(seen.count) })}</small></>;
+}
+
 function MetricsTable({ metrics }: { metrics: Metrics }) {
   return <DataTable rows={metrics.metrics} rowKey={(metric) => metric.metric} label={t("Metrics")}
     columns={[
@@ -54,6 +63,7 @@ function MetricsTable({ metrics }: { metrics: Metrics }) {
         render: (metric) => (metric.reference ? significant(metric.reference.value, metricDigits(metric.metric)) || statusWord(metric.reference.status) : "") },
       { key: "difference", label: t("Difference"), numeric: true, phone: "hide",
         render: (metric) => signedBetween(metric.difference, metric.value, metric.reference?.value, metricDigits(metric.metric)) },
+      { key: "comparable", label: t("Comparable batches"), numeric: true, phone: "hide", render: (metric) => <Among result={metric.comparable} digits={metricDigits(metric.metric)} /> },
     ]} />;
 }
 
@@ -337,15 +347,29 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     if (!(await confirmAction(t("Compare every other batch with {batch} from now on? The change is written to PlantCraft's audit log.", { batch: batchId })))) return;
     api.setReference(batchId).then(() => setVersion((value) => value + 1)).catch((err) => setError(message(err)));
   };
+  const toggleComparable = async () => {
+    const question = detail.is_comparable
+      ? t("Take {batch} out of the comparable batches? The change is written to PlantCraft's audit log.", { batch: batchId })
+      : t("Add {batch} to the comparable batches the others are read against? The change is written to PlantCraft's audit log.", { batch: batchId });
+    if (!(await confirmAction(question))) return;
+    api.setComparable(batchId, !detail.is_comparable).then(() => setVersion((value) => value + 1)).catch((err) => setError(message(err)));
+  };
+  const comparable = metrics.comparable_batch_ids ?? [];
   const reference = detail.batch.is_reference
     ? t("This is the reference batch.")
     : metrics.reference_batch_id ? t("Reference batch: {batch}", { batch: metrics.reference_batch_id }) : t("No reference batch is set.");
   return <>
     <Heading title={t("Batch {batch}", { batch: detail.batch.batch_id })}
-      actions={me.can_edit && !detail.batch.is_reference && !asOf
-        ? <button type="button" className="button" data-action="make-reference" onClick={() => void makeReference()}>{t("Make this the reference batch")}</button>
+      actions={me.can_edit && !asOf
+        ? <>
+          {!detail.batch.is_reference && <button type="button" className="button" data-action="make-reference" onClick={() => void makeReference()}>{t("Make this the reference batch")}</button>}{" "}
+          <button type="button" className="button" data-action="toggle-comparable" onClick={() => void toggleComparable()}>{detail.is_comparable ? t("Take out of the comparable batches") : t("Add to the comparable batches")}</button>
+        </>
         : undefined} />
     <p className="muted">{detail.batch.product} · {reference} · {detail.batch.provenance}</p>
+    <p className="muted" data-comparable>{comparable.length > 0
+      ? t("Comparable batches: {batches}.", { batches: comparable.join(", ") })
+      : t("No other batch is marked as comparable.")}{detail.is_comparable ? ` ${t("This batch is one of the comparable batches.")}` : ""}</p>
     <ZoneNote />
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
     <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><ProcessTrain phases={detail.phases} /><Phases detail={detail} /></Section>

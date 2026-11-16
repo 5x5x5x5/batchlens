@@ -20,6 +20,8 @@ export const api = {
   correctSample: (batchId: string, sampleId: string, body: { collected_at: string; reason: string }) => request<unknown>(`/api/batches/${id(batchId)}/samples/${id(sampleId)}`, jsonBody("PATCH", body)),
   /** Editors only: make this batch the one the others are compared with. */
   setReference: (batchId: string) => request<{ reference_batch_id: string }>(`/api/batches/${id(batchId)}/reference`, { method: "PUT" }),
+  /** Editors only: put this batch in the set of comparable batches, or take it out. */
+  setComparable: (batchId: string, comparable: boolean) => request<{ is_comparable: boolean }>(`/api/batches/${id(batchId)}/comparable`, { method: comparable ? "PUT" : "DELETE" }),
   help: () => request<HelpEntry[]>("/api/help"),
   helpPage: (pageId: string) => request<HelpPage>(`/api/help/${id(pageId)}`),
 };

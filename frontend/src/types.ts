@@ -13,6 +13,8 @@ export interface BatchRow extends Batch {
   running?: boolean;
   /** The production bioreactor: its id, and its name in PlantCraft (none when it is not there). */
   asset_id: string | null; asset_name: string | null;
+  /** In the set of comparable batches the others are read against. */
+  is_comparable?: boolean;
 }
 
 export interface BatchList { time_zone: string; batches: BatchRow[] }
@@ -26,7 +28,7 @@ export interface Pool {
 }
 
 export interface BatchDetail {
-  time_zone: string; as_of: string | null; batch: Batch; phases: Phase[]; pools: Pool[];
+  time_zone: string; as_of: string | null; batch: Batch; is_comparable?: boolean; phases: Phase[]; pools: Pool[];
   /** From the batch's start to the last moment anything about it became known. */
   timeline: { start: string | null; end: string | null };
   /** What people changed, with the values replaced, oldest first. */
@@ -43,6 +45,9 @@ export interface Metric {
   reference: { value: number | null; status: string } | null;
   /** This batch minus the reference, computed by the server. */
   difference: number | null;
+  /** Where the value sits among the comparable batches' (its reason carries their count,
+   * median, lowest and highest); null when no batch is comparable. */
+  comparable?: Result | null;
 }
 
 /** A result of src/batchlens/calc: value, unit, status, reasons, inputs. */
@@ -75,7 +80,7 @@ export interface Downstream {
   genealogy: Array<{ pool: string; measurement_id: string; mass: Result; sources: string[]; merge_balance: Result | null }>;
 }
 
-export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[]; downstream: Downstream; transfers: Transfer[] }
+export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; comparable_batch_ids?: string[]; metrics: Metric[]; findings: Finding[]; downstream: Downstream; transfers: Transfer[] }
 
 /** Material moved from one asset into another, as recorded, with its balance against the
  * destination's volume signal. In an as-of view of one under way, `end` and `volume` are null. */

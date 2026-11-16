@@ -35,7 +35,7 @@ def test_the_csv_holds_every_recorded_value_at_its_utc_time(tmp_path):
     stamps = [row["time"] for row in rows]
     assert stamps == sorted(stamps) and len(set(stamps)) == len(stamps)
     # PlantCraft's CSV source reads times without an offset as UTC.
-    assert stamps[0] == "2026-07-01 06:00:00"
+    assert stamps[0] == "2026-04-29 06:00:00"
     by_time = {row["time"]: row for row in rows}
     for batch in observations:
         for role, points in batch.online.items():
@@ -56,8 +56,8 @@ def test_the_csv_can_be_written_on_the_wall_clock_of_plantcrafts_time_zone(tmp_p
             rows = list(csv.reader(file))
         return rows[1][0], [row[1:] for row in rows[1:]]
 
-    assert first_and_values(utc.csv)[0] == "2026-07-01 06:00:00"
-    assert first_and_values(local.csv)[0] == "2026-07-01 03:00:00"  # UTC-3
+    assert first_and_values(utc.csv)[0] == "2026-04-29 06:00:00"
+    assert first_and_values(local.csv)[0] == "2026-04-29 03:00:00"  # UTC-3
     assert first_and_values(utc.csv)[1] == first_and_values(local.csv)[1]
     with pytest.raises(ValueError, match="Mars/Olympus"):
         write_plant_files(tmp_path / "x", time_zone="Mars/Olympus")

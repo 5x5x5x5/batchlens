@@ -15,6 +15,7 @@ vi.mock("./api", () => ({
     samples: (_batch: string, asOf?: string, alignTo?: string) => { calls.push(`samples:${asOf ?? ""}:${alignTo ?? ""}`); return Promise.resolve(alignTo ? answers.reference : answers.samples); },
     correctSample: (batch: string, sample: string, body: { collected_at: string; reason: string }) => { calls.push(`correct:${batch}:${sample}:${body.collected_at}:${body.reason}`); return answers.correction ? Promise.reject(new Error(answers.correction as string)) : Promise.resolve({}); },
     setReference: (batch: string) => { calls.push(`reference:${batch}`); return Promise.resolve({ reference_batch_id: batch }); },
+    setComparable: (batch: string, comparable: boolean) => { calls.push(`comparable:${batch}:${comparable}`); return Promise.resolve({ is_comparable: comparable }); },
     trends: (_batch: string, asOf?: string) => { calls.push(`trends:${asOf ?? ""}`); return Promise.resolve(answers.trends); },
   },
 }));
@@ -463,6 +464,23 @@ describe("one batch", () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
     expect(samples.textContent).toContain("The collection time must lie inside the sample's phase execution.");
     expect(samples.querySelector("form")).not.toBeNull();
+  });
+
+  it("shows the comparable batches' median and range beside a metric, and lets an editor change the set", async () => {
+    const among = { metric: "qp_among_comparable", value: 1.5, unit: "pg/cell/day", status: "usable", inputs: [], calculation_version: "set_position/1", reasons: [{ code: "within_comparable_range", values: { count: 5, median: 29.76, lowest: 28.77, highest: 31.24, without_value: 0 } }] };
+    const few = { ...among, value: null, status: "insufficient", reasons: [{ code: "too_few_comparable_batches", values: { count: 2, minimum: 3, without_value: 0 } }] };
+    answers.metrics = { ...METRICS, comparable_batch_ids: ["BK-0007", "BL-0001"], metrics: [{ ...METRICS.metrics[0], comparable: among }, { ...METRICS.metrics[1], comparable: few }] };
+    let host = await render(<BatchPage batchId="BL-0002" me={EDITOR} />);
+    const rows = [...host.querySelectorAll('[data-section="metrics"] tbody tr')].map((row) => row.textContent ?? "");
+    expect(rows[0]).toContain("29.828.8 to 31.2, 5 batches");
+    expect(rows[1]).toContain("Only 2 comparable batches have a value; 3 are needed.");
+    expect(host.querySelector("[data-comparable]")!.textContent).toBe("Comparable batches: BK-0007, BL-0001.");
+    calls.length = 0;
+    await act(async () => { (host.querySelector('[data-action="toggle-comparable"]') as HTMLButtonElement).click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(calls[0]).toBe("comparable:BL-0002:true");
+    host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    expect(host.querySelector('[data-action="toggle-comparable"]')).toBeNull();
   });
 
   it("lets an editor make the batch the reference, and offers a viewer nothing to change", async () => {
