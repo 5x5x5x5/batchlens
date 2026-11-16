@@ -20,6 +20,9 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   `plotly.js-cartesian-dist-min` (added with the owner's approval).
 - `app.toml` reads `assets`, `signals` and `series`.
 - Removed: the notes object, its routes, page and tests; the template's rename test.
+- Findings against the reference batch on the metrics route and the batch page: where the
+  titer left the reference's (`calc.titer_divergence`), what that is in product mass at
+  harvest, and no cause. Nearest-sample pairing by culture age, never interpolated.
 - `batchlens demo-plant --out DIR [--time-zone ZONE]` writes the synthetic plant as a CSV and a
   PlantCraft plant map, so an administrator can import it into a live PlantCraft and the
   demo runs end to end there (`docs/demo.md`).

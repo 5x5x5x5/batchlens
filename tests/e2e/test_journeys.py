@@ -55,6 +55,18 @@ def test_open_the_app_open_a_batch_and_see_its_phases_and_metrics(signed_in, app
     expect(metrics.get_by_role("row", name=re.compile("^Product mass at harvest"))).to_contain_text(
         "Estimated from concentration × volume (Protein A HPLC)."
     )
+    # The finding: an observation, a calculation, and no cause.
+    findings = page.locator('[data-section="findings"]')
+    expect(
+        findings.get_by_role(
+            "heading", name=re.compile("Titer left the reference batch at culture day")
+        )
+    ).to_be_visible()
+    expect(findings).to_contain_text("BL-0001-S")
+    expect(findings).to_contain_text(
+        "Calculated: Product mass at harvest: 7,317 g against 10,170 g"
+    )
+    expect(findings).to_contain_text("No cause is attributed")
     # The charts are drawn: the bioreactor's four signals, then VCD and titer.
     expect(page.locator('[data-section="trends"] .js-plotly-plot')).to_have_count(6)
     expect(

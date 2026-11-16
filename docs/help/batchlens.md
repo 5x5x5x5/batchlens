@@ -15,6 +15,10 @@ on the reference batch, the one the others are compared with. Open a batch from 
 
 - **Phase executions**: what happened on which asset, and when. A batch is a window on shared
   equipment: the same bioreactor carries one batch after another.
+- **Findings** (not on the reference batch): where this batch's titer left the reference
+  batch's, if it did. An observation (the first sample that was below the reference by more
+  than the tolerance and after which every later sample stayed below), a calculation (the
+  product mass at harvest against the reference's), and no cause: the app does not diagnose.
 - **Metrics**: each with its value and unit, its status, the reasons for it and the ids of its
   inputs, beside the reference batch's value and the difference.
 - **Pool measurements**: the volume and concentration behind each pool mass.

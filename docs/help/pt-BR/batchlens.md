@@ -16,6 +16,11 @@ referência, aquele com que os outros são comparados. Abra um lote pelo seu ide
 
 - **Execuções de fase**: o que aconteceu em qual ativo, e quando. Um lote é uma janela em
   equipamento compartilhado: o mesmo biorreator recebe um lote depois do outro.
+- **Constatações** (não no lote de referência): onde o título deste lote se afastou do título
+  do lote de referência, se isso ocorreu. Uma observação (a primeira amostra abaixo da
+  referência além da tolerância e após a qual todas as amostras posteriores ficaram abaixo),
+  um cálculo (a massa de produto na colheita em relação à da referência) e nenhuma causa: o
+  app não faz diagnóstico.
 - **Métricas**: cada uma com valor e unidade, estado, os motivos e os identificadores das
   entradas, ao lado do valor do lote de referência e da diferença.
 - **Medições de pool**: o volume e a concentração por trás de cada massa de pool.

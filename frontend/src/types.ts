@@ -34,7 +34,19 @@ export interface Metric {
   difference: number | null;
 }
 
-export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[] }
+/** A result of src/batchlens/calc: value, unit, status, reasons, inputs. */
+export interface Result { metric: string; value: number | null; unit: string; status: string; reasons: Reason[]; inputs: string[]; calculation_version: string }
+
+/** What stands out against the reference batch, in three separate parts: what was observed,
+ * what that amounts to, and the cause, which the app never attributes. */
+export interface Finding {
+  finding: string;
+  observation: Result;
+  consequence: { metric: string; unit: string; status: string; value: number | null; reference: number | null; difference: number | null } | null;
+  cause: null;
+}
+
+export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[] }
 
 export interface AssayResult { result_id: string; sample_id: string; analyte: string; value: number; unit: string; method: string; result_available_at: string; validity: string; provenance: string }
 

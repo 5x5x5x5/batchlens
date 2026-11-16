@@ -56,6 +56,15 @@ const DETAIL: BatchDetail = {
 const metric = (name: string, more: Partial<Metrics["metrics"][number]>) => ({ metric: name, value: null, unit: "g", status: "usable", reasons: [], inputs: [], calculation_version: `${name}/1`, reference: null, difference: null, ...more });
 const METRICS: Metrics = {
   batch_id: "BL-0002", as_of: null, reference_batch_id: "BL-0001",
+  findings: [{
+    finding: "titer_divergence",
+    observation: {
+      metric: "titer_divergence", value: 7.9047, unit: "days", status: "usable", inputs: ["BL-0002-S09-titer", "BL-0001-S09-titer"], calculation_version: "titer_divergence/1",
+      reasons: [{ code: "diverged_from_reference", values: { result_id: "BL-0002-S09-titer", reference_result_id: "BL-0001-S09-titer", collected_at: "2026-07-30T03:42:44Z", titer: 1.68, reference_titer: 2.01, deficit_percent: 16.2786, tolerance_percent: 15, later_samples_below: 6 } }],
+    },
+    consequence: { metric: "harvest_mass", unit: "g", status: "usable", value: 7317.46, reference: 10174.47, difference: -2857.01 },
+    cause: null,
+  }],
   metrics: [
     metric("qp", { value: 31.2449, unit: "pg/cell/day", inputs: ["BL-0002-S01-vcd", "BL-0002-S15-titer"], reference: { value: 29.6213, status: "usable" }, difference: 1.6236 }),
     metric("harvest_mass", { status: "insufficient", reasons: [{ code: "asset_not_found", values: { asset_id: "BR-2001" } }], reference: { value: 10174.4736, status: "usable" } }),
@@ -149,6 +158,37 @@ describe("one batch", () => {
     expect(rows[2]).toContain("Suspect");
     expect(rows[2]).toContain("Above the plausibility bound of 105 %.");
     expect(host.textContent).toContain("Reference batch: BL-0001");
+  });
+
+  it("states a finding as an observation and a calculation, and attributes no cause", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
+    // The observation: where, how far below, against which samples.
+    expect(findings).toContain("Titer left the reference batch at culture day 7.9");
+    expect(findings).toContain("1.68 g/L against 2.01 g/L (16 % below; the tolerance is 15 %)");
+    expect(findings).toContain("all 6 later samples");
+    expect(findings).toContain("BL-0002-S09-titer");
+    expect(findings).toContain("BL-0001-S09-titer");
+    expect(findings).toContain("Jul 30, 2026, 3:42 AM UTC");
+    // The calculation, rounded like the metrics table.
+    expect(findings).toContain("Calculated: Product mass at harvest: 7,317 g against 10,170 g for the reference (-2,860 g).");
+    // No diagnosis.
+    expect(findings).toContain("No cause is attributed");
+  });
+
+  it("says so when the titer followed the reference, or when it cannot be compared", async () => {
+    const quiet = { ...METRICS.findings[0], consequence: null, observation: { ...METRICS.findings[0].observation, value: null, reasons: [{ code: "no_divergence", values: { pairs: 15, tolerance_percent: 15 } }] } };
+    answers.metrics = { ...METRICS, findings: [quiet] };
+    let host = await render(<BatchPage batchId="BL-0002" />);
+    expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Titer stayed within 15 % of the reference batch at the end of 15 compared samples.");
+    const short = { ...quiet, observation: { ...quiet.observation, status: "insufficient", reasons: [{ code: "fewer_than_two_reference_pairs", values: { pairs: 1 } }] } };
+    answers.metrics = { ...METRICS, findings: [short] };
+    host = await render(<BatchPage batchId="BL-0002" />);
+    expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Fewer than two titer samples could be compared with the reference batch.");
+    // The reference batch has nothing to be compared with: no section at all.
+    answers.metrics = { ...METRICS, findings: [] };
+    host = await render(<BatchPage batchId="BL-0002" />);
+    expect(host.querySelector('[data-section="findings"]')).toBeNull();
   });
 
   it("lists every assay result with its collection and availability times", async () => {
