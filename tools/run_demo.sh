@@ -12,6 +12,11 @@
 # PLANTCRAFT_SUITE_BIN (default ~/.venvs/plantcraft-suite/bin) is started (docs/demo.md).
 # Everything is local and synthetic; nothing leaves this computer.
 #
+# To put the demo where others can reach it, turn PlantCraft's sign-in on first (without it
+# every visitor is an administrator): PLANTCRAFT_BASIC_AUTH_ENABLED=true,
+# PLANTCRAFT_BASIC_AUTH_USERNAME and PLANTCRAFT_BASIC_AUTH_PASSWORD_FILE name the administrator.
+# BATCHLENS_DEMO_GUEST and BATCHLENS_DEMO_GUEST_PASSWORD_FILE then add a read-only guest.
+#
 # The plant map is imported through PlantCraft's own interface routes (/api/session,
 # /api/map/apply), as its pages do. They are not part of API v1 and were tried on PlantCraft
 # 0.6.0 only. The app itself never calls them.
@@ -114,6 +119,20 @@ plant_files | tail -1
 PIDS="$PIDS $!"
 COOKIES=$(mktemp)
 curl -fs -c "$COOKIES" -o /dev/null "$PLANTCRAFT_URL/api/session"
+if [ "${PLANTCRAFT_BASIC_AUTH_ENABLED:-}" = "true" ]; then
+  # With sign-in on, the import is the administrator's.
+  python - "$PLANTCRAFT_BASIC_AUTH_USERNAME" "$PLANTCRAFT_BASIC_AUTH_PASSWORD_FILE" <<'PY' \
+    | curl -fs -b "$COOKIES" -c "$COOKIES" -o /dev/null -H 'Content-Type: application/json' --data-binary @- "$PLANTCRAFT_URL/api/login"
+import json, sys
+print(json.dumps({"username": sys.argv[1], "password": open(sys.argv[2]).read().rstrip("\r\n")}))
+PY
+  if [ -n "${BATCHLENS_DEMO_GUEST:-}" ]; then
+    echo "Adding the read-only guest..."
+    users() { (cd "$PLANTCRAFT_DIR" && plantcraft users --scenario scenarios/opcua_demo.json "$@"); }
+    users add "$BATCHLENS_DEMO_GUEST" --name "Guest" --access viewer > /dev/null 2>&1 || true  # there already
+    PLANTCRAFT_PASSWORD=$(cat "$BATCHLENS_DEMO_GUEST_PASSWORD_FILE") users password "$BATCHLENS_DEMO_GUEST" > /dev/null
+  fi
+fi
 curl -fs -b "$COOKIES" -X POST --data-binary "@$PLANT_DIR/plant-map.json" \
   "$PLANTCRAFT_URL/api/map/apply?filename=plant-map.json" \
   | python -c 'import json,sys; r=json.load(sys.stdin); print("imported:", r["applied"], {s["name"]: [s["create"], s["update"], s["unchanged"]] for s in r["sections"]}, "issues:", r["issues"])'

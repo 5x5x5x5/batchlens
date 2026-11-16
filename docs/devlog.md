@@ -3,6 +3,17 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The demo where others can reach it
+
+- **Built:** `tools/run_demo.sh` and `tools/seed_suite.py` sign in as the administrator when
+  PlantCraft's sign-in is on, and the script adds a read-only guest; `tools/gateway.py`
+  redirects a request that arrived over plain HTTP to HTTPS.
+- **Ruling:** PlantCraft's own sign-in with a viewer account, not an email gate in front: the
+  owner wanted a guest who needs no email. Without sign-in the local demo makes every visitor
+  an administrator, so it is never published that way.
+- **Seen through a Cloudflare Tunnel:** sign-in page for a stranger, 401 from the APIs; the
+  guest opens BatchLens from the switcher and the live batch's page, and is refused a write.
+
 ## 2026-11-16: Control loops on the bioreactor
 
 The owner asked for them so that the suite's loop monitoring has something to judge.

@@ -45,6 +45,23 @@ def one_request(head: bytes) -> bytes:
     return b"\r\n".join([*kept, b"Connection: close", b"", b""])
 
 
+def to_https(head: bytes) -> bytes | None:
+    """The redirect for a request a proxy in front received over plain HTTP (it says so in
+    ``X-Forwarded-Proto``), so a password is never typed on an unencrypted page; else None."""
+
+    lines = head.decode("latin-1").split("\r\n")
+    headers = {
+        name.strip().lower(): value.strip()
+        for name, _, value in (line.partition(":") for line in lines[1:])
+    }
+    if headers.get("x-forwarded-proto") != "http" or not headers.get("host"):
+        return None
+    location = f"https://{headers['host']}{lines[0].split(' ')[1]}"
+    return f"HTTP/1.1 301 Moved Permanently\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".encode(
+        "latin-1"
+    )
+
+
 async def _pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
     try:
         while data := await reader.read(65536):
@@ -62,6 +79,11 @@ async def _serve(
     try:
         head = await reader.readuntil(b"\r\n\r\n")
         path = head.split(b" ", 2)[1].decode("latin-1")
+        if (redirect := to_https(head)) is not None:
+            writer.write(redirect)
+            await writer.drain()
+            writer.close()
+            return
         port = upstream(path.split("?", 1)[0], routes, default)
         back_reader, back_writer = await asyncio.open_connection(HOST, port)
     except (asyncio.IncompleteReadError, asyncio.LimitOverrunError, IndexError, OSError) as error:

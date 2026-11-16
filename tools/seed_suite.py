@@ -14,7 +14,8 @@
 - Documents: this repository's verification report, assumptions and tour, linked to the unit.
 
 Running it again changes nothing: what is already there by name is kept, and a module that is
-not installed is skipped. It signs in as the local demo's person and calls the modules' own
+not installed is skipped. It signs in as the local demo's person (as the administrator of
+``PLANTCRAFT_BASIC_AUTH_*`` when sign-in is on) and calls the modules' own
 interface routes, as their pages do. Those are not PlantCraft's API v1 and were tried on the
 modules of PlantCraft 0.6.0 only. Standard library only.
 """
@@ -23,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -83,6 +85,12 @@ class Suite:
         self.base = base.rstrip("/")
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
         self.call("GET", "/api/session")
+        if os.environ.get("PLANTCRAFT_BASIC_AUTH_ENABLED") == "true":  # sign-in is on
+            secret = (
+                Path(os.environ["PLANTCRAFT_BASIC_AUTH_PASSWORD_FILE"]).read_text().rstrip("\r\n")
+            )
+            name = os.environ["PLANTCRAFT_BASIC_AUTH_USERNAME"]
+            self.call("POST", "/api/login", {"username": name, "password": secret})
 
     def call(self, method: str, path: str, body: Any = None, raw: bytes | None = None) -> Any:
         data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)

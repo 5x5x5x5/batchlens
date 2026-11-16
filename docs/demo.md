@@ -64,6 +64,24 @@ outside the repository on purpose ([gaps.md](gaps.md)).
 Tried with PlantCraft `v0.6.0` on Linux. The script uses two of PlantCraft's own interface
 routes to import the plant map; they are not part of its API v1 and may change.
 
+### Where others can reach it
+
+The local demo signs everyone in as an administrator, with no password. Before putting it
+behind a tunnel or a proxy, turn PlantCraft's sign-in on and add a read-only guest:
+
+```sh
+export PLANTCRAFT_BASIC_AUTH_ENABLED=true PLANTCRAFT_BASIC_AUTH_USERNAME=owner
+export PLANTCRAFT_BASIC_AUTH_PASSWORD_FILE=/a/private/file          # the administrator's password
+export BATCHLENS_DEMO_GUEST=a-name BATCHLENS_DEMO_GUEST_PASSWORD_FILE=/another/private/file
+tools/run_demo.sh
+```
+
+The guest is a PlantCraft viewer: every page reads, nothing can be changed. The demo's cast
+has no passwords and cannot sign in. `tools/gateway.py` sends a request that a proxy received
+over plain HTTP to HTTPS. Tried through a Cloudflare Tunnel pointed at `http://127.0.0.1:8088`:
+an anonymous visitor gets the sign-in page and 401 from every API, the guest reads all seven
+apps and gets 403 on a write.
+
 ### Without PlantCraft
 
 ```sh
