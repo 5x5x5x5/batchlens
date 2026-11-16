@@ -3,6 +3,44 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: The first finding, titer divergence from the reference (roadmap item 2)
+
+Branch `findings`, from `main` after pull requests 1 and 2 were merged. The owner chose the rule
+before it was built: the first sample whose titer is below the reference batch's at the same
+culture age by more than a tolerance and stays below for every later sample; nearest-sample
+pairing, no interpolation; `insufficient` where nothing can be paired.
+
+- **Built:** `calc/comparison.py` (`titer_divergence`, 13 oracle and failure tests run red
+  first), `analysis.metrics.findings`, a `findings` list on the metrics route (6 API tests run
+  red first), a Findings section on the batch page (2 Vitest tests run red first), ten new
+  strings in both languages, and the journey now reads the finding in the browser.
+- **Rulings** (left open by the rule as agreed):
+  - "At the same culture age" pairs samples up to 6 h apart (`PAIRING_WINDOW_HOURS`); the
+    demo samples each day within 3 h of the same clock time, so 6 h is the largest gap it makes.
+  - The tolerance is relative to the reference's titer (`reference - titer > 0.15 * reference`),
+    default 15 %, with no absolute floor: the stays-below rule is what filters early noise.
+  - "No divergence" is a `usable` result with no value and the reason `no_divergence`, the
+    one place a usable result has no number.
+  - A finding has `observation`, `consequence` and `cause`; `cause` is always null and the
+    page says no cause is attributed. The consequence is the harvest mass against the
+    reference's, given only when a divergence is found, with its own status.
+  - Only a titer below the reference is looked for.
+  - The reference batch gets no findings.
+- **Failed, and how it was resolved:**
+  - The "exactly the tolerance" test first used 1.7 against 2.0, which floating point puts a
+    hair above 15 %. The test now uses values a float holds exactly; no margin was added to
+    the comparison.
+  - The script that updated the documents stopped at a text match that did not exist, after
+    the code and half the documents were already committed and the pull request opened. The
+    rest (this entry, `ROADMAP.md`, `docs/STATUS.md`, `docs/gaps.md`, `docs/structure.md`)
+    followed in a second commit.
+- **What it finds on the demo:** `BL-0003` at culture day 7.9 (ground truth: productivity
+  changes from day 7), 7,317 g against 10,170 g at harvest; `BL-0002` and `BL-0004` no
+  divergence. With a 20 % tolerance `BL-0003` moves to day 11.9: recorded in `docs/gaps.md`.
+- **Seen in the browser:** `docs/images/findings/titer-divergence.png`.
+- **Final checks:** `make ci` exit 0 (standard and strict translations 110/110 and 2/2, ruff 85
+  files, Vitest 18 passed, pytest 144 passed, 0 skipped); `make e2e` exit 0 (4 passed).
+
 ## 2026-11-15: The synthetic plant inside a live PlantCraft (roadmap item 1)
 
 Branch `live-plant`, on top of `first-slice` (pull request 1, whose GitHub CI passed on

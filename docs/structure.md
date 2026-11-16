@@ -30,6 +30,7 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `meta.py` | Reads `app.toml` and the help pages for `/api/meta` and `/api/help` |
 | `calc/results.py` | The result type, its statuses and reasons, and the input types |
 | `calc/culture.py`, `calc/mass.py` | The formulas: IVCD, qP; harvest mass, pool mass, the ratios |
+| `calc/comparison.py` | A batch against the reference: where its titer left the reference's |
 | `batches/models.py` | The records: batch, phase execution, sample, assay result, pool measurement |
 | `batches/store.py` | `BatchStore`: five tables in the app's SQLite database |
 | `batches/service.py` | `BatchService`: the object's rules, without HTTP |
@@ -88,6 +89,7 @@ in the interface, a router or a store.
 |---|---|
 | `plant.py`, `conftest.py` | A fake PlantCraft with the suite's test plant plus the synthetic bioprocess plant, and four people; a runtime and a client wired to it |
 | `test_calc.py` | Each formula against a hand-calculated oracle; each failure status |
+| `test_divergence.py` | The titer divergence rule against hand-worked cases |
 | `test_generator.py` | Determinism, internal consistency, the scenarios, no ground truth in what the app sees |
 | `test_demo_plant.py` | The plant files: every value at its time, the time zone, the map, agreement with the fake |
 | `test_batches.py` | The store, the seed, each route, `as_of`, what PlantCraft lacks, scope between batches |
