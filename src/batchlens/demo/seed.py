@@ -7,14 +7,25 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from datetime import datetime
 
 from batchlens.batches.service import BatchService
-from batchlens.demo.generator import demo_campaign
+from batchlens.demo.generator import LIVE_BATCH, demo_campaign, live_start
 
 LOGGER = logging.getLogger(__name__)
 
 
-def seed_demo(batches: BatchService, *, reset: bool = False) -> list[str]:
+def live_from(batches: BatchService) -> datetime | None:
+    """When the stored live batch's culture began; None when there is none."""
+
+    stored = batches.get(LIVE_BATCH)
+    culture = stored.phase("production_culture") if stored is not None else None
+    return culture.start if culture is not None else None
+
+
+def seed_demo(
+    batches: BatchService, *, reset: bool = False, live_at: datetime | None = None
+) -> list[str]:
     """Stores the demo batches that are not there yet, or were made by an older version of the
     generator, under their stable ids, and answers which it loaded. Running it again loads
     nothing and leaves what people changed alone.
@@ -22,9 +33,19 @@ def seed_demo(batches: BatchService, *, reset: bool = False) -> list[str]:
     Loading a batch again (an older generator's, or every batch with ``reset``) puts its
     records back as generated: a sample time a person had corrected is undone, which is logged
     with the sample's id; the history of corrections is kept. The reference batch a person
-    chose stays the reference unless ``reset`` asks for the demo as generated."""
+    chose stays the reference unless ``reset`` asks for the demo as generated.
 
-    observations, _ground_truth = demo_campaign()
+    With ``live_at`` (now), the campaign is the live one (``demo_campaign``): its dates are
+    fixed the first time, from ``live_at``, and kept on every later run, so a demo left
+    running moves on through the live batch. The first time is a ``reset``: batches stored
+    with other dates are replaced."""
+
+    anchor = None
+    if live_at is not None:
+        anchor = None if reset else live_from(batches)
+        if anchor is None:
+            anchor, reset = live_start(live_at), True
+    observations, _ground_truth = demo_campaign(anchor)
     chosen = None if reset else getattr(batches.reference(), "batch", None)
     seeded = []
     for item in observations:

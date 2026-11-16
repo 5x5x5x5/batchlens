@@ -178,6 +178,12 @@ describe("the batch list", () => {
     expect(host.textContent).toContain("Times are shown in UTC");
   });
 
+  it("marks a batch that is still running instead of giving it an end", async () => {
+    answers.list = { ...LIST, batches: [{ ...LIST.batches[0], end: null, running: true }] };
+    const host = await render(<BatchesPage />);
+    expect(host.querySelector("tbody tr")!.textContent).toContain("Running now");
+  });
+
   it("says so when there are no batches", async () => {
     answers.list = { time_zone: "UTC", batches: [] };
     const host = await render(<BatchesPage />);

@@ -389,11 +389,36 @@ CAMPAIGN_START = datetime(2026, 7, 1, 6, 0, tzinfo=UTC)
 DAYS_BETWEEN_BATCHES = 21
 
 
-def demo_campaign() -> tuple[list[Observations], dict[str, GroundTruth]]:
-    """The five demo batches, one after another on the same bioreactor (docs/demo.md)."""
+LIVE_BATCH = "BL-0006"
+LIVE_CULTURE_DAYS = 9  # how far into its culture the live batch is when the demo starts
+
+
+def live_start(now: datetime) -> datetime:
+    """When the live batch's culture began, for a demo started at ``now``: 06:00 UTC,
+    ``LIVE_CULTURE_DAYS`` days before today, so every batch keeps its time of day."""
+
+    day = now.astimezone(UTC).replace(hour=6, minute=0, second=0, microsecond=0)
+    return day - timedelta(days=LIVE_CULTURE_DAYS)
+
+
+def demo_campaign(
+    live_from: datetime | None = None,
+) -> tuple[list[Observations], dict[str, GroundTruth]]:
+    """The five demo batches, one after another on the same bioreactor (docs/demo.md).
+
+    With ``live_from`` (``live_start``), the same five moved in time to end before a sixth,
+    ``LIVE_BATCH``, whose culture begins then: generated whole like the others, its later
+    records dated ahead of the clock. The app shows nothing later than now, and the plant
+    files hold nothing later than now. Moving a batch in time changes none of its values."""
+
+    first = (
+        CAMPAIGN_START
+        if live_from is None
+        else live_from - timedelta(days=5 * DAYS_BETWEEN_BATCHES)
+    )
 
     def start(index: int) -> datetime:
-        return CAMPAIGN_START + timedelta(days=DAYS_BETWEEN_BATCHES * index)
+        return first + timedelta(days=DAYS_BETWEEN_BATCHES * index)
 
     scenarios = [
         (Scenario("BL-0001", start(0), is_reference=True), 101),
@@ -425,5 +450,14 @@ def demo_campaign() -> tuple[list[Observations], dict[str, GroundTruth]]:
             105,
         ),
     ]
+    if live_from is not None:
+        live = Scenario(
+            LIVE_BATCH,
+            start(5),
+            label="reduced_culture_productivity",
+            qp_shift_day=7.0,
+            qp_shift_factor=0.6,
+        )
+        scenarios.append((live, 106))
     made = [generate(scenario, seed) for scenario, seed in scenarios]
     return [observations for observations, _ in made], {t.batch_id: t for _, t in made}

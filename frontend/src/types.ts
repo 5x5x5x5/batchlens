@@ -9,6 +9,8 @@ export interface Batch { batch_id: string; product: string; is_reference: boolea
 export interface BatchRow extends Batch {
   /** The batch's window: its first phase execution's start to its last one's end. */
   start: string | null; end: string | null;
+  /** Still running: it has no end yet. */
+  running?: boolean;
   /** The production bioreactor: its id, and its name in PlantCraft (none when it is not there). */
   asset_id: string | null; asset_name: string | null;
 }

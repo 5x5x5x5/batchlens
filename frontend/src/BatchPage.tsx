@@ -103,10 +103,15 @@ function FindingPanel({ finding }: { finding: Finding }) {
   return <div className="panel">
     {diverged && <>
       <h3>{t("Titer left the reference batch at culture day {day}", { day: Number(observation.value).toFixed(1) })}</h3>
-      <p>{t("Observed: sample {sample}, collected {when}, read {titer} g/L against {reference} g/L ({deficit} % below; the tolerance is {tolerance} %) for the reference sample {referenceSample} of the same culture age, and all {later} later samples stayed below.", {
-        sample: String(v.result_id), when: when(String(v.collected_at)), titer: recorded(Number(v.titer)), reference: recorded(Number(v.reference_titer)),
-        deficit: Number(v.deficit_percent).toFixed(0), tolerance: String(v.tolerance_percent), referenceSample: String(v.reference_result_id), later: String(v.later_samples_below),
-      })}</p>
+      {(() => {
+        const values = {
+          sample: String(v.result_id), when: when(String(v.collected_at)), titer: recorded(Number(v.titer)), reference: recorded(Number(v.reference_titer)),
+          deficit: Number(v.deficit_percent).toFixed(0), tolerance: String(v.tolerance_percent), referenceSample: String(v.reference_result_id), later: String(v.later_samples_below),
+        };
+        return <p>{Number(v.later_samples_below) > 0
+          ? t("Observed: sample {sample}, collected {when}, read {titer} g/L against {reference} g/L ({deficit} % below; the tolerance is {tolerance} %) for the reference sample {referenceSample} of the same culture age, and all {later} later samples stayed below.", values)
+          : t("Observed: sample {sample}, collected {when}, read {titer} g/L against {reference} g/L ({deficit} % below; the tolerance is {tolerance} %) for the reference sample {referenceSample} of the same culture age, and no later sample has a result yet.", values)}</p>;
+      })()}
       <Consequence consequence={consequence} />
       <p className="muted">{NO_CAUSE()} {t("The first sample at which a gap is seen comes after whatever began it.")}</p>
     </>}
