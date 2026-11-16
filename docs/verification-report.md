@@ -12,7 +12,7 @@ measures whether the analysis does what it says on data shaped like its own demo
 says nothing about real processes, real assay noise or real historians, and it is not a
 validation of anything.
 
-- Generator: `synthetic-generator/2`, 20 seeds of every variant.
+- Generator: `synthetic-generator/3`, 20 seeds of every variant.
 - Batches: 20 normal, 180 with reduced specific
   productivity (from culture day 5, 7, 9; to
   55 %, 70 %, 85 % of nominal), 60 with
@@ -102,6 +102,9 @@ noise passing through the formula; it is not a statement about any real assay.
 
 | Metric | Batches | Mean absolute error | Largest error |
 |---|---|---|---|
+| `seed_n2_growth_rate` | 320 | 1.74 % | 6.61 % |
+| `seed_n1_growth_rate` | 320 | 1.81 % | 6.57 % |
+| `inoculation_density` | 320 | 3.61 % | 12.00 % |
 | `ivcd` | 320 | 0.76 % | 3.12 % |
 | `qp` | 320 | 1.75 % | 6.89 % |
 | `harvest_mass` | 320 | 1.51 % | 6.62 % |

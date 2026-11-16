@@ -146,8 +146,9 @@ def test_going_back_in_time_shows_only_what_was_known_then(signed_in, app_url, s
     findings = page.locator('[data-section="findings"]')
     expect(findings).to_contain_text("Titer left the reference batch at culture day 7.9")
     expect(page.get_by_text("Showing everything recorded.")).to_be_visible()
-    # Culture day 6 (24 steps of 6 hours): before the titer left the reference.
-    page.get_by_label("What was known when").fill("24")
+    # Culture day 6: before the titer left the reference. The slider starts where the batch
+    # does, at its first seed passage, six days before the culture: 48 steps of 6 hours.
+    page.get_by_label("What was known when").fill("48")
     expect(
         page.get_by_text(
             re.compile("Showing only what had been collected and reported by Aug 18, 2026")

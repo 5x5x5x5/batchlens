@@ -110,9 +110,12 @@ def test_calculation_errors_against_the_true_values_are_reported(small):
     assert sorted(errors) == [
         "harvest_mass",
         "harvest_to_load_yield",
+        "inoculation_density",
         "ivcd",
         "protein_a_recovery",
         "qp",
+        "seed_n1_growth_rate",
+        "seed_n2_growth_rate",
     ]
     for item in errors.values():
         assert item["batches"] == 32  # every batch whose records are good

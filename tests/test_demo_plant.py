@@ -78,6 +78,8 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     }
     assert set(assets) == {
         "U-MAB",
+        "BR-1001",
+        "BR-1002",
         "BR-2001",
         "HV-2101",
         "CH-3001",
@@ -144,7 +146,7 @@ def test_the_fake_plantcraft_of_the_tests_serves_the_same_plant(tmp_path):
             served = fake[row["asset_id"]]
             assert (served["name"], served["kind"]) == (row["name"], kind)
             assert served["parent_id"] == (row["parent_id"] or "plant")
-    assert len(ASSETS) == 9
+    assert len(ASSETS) == 11
     roles = fake[BIOREACTOR]["signals"]
     assert roles == BIO_SIGNALS
     # The bioreactor's own signals; the loops' signals have no role on it.

@@ -26,15 +26,16 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A live campaign: a sixth batch running now, the bioreactor's file written up to now, nothing later than now shown | Done, tested; seen in PlantCraft 0.6.0 |
 | The suite's modules in the demo at one address; the bioreactor's history in Historian, signal ranges for Analytics' Signal quality monitor, a dashboard and a process display in View, rules in Alarms, documents in Documents | Done by script; seen in a browser, no automated test |
 | Three control loops on the bioreactor (value, setpoint, output every 30 s), judged by Analytics' loop monitor, with View's and Alarms' own first steps | Done, tested (generator and files); the modules' side by script, seen in a browser |
+| The seed train: N-2 and N-1 passages as phase executions of the batch, a growth rate per passage, the inoculation density; a low-inoculum scenario in the generator | Done, oracle-tested, on the batch page; the scenario is in no demo batch yet |
 
 ## Next, in the intended order
 
 Agreed with the owner on 2026-11-16: depth before breadth. The work extends the evidence
 backward (what went into each step) before the chain forward.
 
-1. Seed train: the N-2 and N-1 seed reactors as earlier phase executions of the same batch,
-   with a growth rate per passage and the inoculation density, and a low-inoculum scenario
-   (fewer cells, not less product per cell).
+1. Seed train, the rest: a demo batch that carries the low-inoculum scenario, a finding for a
+   low inoculation density, the seed reactors' online signals. (The passages, their growth
+   rates and the inoculation density are done.)
 2. Transfers: one record (from asset, to asset, window, recorded volume, the lot or batch on
    each end) and a transfer balance, first on inoculation and feeds; evidence paired by hours
    since the last feed.

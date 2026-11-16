@@ -12,7 +12,14 @@ from batchlens.calc.comparison import (
     recovery_shortfall,
     titer_divergence,
 )
-from batchlens.calc.culture import MAX_GAP_DAYS, ivcd, specific_productivity
+from batchlens.calc.culture import (
+    INOCULATION_WINDOW_HOURS,
+    MAX_GAP_DAYS,
+    growth_rate,
+    inoculation_density,
+    ivcd,
+    specific_productivity,
+)
 from batchlens.calc.mass import (
     HARVEST_TITER_WINDOW_HOURS,
     MERGE_TOLERANCE_PERCENT,
@@ -45,6 +52,9 @@ __all__ = [
     "recovery_shortfall",
     "titer_divergence",
     "HARVEST_TITER_WINDOW_HOURS",
+    "INOCULATION_WINDOW_HOURS",
+    "growth_rate",
+    "inoculation_density",
     "INSUFFICIENT",
     "INVALID",
     "MAX_GAP_DAYS",

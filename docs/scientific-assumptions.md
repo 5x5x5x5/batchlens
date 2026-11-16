@@ -44,6 +44,7 @@ found"; its reason then says so (`no_divergence`).
 | Setting | Default | Where | Meaning |
 |---|---|---|---|
 | `MAX_GAP_DAYS` | 3 days | `calc/culture.py` | Longest span between two cell counts the trapezoid bridges |
+| `INOCULATION_WINDOW_HOURS` | 6 h | `calc/culture.py` | A first cell count collected later than this after the phase began does not stand for the density it began at |
 | `HARVEST_TITER_WINDOW_HOURS` | 12 h | `calc/mass.py` | The last culture titer must be collected this close to the end of the phase |
 | `VOLUME_MAX_AGE_SECONDS` | 900 s | `calc/mass.py` | The online volume used is the last value at or before the sample, no older than this |
 | `RECOVERY_SUSPECT_ABOVE_PERCENT` | 105 % | `calc/mass.py` | A yield or recovery above this is shown, flagged `suspect` |
@@ -234,6 +235,32 @@ Example: parts of 4,600 g and 4,500 g, merged pool 9,150 g: `100 * 50 / 9100 = +
   into that one"). Several links into one pool are a merge. Splits can be recorded the same
   way but the demo has none, and no balance is computed for a split.
 
+### 11. Growth rate of a seed passage (`growth_rate/1`), `1/day`
+
+`mu = ln(X_last / X_first) / (t_last - t_first)`, from the first and the last viable cell
+count of one passage (`seed_n2_growth_rate`, `seed_n1_growth_rate`), `X` in `1e6 cells/mL`,
+`t` in days. Only that passage's own samples are used.
+
+Example, counts of 0.5 at day 0 and 3.5 at day 3: `ln(3.5 / 0.5) / 3 = 1.9459 / 3 = 0.6486`.
+
+- It is the **average** rate of the passage; counts between the first and the last are not
+  used, and a lag or a slowing near the end is not seen.
+- `insufficient`: fewer than two counts (a batch with no record of the passage has none); a
+  count of zero.
+- `invalid`: a negative or non-finite count; a wrong unit; a last count not later than the
+  first.
+
+### 12. Inoculation density (`inoculation_density/1`), `1e6 cells/mL`
+
+The first viable cell count of the production culture, when it was collected within
+`INOCULATION_WINDOW_HOURS` of the start of the phase. It is a measured count, not the density
+computed from what was transferred: transfers are not recorded yet.
+
+- `insufficient`: no count; a first count collected later than the window (the culture has
+  grown since, and no earlier density is guessed).
+- `invalid`: a negative or non-finite count; a wrong unit.
+- It rests on one count, so it carries that count's full assay error.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -311,11 +338,14 @@ object used by tests and described in [demo.md](demo.md); the app never stores, 
 it.
 
 Process: a 2,000 L CHO fed-batch production culture of 14.25 days on one bioreactor, a 6 h
-harvest, a 4 h hold and one aggregated 10 h Protein A capture step.
+harvest, a 4 h hold and one aggregated 10 h Protein A capture step. Before it, two seed
+passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L one.
 
 | Part | Model | Parameters |
 |---|---|---|
-| Viable cell density | Logistic growth from 0.5 to a peak, times `exp(-0.03 * (day - 9))` after day 9 | Peak 20 (x 1 ± 3 %), rate 0.75 /day (x 1 ± 2 %), in `1e6 cells/mL` |
+| Seed passages | Exponential growth from 0.5 for three days at `ln(7) / 3` = 0.649 /day (x 1 ± 2 %); four counts per passage (an hour after seeding, daily within ± 3 h, an hour before the transfer), each with a viability | Its own random stream, so earlier values did not change |
+| Density a vessel starts at | The target 0.5, or, when the vessel before it held too few cells for that, all of them diluted into the new volume: `min(0.5, X_end * V_before / V_start)` | 50 L into 250 L into 1400 L |
+| Viable cell density | Logistic growth from the density the culture started at (0.5 unless N-1 fell short) to a peak, times `exp(-0.03 * (day - 9))` after day 9 | Peak 20 (x 1 ± 3 %), rate 0.75 /day (x 1 ± 2 %), in `1e6 cells/mL` |
 | Titer | Running sum of `qP * dIVCD / 1000`, IVCD by trapezoid over the noise-free density at the sample times | qP 30 pg/cell/day (x 1 ± 2 %) |
 | Viability | `98 - 0.05 * day²` % | |
 | Glucose | `6.0 - 0.18 * X * (day mod 1)` g/L, a daily sawtooth | +0.8 g/L after a productivity shift |
@@ -331,6 +361,13 @@ harvest, a 4 h hold and one aggregated 10 h Protein A capture step.
 | Rest of the train | Viral inactivation 0.98, cation exchange 0.90, anion exchange 0.96, viral filtration 0.98, UF/DF 0.95 (each x 1 ± 0.5 %), two hours apart | Drug substance at 50 g/L; its own random stream, so earlier values did not change |
 | Online signals | One value every 10 minutes during the production phase | |
 | Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
+
+**An outcome that depends on an input.** The density the production culture starts at depends
+on the N-1 passage: with `n1_growth_factor` below about 0.8 the N-1 vessel holds too few cells,
+the culture starts below the target, and it makes fewer cell-days and less product at the same
+qP. This is the first such dependency in the generator, agreed with the owner so that the seed
+records have something to show. It is a shape (a dilution and a minimum), not a model of a seed
+train, and no demo batch uses it yet: the five demo batches are seeded at the target.
 
 Because titer is generated from qP and the running IVCD, `tests/test_generator.py` checks that
 the calculations recover the generator's own parameters within three standard deviations of the

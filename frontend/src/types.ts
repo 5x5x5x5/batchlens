@@ -79,7 +79,9 @@ export interface AssayResult { result_id: string; sample_id: string; analyte: st
 
 export interface Sample {
   sample_id: string; batch_id: string; phase_id: string; collected_at: string; provenance: string; results: AssayResult[];
-  /** Days since the start of the batch's production phase. */
+  /** The kind of the phase the sample was taken in (a seed passage or the production culture). */
+  phase_kind: string | null;
+  /** Days since the start of the sample's own phase. */
   culture_day: number | null;
   /** A person corrected this sample's collection time (the history is on the batch). */
   corrected: boolean;

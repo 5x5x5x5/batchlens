@@ -1,6 +1,7 @@
 """A batch's metrics, computed on request from its records and the bioreactor's volume signal.
 
-Nothing here is stored. Samples are scoped to the batch's production phase, results marked
+Nothing here is stored. Samples are scoped to one phase (a seed passage's growth rate rests
+on that passage's counts only, everything else on the production phase's), results marked
 invalid are left out, and ``as_of`` is passed on to every calculation.
 """
 
@@ -15,6 +16,9 @@ from batchlens.calc.comparison import DIVERGENCE_VERSION
 from batchlens.calc.mass import HARVEST_VERSION
 
 METRICS = (
+    "seed_n2_growth_rate",
+    "seed_n1_growth_rate",
+    "inoculation_density",
     "ivcd",
     "qp",
     "harvest_mass",
@@ -26,13 +30,17 @@ METRICS = (
 
 
 def measurements(
-    record: BatchRecord, analyte: str, as_of: datetime | None = None
+    record: BatchRecord,
+    analyte: str,
+    as_of: datetime | None = None,
+    kind: str = "production_culture",
 ) -> list[calc.Measurement]:
-    """The valid results of one analyte on the production phase's samples, in collection order.
+    """The valid results of one analyte on the samples of one phase (the production culture
+    unless ``kind`` names another), in collection order.
     With ``as_of``, a sample collected later does not exist yet: it is left out altogether,
     not reported as a result that is still pending."""
 
-    culture = record.phase("production_culture")
+    culture = record.phase(kind)
     collected = {
         sample.sample_id: sample.collected_at
         for sample in record.samples
@@ -104,7 +112,24 @@ def batch_metrics(
     eluate = calc.pool_mass(
         "protein_a_eluate_mass", _pool(record, "protein_a_eluate", as_of), as_of=as_of
     )
+    if culture is None:
+        started = calc.insufficient(
+            "inoculation_density",
+            calc.culture.VCD_UNIT,
+            calc.culture.INOCULATION_VERSION,
+            calc.Reason("phase_missing"),
+        )
+    else:
+        started = calc.inoculation_density(vcd, phase_start=culture.start, as_of=as_of)
     return [
+        # A batch with no record of a seed passage has no counts for it: insufficient.
+        *(
+            calc.growth_rate(
+                f"{kind}_growth_rate", measurements(record, "vcd", as_of, kind), as_of=as_of
+            )
+            for kind in ("seed_n2", "seed_n1")
+        ),
+        started,
         calc.ivcd(vcd, as_of=as_of),
         calc.specific_productivity(vcd, titer, as_of=as_of),
         harvest,

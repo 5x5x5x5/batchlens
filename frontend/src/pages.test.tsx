@@ -119,7 +119,7 @@ const METRICS: Metrics = {
 const SAMPLES: Samples = {
   batch_id: "BL-0002", as_of: null, aligned_to: null,
   samples: [1, 2].map((day) => ({
-    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, culture_day: day, aligned_at: null, corrected: day === 2, provenance: "p",
+    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", phase_kind: "production_culture", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, culture_day: day, aligned_at: null, corrected: day === 2, provenance: "p",
     results: [
       { result_id: `BL-0002-S0${day}-titer`, sample_id: `BL-0002-S0${day}`, analyte: "titer", value: 0.021 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: `2026-07-2${day + 3}T05:00:00.000Z`, validity: "valid", provenance: "p" },
       { result_id: `BL-0002-S0${day}-vcd`, sample_id: `BL-0002-S0${day}`, analyte: "vcd", value: 0.51 * day, unit: "1e6 cells/mL", method: "Automated cell counter", result_available_at: `2026-07-2${day + 2}T08:30:00.000Z`, validity: "valid", provenance: "p" },
@@ -137,7 +137,7 @@ const TRENDS: Trends = {
 const REFERENCE: Samples = {
   batch_id: "BL-0001", as_of: null, aligned_to: "BL-0002",
   samples: [1, 2, 3].map((day) => ({
-    sample_id: `BL-0001-S0${day}`, batch_id: "BL-0001", phase_id: "BL-0001-P1", collected_at: `2026-07-0${day + 1}T07:00:00.000Z`, culture_day: day, aligned_at: `2026-07-2${day + 2}T07:00:00.000Z`, corrected: false, provenance: "p",
+    sample_id: `BL-0001-S0${day}`, batch_id: "BL-0001", phase_id: "BL-0001-P1", phase_kind: "production_culture", collected_at: `2026-07-0${day + 1}T07:00:00.000Z`, culture_day: day, aligned_at: `2026-07-2${day + 2}T07:00:00.000Z`, corrected: false, provenance: "p",
     results: [
       { result_id: `BL-0001-S0${day}-titer`, sample_id: `BL-0001-S0${day}`, analyte: "titer", value: 0.03 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: "2026-07-05T05:00:00.000Z", validity: "valid", provenance: "p" },
     ],
@@ -198,9 +198,11 @@ describe("one batch", () => {
     const phases = host.querySelector('[data-section="phases"]')!;
     expect(phases.querySelectorAll("tbody tr")).toHaveLength(1);
     expect(phases.textContent).toContain("In progress");
-    // The picture shows the whole train: the step under way, and the seven not reached yet.
+    // The picture shows the whole train: the step under way, the seven not reached yet, and
+    // the two seed passages this batch has no record of.
     expect(phases.querySelector('.train [data-step="production_culture"]')!.getAttribute("data-state")).toBe("running");
-    expect(phases.querySelectorAll('.train [data-state="pending"]')).toHaveLength(7);
+    expect(phases.querySelectorAll('.train [data-state="pending"]')).toHaveLength(9);
+    expect(phases.querySelector('.train [data-step="seed_n1"]')!.textContent).toBe("N-1N-1 seed cultureNo record");
     expect(phases.querySelector('.train [data-step="harvest"]')!.textContent).toBe("HarvestNot started");
   });
 
