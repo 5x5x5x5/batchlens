@@ -7,7 +7,7 @@ import { DataTable, Pill } from "@plantcraft/ui";
 import { api } from "./api";
 import { recorded, signedBetween, significant } from "./format";
 import { t } from "./i18n";
-import type { BatchDetail, Metric, Metrics, Samples, Trends } from "./types";
+import type { BatchDetail, Finding, Metric, Metrics, Samples, Trends } from "./types";
 import { ErrorBox, Heading, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
 import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord } from "./words";
@@ -54,6 +54,32 @@ function MetricsTable({ metrics }: { metrics: Metrics }) {
       { key: "difference", label: t("Difference"), numeric: true, phone: "hide",
         render: (metric) => signedBetween(metric.difference, metric.value, metric.reference?.value, metricDigits(metric.metric)) },
     ]} />;
+}
+
+/** One finding: the observation, then the calculation, then the line that no cause is given. */
+function FindingPanel({ finding }: { finding: Finding }) {
+  const { observation, consequence } = finding;
+  const seen = observation.reasons.find((reason) => reason.code === "diverged_from_reference");
+  const others = observation.reasons.filter((reason) => reason !== seen);
+  const v = seen?.values ?? {};
+  const digits = metricDigits("harvest_mass");
+  return <div className="panel">
+    {seen && <>
+      <h3>{t("Titer left the reference batch at culture day {day}", { day: Number(observation.value).toFixed(1) })}</h3>
+      <p>{t("Observed: sample {sample}, collected {when}, read {titer} g/L against {reference} g/L ({deficit} % below; the tolerance is {tolerance} %) for the reference sample {referenceSample} of the same culture age, and all {later} later samples stayed below.", {
+        sample: String(v.result_id), when: when(String(v.collected_at)), titer: recorded(Number(v.titer)), reference: recorded(Number(v.reference_titer)),
+        deficit: Number(v.deficit_percent).toFixed(0), tolerance: String(v.tolerance_percent), referenceSample: String(v.reference_result_id), later: String(v.later_samples_below),
+      })}</p>
+      {consequence && (consequence.difference !== null
+        ? <p>{t("Calculated: {metric}: {value} {unit} against {reference} {unit} for the reference ({difference} {unit}).", {
+            metric: metricName(consequence.metric), unit: consequence.unit, value: significant(consequence.value, digits), reference: significant(consequence.reference, digits),
+            difference: signedBetween(consequence.difference, consequence.value, consequence.reference, digits),
+          })}</p>
+        : <p>{t("Calculated: {metric} cannot be compared with the reference ({status}).", { metric: metricName(consequence.metric), status: statusWord(consequence.status) })}</p>)}
+      <p className="muted">{t("No cause is attributed: this is an observation and a calculation, not a diagnosis. The first sample at which a gap is seen comes after whatever began it.")}</p>
+    </>}
+    {others.map((reason, index) => <p key={index}>{reasonText(reason)}</p>)}
+  </div>;
 }
 
 function Pools({ detail }: { detail: BatchDetail }) {
@@ -125,6 +151,9 @@ export function BatchPage({ batchId }: { batchId: string }) {
     <p className="muted">{detail.batch.product} · {reference} · {detail.batch.provenance}</p>
     <ZoneNote />
     <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><Phases detail={detail} /></Section>
+    {metrics.findings.length > 0 && <Section id="findings" title={t("Findings")} detail={t("This batch against the reference batch. Tolerances are illustrative settings, not limits.")}>
+      {metrics.findings.map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
+    </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
     <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} /></Section>

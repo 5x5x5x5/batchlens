@@ -345,3 +345,93 @@ def test_no_response_carries_the_scenario_or_its_parameters(seeded, client):
     labels = {item.scenario for item in truth.values()}
     for word in (*labels, "reduced", "scenario", "fault", "ground", "truth", "shift", "label"):
         assert word not in text, word
+
+
+# Findings --------------------------------------------------------------------------------------
+
+
+def findings_of(client, batch_id: str, **params) -> list[dict]:
+    answer = client.get(f"/api/batches/{batch_id}/metrics", params=params)
+    assert answer.status_code == 200, answer.text
+    return answer.json()["findings"]
+
+
+def test_the_batch_whose_titer_left_the_reference_gets_a_finding_in_three_separate_parts(
+    seeded, client
+):
+    [finding] = findings_of(client, "BL-0003")
+    assert finding["finding"] == "titer_divergence"
+    # The observation: where, with the samples it rests on.
+    observation = finding["observation"]
+    assert (observation["status"], observation["unit"]) == ("usable", "days")
+    assert 7 < observation["value"] < 10  # seen at the first samples after it began
+    [reason] = observation["reasons"]
+    assert reason["code"] == "diverged_from_reference"
+    assert reason["values"]["result_id"].startswith("BL-0003-S")
+    assert reason["values"]["reference_result_id"].startswith("BL-0001-S")
+    assert reason["values"]["titer"] < reason["values"]["reference_titer"]
+    assert reason["values"]["later_samples_below"] >= 3
+    assert {i[:7] for i in observation["inputs"]} == {"BL-0003", "BL-0001"}
+    # The calculation: what the batch had at harvest against the reference, in grams.
+    harvest = metrics_of(client, "BL-0003")["harvest_mass"]
+    assert finding["consequence"] == {
+        "metric": "harvest_mass",
+        "unit": "g",
+        "status": "usable",
+        "value": harvest["value"],
+        "reference": harvest["reference"]["value"],
+        "difference": harvest["difference"],
+    }
+    assert finding["consequence"]["difference"] < -2000
+    # And no cause: the app observes and calculates, it does not diagnose.
+    assert finding["cause"] is None
+
+
+@pytest.mark.parametrize("batch_id", ["BL-0002", "BL-0004"])
+def test_a_batch_that_followed_the_reference_gets_the_finding_that_nothing_diverged(
+    seeded, client, batch_id
+):
+    [finding] = findings_of(client, batch_id)
+    assert (finding["observation"]["status"], finding["observation"]["value"]) == ("usable", None)
+    assert codes(finding["observation"]) == ["no_divergence"]
+    assert finding["consequence"] is None and finding["cause"] is None
+
+
+def test_the_reference_batch_is_not_compared_with_itself(seeded, client):
+    assert findings_of(client, "BL-0001") == []
+
+
+def test_a_finding_uses_only_what_was_available_at_as_of(seeded, client):
+    culture = CAMPAIGN["BL-0003"].record.phases[0]
+    # Day 6: before the titer left the reference, and before day 6's own titer came in.
+    [early] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(days=6)).isoformat())
+    assert early["observation"]["value"] is None
+    assert codes(early["observation"]) == ["no_divergence", "result_not_yet_available"]
+    assert early["consequence"] is None
+    # Before any titer of the batch exists there is nothing to compare.
+    [none] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(hours=2)).isoformat())
+    assert none["observation"]["status"] == "insufficient"
+    # After the divergence is seen but before harvest: the observation stands, and the
+    # consequence says the harvest mass is not there yet rather than leaving it out.
+    [mid] = findings_of(client, "BL-0003", as_of=(culture.start + timedelta(days=12)).isoformat())
+    assert mid["observation"]["value"] is not None
+    assert (mid["consequence"]["status"], mid["consequence"]["difference"]) == (
+        "insufficient",
+        None,
+    )
+
+
+def test_without_the_bioreactor_the_observation_stands_and_the_consequence_says_what_is_missing(
+    tmp_path,
+):
+    fake = make_fake(bioprocess=False)
+    runtime = make_runtime(tmp_path, fake)
+    try:
+        seed_demo(runtime.batches)
+        with client_for(runtime, fake) as client:
+            [finding] = findings_of(client, "BL-0003")
+            assert finding["observation"]["value"] is not None  # titers are the app's own records
+            assert finding["consequence"]["status"] == "insufficient"
+            assert finding["consequence"]["difference"] is None
+    finally:
+        runtime.shutdown()

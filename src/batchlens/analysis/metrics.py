@@ -11,6 +11,7 @@ from typing import Any
 
 from batchlens import calc
 from batchlens.batches.models import BatchRecord
+from batchlens.calc.comparison import DIVERGENCE_VERSION
 from batchlens.calc.mass import HARVEST_VERSION
 
 METRICS = (
@@ -115,3 +116,57 @@ def beside_reference(
             }
         )
     return found
+
+
+def findings(
+    record: BatchRecord,
+    reference: BatchRecord | None,
+    compared: list[dict[str, Any]],
+    *,
+    as_of: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """What stands out against the reference batch, each finding in three separate parts:
+
+    - ``observation``: where the titer left the reference's (``calc.titer_divergence``), with
+      the ids of the results it rests on;
+    - ``consequence``: when it did, the product mass at harvest against the reference's, taken
+      from ``compared`` (the output of ``beside_reference``), with its own status;
+    - ``cause``: always none. The app observes and calculates; it attributes nothing.
+
+    No findings without a reference batch to compare with.
+    """
+
+    if reference is None:
+        return []
+    culture, reference_culture = (item.phase("production_culture") for item in (record, reference))
+    if culture is None or reference_culture is None:
+        observation = calc.insufficient(
+            "titer_divergence", "days", DIVERGENCE_VERSION, calc.Reason("phase_missing")
+        )
+    else:
+        observation = calc.titer_divergence(
+            measurements(record, "titer"),
+            measurements(reference, "titer"),
+            batch_start=culture.start,
+            reference_start=reference_culture.start,
+            as_of=as_of,
+        )
+    consequence = None
+    if observation.value is not None:
+        harvest = next(item for item in compared if item["metric"] == "harvest_mass")
+        consequence = {
+            "metric": "harvest_mass",
+            "unit": harvest["unit"],
+            "status": harvest["status"],
+            "value": harvest["value"],
+            "reference": harvest["reference"]["value"] if harvest["reference"] else None,
+            "difference": harvest["difference"],
+        }
+    return [
+        {
+            "finding": "titer_divergence",
+            "observation": observation.to_dict(),
+            "consequence": consequence,
+            "cause": None,
+        }
+    ]

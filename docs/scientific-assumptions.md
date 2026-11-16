@@ -18,6 +18,8 @@ measurements and signals used) and `calculation_version`.
 
 A `usable` result may carry reasons too. They then say what it rests on: a result left out
 because it was not yet available, or a mass estimated from concentration times volume.
+One calculation, the titer divergence, is `usable` with no value when its answer is "none
+found"; its reason then says so (`no_divergence`).
 
 ## Rules every calculation follows
 
@@ -43,6 +45,8 @@ because it was not yet available, or a mass estimated from concentration times v
 | `HARVEST_TITER_WINDOW_HOURS` | 12 h | `calc/mass.py` | The last culture titer must be collected this close to the end of the phase |
 | `VOLUME_MAX_AGE_SECONDS` | 900 s | `calc/mass.py` | The online volume used is the last value at or before the sample, no older than this |
 | `RECOVERY_SUSPECT_ABOVE_PERCENT` | 105 % | `calc/mass.py` | A yield or recovery above this is shown, flagged `suspect` |
+| `DIVERGENCE_TOLERANCE_FRACTION` | 0.15 | `calc/comparison.py` | A titer below the reference's by more than this fraction of the reference's counts as below |
+| `PAIRING_WINDOW_HOURS` | 6 h | `calc/comparison.py` | A sample is compared with the reference sample nearest in culture age, at most this far away |
 
 ## The calculations
 
@@ -127,6 +131,44 @@ For both ratios:
   is `suspect`. Example: `100 * 9700 / 9120 = 106.36` is shown, flagged.
 - Assumption for review: the bound is applied to the harvest-to-load yield as well as to the
   recovery.
+
+### 7. Titer divergence from the reference batch (`titer_divergence/1`), `days`
+
+An observation about one batch against the reference batch, not a diagnosis.
+
+1. Culture age of a sample = its collection time minus the start of its batch's production
+   phase.
+2. Each titer sample of the batch, in collection order, is paired with the reference batch's
+   titer sample nearest in culture age, if one lies within `PAIRING_WINDOW_HOURS`. A sample
+   without such a pair is left out and named. Nothing is interpolated between reference samples.
+3. A pair is *below* when `reference - titer > tolerance * reference`.
+4. The divergence is the first pair of the unbroken run of below pairs that reaches the last
+   pair. Its value is that sample's culture age in days. A batch whose last pair is not below
+   has not diverged, whatever happened earlier (`no_divergence`, no value).
+
+Example (`tests/test_divergence.py`), reference 1.0, 2.0, 3.0, 4.0, 5.0 g/L at days 1 to 5, batch
+0.98, 1.6, 2.9, 3.2, 4.0 g/L at days 1.1, 2.0, 3.1, 4.0, 5.1, tolerance 15 %: deficits 2 %, 20 %,
+3.3 %, 20 %, 20 %. Day 2.0 is below but day 3.1 recovers, so the divergence is day 4.0.
+
+- `insufficient`: fewer than two pairs. `invalid`: a wrong unit, a negative or non-finite titer,
+  duplicate or out-of-order times, in either batch.
+- `as_of` applies to both batches' results.
+- Only a titer *below* the reference is looked for; a batch above it has not diverged.
+- Assumption: **the first sample at which the gap is seen comes after whatever began it.** In
+  the demo the productivity change starts at day 7 and is seen at day 7.9, the next sample.
+- Assumption: the answer depends on the tolerance. For the demo's reduced-productivity batch a
+  tolerance of 5, 10 or 15 % gives day 7.9 and 20 % gives day 11.9; the two normal batches give
+  no divergence at any of these.
+- Assumption: culture ages up to 6 h apart are compared as equal. Early in a culture, when
+  titer is small and rising fast, that alone can exceed the tolerance for a sample or two; the
+  requirement that every later sample stays below is what keeps such samples from counting.
+- Assumption: one reference batch stands for "comparable batches". Its own assay noise and its
+  own peculiarities are in every comparison.
+- The comparison is plain floating-point arithmetic, with no margin added at the boundary.
+
+A finding puts three things side by side and keeps them apart: this **observation**; a
+**consequence**, the product mass at harvest against the reference's (calculation 3, with its
+own status); and a **cause**, which is always empty. BatchLens attributes nothing.
 
 ## Display
 

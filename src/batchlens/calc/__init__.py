@@ -5,6 +5,11 @@ example of each and every assumption are in ``docs/scientific-assumptions.md``; 
 and its ``calculation_version`` changes with it.
 """
 
+from batchlens.calc.comparison import (
+    DIVERGENCE_TOLERANCE_FRACTION,
+    PAIRING_WINDOW_HOURS,
+    titer_divergence,
+)
 from batchlens.calc.culture import MAX_GAP_DAYS, ivcd, specific_productivity
 from batchlens.calc.mass import (
     HARVEST_TITER_WINDOW_HOURS,
@@ -28,6 +33,9 @@ from batchlens.calc.results import (
 )
 
 __all__ = [
+    "DIVERGENCE_TOLERANCE_FRACTION",
+    "PAIRING_WINDOW_HOURS",
+    "titer_divergence",
     "HARVEST_TITER_WINDOW_HOURS",
     "INSUFFICIENT",
     "INVALID",

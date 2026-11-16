@@ -11,7 +11,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from plantcraft_sdk.utc import utc_iso
 
-from batchlens.analysis.metrics import batch_metrics, beside_reference
+from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
 from batchlens.api import plant
 from batchlens.api.deps import CurrentUser, RuntimeDep, batch_or_404
 from batchlens.i18n import t
@@ -128,13 +128,13 @@ def batch_metrics_route(
     reference = rt.batches.reference()
     if reference is not None and reference.batch.batch_id == batch_id:
         reference = None  # the reference batch is not compared with itself
+    compared = beside_reference(metrics_of(record), metrics_of(reference) if reference else None)
     return {
         "batch_id": batch_id,
         "as_of": _stamp(as_of),
         "reference_batch_id": reference.batch.batch_id if reference else None,
-        "metrics": beside_reference(
-            metrics_of(record), metrics_of(reference) if reference else None
-        ),
+        "metrics": compared,
+        "findings": findings(record, reference, compared, as_of=as_of),
     }
 
 

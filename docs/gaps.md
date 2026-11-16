@@ -22,3 +22,7 @@ Known gaps, with the date they were found.
 | 2026-11-15 | Review, minor: `calc.specific_productivity` pairs titers by collection time, so two titers of one instant collapse silently (the last wins). Duplicate cell counts are `invalid`; duplicate titers should be too. | Open |
 | 2026-11-15 | Review, minor: a yield or recovery whose input is `invalid` is reported `insufficient` (its reason names the input's status) rather than `invalid`. | Open, owner to decide |
 | 2026-11-15 | Review, minor: a 403 or 422 from PlantCraft on one asset fails the whole list, metrics or trends route instead of becoming a reason. | Open, owner to decide |
+| 2026-11-15 | Titer divergence (`titer_divergence`): the answer depends on the tolerance (15 % gives day 7.9 for the demo's reduced-productivity batch, 20 % gives day 11.9), and it reports when a gap is first seen, not when it began. No sensitivity or uncertainty is shown on the page. | Open |
+| 2026-11-15 | Titer divergence compares with one reference batch, not a set of comparable batches, and only looks for a titer below it. | Open, planned (benchmark) |
+| 2026-11-15 | The Protein A recovery loss of the demo raises no finding; it is visible only as a difference in the metrics table. | Open, next task |
+| 2026-11-15 | A finding is not shown with its supporting evidence (growth, glucose, lactate at the same samples), which the original proposal asks for. | Open, planned |

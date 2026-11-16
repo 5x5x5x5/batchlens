@@ -105,3 +105,17 @@ IVCD in `1e6 cell-days/mL`, qP in `pg/cell/day`. Worth noticing: the true harves
 yield is about 93 % in every batch, yet the computed one ranges from 89 to 97 %. Harvest mass
 rests on a single titer result with 2 % assay noise, and the reference batch's final titer
 happened to read 5 % low. The app shows that number as it is.
+
+## What the app finds
+
+Against the reference batch `BL-0001`, with the default tolerance of 15 %:
+
+| Batch | Finding |
+|---|---|
+| `BL-0002` | Titer stayed within the tolerance over 15 compared samples |
+| `BL-0003` | Titer left the reference at culture day 7.9 (sample `BL-0003-S09-titer`, 1.681 against 2.008 g/L) and stayed below in all 6 later samples; product mass at harvest 7,317 g against 10,170 g |
+| `BL-0004` | Titer stayed within the tolerance. Its loss is in the Protein A step, which the metrics table shows (recovery 73.4 % against 93.6 %); no finding is raised for a step recovery yet |
+
+The ground truth says `BL-0003`'s productivity changes from day 7. The app sees it at the next
+sample, day 7.9, and says so: the first sample at which a gap is seen comes after whatever
+began it. No cause is attributed (`images/findings/titer-divergence.png`).
