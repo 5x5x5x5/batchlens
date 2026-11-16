@@ -33,10 +33,12 @@ def _as_of(
         return None
     try:
         moment = datetime.fromisoformat(as_of.strip().replace("Z", "+00:00"))
-    except ValueError as exc:
+        # In UTC from here on. An offset can push a valid text outside the years a datetime
+        # holds (0001-01-01T00:00+05:00): that is a bad as_of, not a server error.
+        return moment.astimezone(UTC) if moment.tzinfo else moment.replace(tzinfo=UTC)
+    except (ValueError, OverflowError) as exc:
         detail = t("as_of is an ISO 8601 time, like 2026-07-06T06:00:00Z.")
         raise HTTPException(status_code=422, detail=detail) from exc
-    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
 
 
 AsOf = Annotated[datetime | None, Depends(_as_of)]

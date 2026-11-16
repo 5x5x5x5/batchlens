@@ -3,6 +3,52 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: Phase 4 (best effort) and the branch review
+
+**Inside a live PlantCraft.** PlantCraft `v0.6.0` and its Simulator were installed into the
+same environment with `uv pip install -e sdk/python -e ".[server,opcua]"` and `-e simulator`,
+then `make dev` (which reinstalls the vendored SDK 0.104.0 over the checkout's 0.105.0, so
+PlantCraft 0.6.0 ran on SDK 0.104.0), `batchlens seed-demo` into the data folder `make dev`
+gives the app (`../PlantCraft/var/batchlens`), and a Playwright script.
+
+- **Worked:** PlantCraft on :8060 and the app on :9100 both answered after about 80 s; the
+  local session signs in as the demo's default person; `GET /api/v1/apps` and the launcher
+  list the app (as "batchlens": an app given by address takes its id as its name); the app's
+  `/api/me` answers that person with editor access and a service key; the list shows the four
+  batches; the batch page shows phases, pools, assay results, the VCD and titer charts, and
+  IVCD, qP, pool masses and recovery as usable.
+- **As expected, the bioreactor is not there:** harvest mass and the harvest-to-load yield are
+  `Insufficient` ("Asset BR-2001 was not found in PlantCraft."), all four online trends say
+  the same, and the phases show the asset ids marked "Not found in PlantCraft". HTTP 200
+  throughout, no 5xx in the log.
+- **Not checked:** a viewer. Every person of PlantCraft's local demo is an admin, and
+  `POST /api/session/switch` to another one still gives editor access; making a viewer would
+  mean changing PlantCraft's own data. Viewer access is covered only by the tests on the fake.
+  The launcher entry was read and screenshotted, but the script's click on it did not change
+  the page (it likely opens a new tab), so the app was then opened by its address.
+- **Nothing failed** because of the SDK version difference. The PlantCraft checkout's tracked
+  files are unchanged (`git status` clean; its `var/` and `frontend/dist` are ignored).
+- **Screenshots:** `docs/images/live-plantcraft/1-launcher.png`,
+  `2-batch-without-bioreactor.png` (the guided tour's first step overlays the top of it).
+
+**Review.** A fresh reviewer (a subagent on a mid-tier model, read-only) reviewed
+`13efc0b..HEAD` against the kickoff and the rules.
+
+- **Important, fixed:** a valid ISO `as_of` whose offset pushes the UTC instant outside years
+  1 to 9999 (`0001-01-01T00:00:00+05:00`) passed validation and then raised `OverflowError`,
+  a 500. `as_of` is now converted to UTC inside the validation and answers 422.
+  `test_an_as_of_whose_utc_instant_does_not_exist_is_a_422_not_a_crash`: 6 red, then green.
+- **Minor, deferred** (`docs/gaps.md`): the first pool measurement of a name is taken whatever
+  its availability (only one per name exists today); two titers at the same collection time
+  collapse silently, the last one winning; a ratio whose input is `invalid` is reported
+  `insufficient` (the reason carries the input's status); a 403 or 422 from PlantCraft on one
+  asset fails the whole route.
+- **Found correct by the reviewer:** every oracle in `tests/test_calc.py` re-derived; the
+  status rules; the `as_of` filters; batch scoping; no ground truth in the store, the API,
+  `calc` or `analysis`; the documents against the code.
+- **Final checks:** `make ci` exit 0 (standard and strict translations, ruff 81 files, Vitest 16
+  passed, pytest 118 passed, 0 skipped); `make e2e` exit 0 (4 passed).
+
 ## 2026-11-15: Phase 3, the pages
 
 - **Planned:** the batch list and batch detail pages on `@plantcraft/ui`, the banner, both

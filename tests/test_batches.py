@@ -236,6 +236,21 @@ def test_as_of_mid_culture_shows_only_what_was_collected_and_recorded_by_then(se
     assert found["protein_a_load_mass"]["status"] == "insufficient"
 
 
+@pytest.mark.parametrize("path", WITH_AS_OF)
+@pytest.mark.parametrize("as_of", ["0001-01-01T00:00:00+05:00", "9999-12-31T23:59:59-05:00"])
+def test_an_as_of_whose_utc_instant_does_not_exist_is_a_422_not_a_crash(
+    seeded, client, path, as_of
+):
+    # Valid ISO text, but in UTC it falls before year 1 or after year 9999.
+    assert client.get(path.format(id="BL-0001"), params={"as_of": as_of}).status_code == 422
+
+
+@pytest.mark.parametrize("as_of", ["0001-01-02T00:00:00Z", "9999-12-30T00:00:00Z"])
+def test_an_as_of_at_the_ends_of_time_is_answered(seeded, client, as_of):
+    for path in WITH_AS_OF:
+        assert client.get(path.format(id="BL-0001"), params={"as_of": as_of}).status_code == 200
+
+
 def test_an_as_of_without_an_offset_is_utc(seeded, client):
     answer = client.get("/api/batches/BL-0001/samples", params={"as_of": "2026-07-06T06:00:00"})
     assert instant(answer.json()["as_of"]) == datetime(2026, 7, 6, 6, tzinfo=UTC)
