@@ -3,6 +3,18 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A sixth finished batch, with a low inoculum
+
+The owner chose a new batch over changing one of the five.
+
+- **Built:** `BL-0006` (seed 107, N-1 growth at 0.4 of its rate) in both campaigns; the live
+  batch is now `BL-0007` and keeps seed 106, so its values did not change. A ninth finding,
+  `inoculation_density_shortfall` (`calc.inoculation_shortfall`, tolerance 20 %), with the
+  harvest mass as consequence and each batch's last N-1 sample as evidence.
+- **Seen in the numbers:** the titer finding says nothing about `BL-0006`: 783 g less at
+  harvest, but never 15 % below the reference. The first count finds it (0.2 against 0.51).
+- **Not done:** the benchmark does not vary the scenario.
+
 ## 2026-11-16: The seed train
 
 First item of the order agreed with the owner (ROADMAP: depth before breadth).

@@ -411,3 +411,42 @@ def test_inoculation_density_is_the_first_count_only_when_taken_near_the_start()
     assert (none.status, none.reasons[0].code) == ("insufficient", "no_cell_count")
     before = calc.inoculation_density(counts, phase_start=at(0), as_of=at(1 / 24))
     assert before.value is None and before.reasons[-1].code == "result_not_yet_available"
+
+
+def density(value: float | None, status: str = "usable") -> Result:
+    return Result(
+        "inoculation_density", value, VCD_UNIT, status, (), ("x",), "inoculation_density/1"
+    )
+
+
+def test_an_inoculation_density_well_below_the_references_is_a_shortfall_in_percent_of_it():
+    result = calc.inoculation_shortfall(density(0.2), density(0.5))
+    # (0.5 - 0.2) / 0.5 = 60 %, beyond the tolerance of 20 %.
+    assert (result.metric, result.unit, result.status) == (
+        "inoculation_density_shortfall",
+        "%",
+        "usable",
+    )
+    assert result.value == pytest.approx(60.0)
+    assert codes(result) == ["inoculated_below_reference"]
+    assert result.reasons[0].values["tolerance_percent"] == 20.0
+    assert result.inputs == ("x", "x") and result.calculation_version == "inoculation_shortfall/1"
+
+
+def test_an_inoculation_density_within_the_tolerance_or_above_is_no_shortfall():
+    for own in (0.41, 0.5, 0.9):  # 18 % below, equal, above
+        result = calc.inoculation_shortfall(density(own), density(0.5))
+        assert (result.value, result.status) == (None, "usable")
+        assert codes(result) == ["inoculation_within_reference"]
+    assert calc.inoculation_shortfall(density(0.39), density(0.5)).value == pytest.approx(22.0)
+
+
+def test_an_inoculation_density_that_cannot_be_compared_is_insufficient():
+    missing = calc.inoculation_shortfall(density(None, "insufficient"), density(0.5))
+    assert (missing.value, missing.status, codes(missing)) == (
+        None,
+        "insufficient",
+        ["input_not_usable"],
+    )
+    zero = calc.inoculation_shortfall(density(0.2), density(0.0))
+    assert (zero.value, zero.status, codes(zero)) == (None, "insufficient", ["zero_denominator"])

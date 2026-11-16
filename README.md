@@ -28,8 +28,8 @@ The purification train of the batch with the poor capture step, and its pool gen
 
 ## What it shows
 
-Six batches on one 2,000 L bioreactor. Five are finished, each followed by harvest and the
-purification train; the sixth is running now:
+Seven batches on one 2,000 L bioreactor. Six are finished, each followed by harvest and the
+purification train; the seventh is running now:
 
 | Batch | What happened | What the app says |
 |---|---|---|
@@ -38,7 +38,8 @@ purification train; the sixth is running now:
 | `BL-0003` | Specific productivity fell from day 7 | Titer left the reference at culture day 7.9; 7,317 g against 10,170 g at harvest |
 | `BL-0004` | Normal culture, poor Protein A step | Recovery 20 points below the reference; 7,410 g against 9,230 g in the eluate |
 | `BL-0005` | Normal culture, **bad records** | Culture metrics `invalid`, harvest mass `insufficient`, each naming the record it tripped on |
-| `BL-0006` | **Running now**, nine days into its culture when the demo starts; productivity fell from day 7 | Titer left the reference at culture day 8.0; nothing about harvest yet, because it has not happened |
+| `BL-0006` | Slow last seed passage: the culture began with too few cells | The culture began 61 % below the reference's density; 9,392 g against 10,170 g at harvest, at a normal productivity per cell |
+| `BL-0007` | **Running now**, nine days into its culture when the demo starts; productivity fell from day 7 | Titer left the reference at culture day 8.0; nothing about harvest yet, because it has not happened |
 
 The left column is the generator's ground truth. The app never sees it: it lives in the
 generator's separate output, the tests, the benchmark and the documents.

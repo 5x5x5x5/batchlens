@@ -33,6 +33,10 @@ PAIRING_WINDOW_HOURS = 6.0
 SHORTFALL_VERSION = "recovery_shortfall/1"
 # A yield or recovery lower than the reference's by more than this many percentage points.
 RECOVERY_TOLERANCE_POINTS = 10.0
+INOCULATION_SHORTFALL_VERSION = "inoculation_shortfall/1"
+# An inoculation density below the reference's by more than this fraction of the reference's
+# counts as below. Each rests on one cell count. Illustrative default.
+INOCULATION_TOLERANCE_FRACTION = 0.20
 # All three are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
 
 
@@ -168,4 +172,47 @@ def recovery_shortfall(
         tuple(reasons),
         value.inputs + reference.inputs,
         SHORTFALL_VERSION,
+    )
+
+
+def inoculation_shortfall(
+    value: Result,
+    reference: Result,
+    *,
+    tolerance_fraction: float = INOCULATION_TOLERANCE_FRACTION,
+) -> Result:
+    """By how many percent of the reference batch's inoculation density this batch's is below
+    it, when that is more than the tolerance; no value (``inoculation_within_reference``)
+    otherwise, also when it is above. ``insufficient`` when either has no value or the
+    reference's is zero."""
+
+    metric, unit = "inoculation_density_shortfall", "%"
+
+    def missing(reason: Reason) -> Result:
+        return insufficient(metric, unit, INOCULATION_SHORTFALL_VERSION, reason)
+
+    for part in (value, reference):
+        if part.value is None:
+            return missing(
+                Reason("input_not_usable", {"metric": part.metric, "status": part.status})
+            )
+    if reference.value == 0:
+        return missing(Reason("zero_denominator", {"metric": reference.metric}))
+    deficit = 100 * (reference.value - value.value) / reference.value
+    below = deficit > 100 * tolerance_fraction
+    compared = {
+        "value": value.value,
+        "reference_value": reference.value,
+        "deficit_percent": deficit,
+        "tolerance_percent": 100 * float(tolerance_fraction),
+    }
+    code = "inoculated_below_reference" if below else "inoculation_within_reference"
+    return Result(
+        metric,
+        deficit if below else None,
+        unit,
+        USABLE,
+        (Reason(code, compared),),
+        value.inputs + reference.inputs,
+        INOCULATION_SHORTFALL_VERSION,
     )

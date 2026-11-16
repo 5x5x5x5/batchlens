@@ -153,7 +153,7 @@ def test_seeding_again_leaves_a_corrected_batch_alone_unless_asked_to_reset(seed
     assert seed_demo(seeded.batches) == []  # nothing new to load
     assert seeded.batches.get("BL-0005") == corrected
     assert seeded.batches.reference().batch.batch_id == "BL-0002"
-    assert len(seed_demo(seeded.batches, reset=True)) == 5
+    assert len(seed_demo(seeded.batches, reset=True)) == 6
     assert seeded.batches.get("BL-0005") == BAD
     assert seeded.batches.reference().batch.batch_id == "BL-0001"
     # The history of what people changed is not erased with the data.

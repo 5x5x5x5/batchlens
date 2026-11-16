@@ -1,15 +1,15 @@
 # The demo
 
-Six batches of `mAb-X`, run one after another on the same 2,000 L bioreactor. Five
-are finished, each followed by harvest and the purification train; the sixth is running when
+Seven batches of `mAb-X`, run one after another on the same 2,000 L bioreactor. Six
+are finished, each followed by harvest and the purification train; the seventh is running when
 the demo starts. Everything is made by `src/batchlens/demo/generator.py` from fixed seeds: the
 same values on every run and machine. **All of it is illustrative**
 ([scientific-assumptions.md](scientific-assumptions.md)).
 
 **Two campaigns, one set of values.** The tests, the benchmark and the tables below use the
-fixed campaign: five batches from 2026-07-01, three weeks apart. `tools/run_demo.sh` uses the
-live campaign: the same five moved in time by whole days so they end before a sixth,
-`BL-0006`, whose culture began nine days before the day the demo first starts. Moving a batch
+fixed campaign: six batches from 2026-07-01, three weeks apart. `tools/run_demo.sh` uses the
+live campaign: the same six moved in time by whole days so they end before a seventh,
+`BL-0007`, whose culture began nine days before the day the demo first starts. Moving a batch
 changes none of its values, so every number below holds in the demo; only the dates differ.
 The dates are set on the first start and kept, so a demo left running moves on through the
 live batch; `--reset` sets them again from today.
@@ -94,8 +94,8 @@ batchlens benchmark --out docs/verification-report.md
 
 ## A five-minute tour
 
-1. **The list.** Six batches, one bioreactor, one after another. `BL-0001` carries the
-   reference mark: the batch the others are compared with. `BL-0006` is marked as running. The
+1. **The list.** Seven batches, one bioreactor, one after another. `BL-0001` carries the
+   reference mark: the batch the others are compared with. `BL-0007` is marked as running. The
    banner on every page says what this data is.
 2. **`BL-0003`, a culture that fell behind.** Findings: the titer left the reference at
    culture day 7.9, with the sample that showed it, how far below, and that all six later
@@ -129,8 +129,13 @@ batchlens benchmark --out docs/verification-report.md
    the original time stays in the list of corrections, and PlantCraft's audit log has the
    change. The hole in the historian is still a hole. (`batchlens seed-demo --reset` puts
    the demo back.)
-8. **A batch that is running.** `BL-0006` is in its production culture. The process train
-   shows one step under way and seven not started. The titer finding is already there (it left
+8. **`BL-0006`, fewer cells, not less per cell.** The titer finding is quiet: the batch ends
+   within the tolerance of the reference. The finding is at the start: the first cell count
+   read 0.2 against 0.51, 61 % below, and beside it the last sample of the N-1 seed passage,
+   1.07 against 3.18. In the metrics, the N-1 growth rate is 0.25 per day against 0.62, IVCD
+   is lower and qP is the reference's. 9,392 g at harvest against 10,170 g.
+9. **A batch that is running.** `BL-0007` is in its production culture. The process train
+   shows the two seed passages done, one step under way and seven not started. The titer finding is already there (it left
    the reference at culture day 8.0), with the latest sample named as not yet reported, and
    the consequence at harvest says it cannot be compared yet. Nothing dated later than now is
    shown: come back in a day and there is one more sample.
@@ -225,11 +230,13 @@ nothing about it.
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
 | `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
 | `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and the historian kept nothing from culture day 13.4 to the end of the phase |
-| `BL-0006` | 106 | live campaign only: nine days before the first start, 06:00 | Reduced culture productivity, running | qP is multiplied by 0.6 from day 7; generated whole like the others, and shown only up to now |
+| `BL-0006` | 107 | 2026-10-14 06:00 | Low inoculum | The N-1 seed passage grew at 0.4 of its rate, so the whole N-1 vessel held too few cells and the culture began at 0.19 instead of 0.5 (1e6 cells/mL); qP is normal |
+| `BL-0007` | 106 | live campaign only: nine days before the first start, 06:00 | Reduced culture productivity, running | qP is multiplied by 0.6 from day 7; generated whole like the others, and shown only up to now |
 
 ## What the app computes for them
 
-Read from the API through the fake PlantCraft on 2026-11-15 (values as the page rounds them):
+Read from the API through the fake PlantCraft on 2026-11-15, `BL-0006` on 2026-11-16 (values
+as the page rounds them):
 
 | Batch | IVCD | qP | Harvest mass | Harvest-to-load yield | Protein A recovery |
 |---|---|---|---|---|---|
@@ -238,6 +245,7 @@ Read from the API through the fake PlantCraft on 2026-11-15 (values as the page 
 | `BL-0003` | 177 | 20.6 | 7,317 g | 91.0 % | 92.6 % |
 | `BL-0004` | 184 | 30.7 | 11,290 g | 89.4 % | 73.4 % |
 | `BL-0005` | invalid | invalid | insufficient | insufficient | 91.5 % |
+| `BL-0006` | 153 | 30.7 | 9,392 g | 93.6 % | 93.1 % |
 
 IVCD in `1e6 cell-days/mL`, qP in `pg/cell/day`. Worth noticing: the true harvest-to-load
 yield is about 93 % in every batch, yet the computed one ranges from 89 to 97 %. Harvest mass
@@ -247,7 +255,8 @@ happened to read 5 % low. The app shows that number as it is.
 ## What the app finds
 
 Against the reference batch `BL-0001`, with the default tolerances (15 % of titer, 10 points of
-a step recovery). Every compared batch gets the same eight findings: the titer, the
+a step recovery, 20 % of the inoculation density). Every compared batch gets the same nine
+findings: the titer, the inoculation density, the
 harvest-to-load yield, the Protein A recovery, and the yield of each of the five later steps.
 In the demo every later step of every batch is within the tolerance; the page lists what was
 found first and what was checked and within tolerance together below it.
@@ -258,6 +267,12 @@ found first and what was checked and within tolerance together below it.
 | `BL-0003` | Left the reference at culture day 7.9 (sample `BL-0003-S09-titer`, 1.681 against 2.008 g/L), below in all 6 later samples; 7,317 g against 10,170 g at harvest | Within (91.0 %) | Within (92.6 %) |
 | `BL-0004` | Within the tolerance | Within (89.4 %) | 20 points below (73.4 % against 93.6 %); 7,410 g against 9,230 g in the eluate |
 | `BL-0005` | Could not be compared (invalid: duplicated sample time at `BL-0005-S09-titer`) | Could not be compared (no harvest mass) | Within (91.5 %) |
+| `BL-0006` | Within the tolerance | Within (93.6 %) | Within (93.1 %) |
+
+The inoculation density is within the tolerance in every batch but `BL-0006`: its first count
+read 0.2 against the reference's 0.51 (61 % below), with 9,392 g against 10,170 g at harvest.
+Its titer never falls more than 15 % below the reference's, so the titer finding alone would
+have said nothing about a batch that made 783 g less.
 
 The ground truth says `BL-0003`'s productivity changes from day 7. The app sees it at the next
 sample, day 7.9, and says so: the first sample at which a gap is seen comes after whatever

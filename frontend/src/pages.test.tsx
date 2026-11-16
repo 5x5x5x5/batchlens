@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BatchDetail, BatchList, Me, Metrics, Samples, Trends } from "./types";
+import type { BatchDetail, BatchList, Finding, Me, Metrics, Samples, Trends } from "./types";
 
 const calls = vi.hoisted(() => [] as string[]);
 const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown, reference: null as unknown, correction: null as unknown }));
@@ -279,6 +279,30 @@ describe("one batch", () => {
     expect(quiet).toContain("Checked and within tolerance");
     expect(quiet).toContain("Harvest-to-load yield is within 10 points");
     expect(findings.indexOf("Protein A recovery is 20 points below")).toBeLessThan(findings.indexOf("Checked and within tolerance"));
+  });
+
+  it("states a culture that began below the reference's density, with the last N-1 sample beside it", async () => {
+    const low: Finding = {
+      finding: "inoculation_density_shortfall",
+      observation: {
+        metric: "inoculation_density_shortfall", value: 60.7843, unit: "%", status: "usable", inputs: ["BL-0002-S01-vcd", "BL-0001-S01-vcd"], calculation_version: "inoculation_shortfall/1",
+        reasons: [{ code: "inoculated_below_reference", values: { value: 0.2, reference_value: 0.51, deficit_percent: 60.7843, tolerance_percent: 20 } }],
+      },
+      consequence: { metric: "harvest_mass", unit: "g", status: "usable", value: 9391.53, reference: 10174.47, difference: -782.94 },
+      evidence: [{
+        at: "seed_n1_end", sample_id: "BL-0002-N1-S04", reference_sample_id: "BL-0001-N1-S04", culture_day: 2.9583,
+        results: [{ analyte: "vcd", unit: "1e6 cells/mL", result_id: "BL-0002-N1-S04-vcd", value: 1.05, reference_result_id: "BL-0001-N1-S04-vcd", reference_value: 3.21, difference: -2.16 }],
+      }],
+      cause: null,
+    };
+    answers.metrics = { ...METRICS, findings: [low] };
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
+    expect(findings).toContain("The culture began 61 % below the reference batch's density");
+    expect(findings).toContain("Observed: the first cell count read 0.2 against 0.51 1e6 cells/mL for the reference (the tolerance is 20 %).");
+    expect(findings).toContain("Calculated: Product mass at harvest: 9,392 g against 10,170 g for the reference");
+    expect(findings).toContain("At the end of the N-1 seed passage: BL-0002-N1-S04 against BL-0001-N1-S04 (day 3.0 of the passage)");
+    expect(findings).toContain("No cause is attributed");
   });
 
   it("draws the reference batch over VCD and titer at the same culture age", async () => {

@@ -7,8 +7,10 @@ and its ``calculation_version`` changes with it.
 
 from batchlens.calc.comparison import (
     DIVERGENCE_TOLERANCE_FRACTION,
+    INOCULATION_TOLERANCE_FRACTION,
     PAIRING_WINDOW_HOURS,
     RECOVERY_TOLERANCE_POINTS,
+    inoculation_shortfall,
     recovery_shortfall,
     titer_divergence,
 )
@@ -45,6 +47,8 @@ from batchlens.calc.results import (
 
 __all__ = [
     "DIVERGENCE_TOLERANCE_FRACTION",
+    "INOCULATION_TOLERANCE_FRACTION",
+    "inoculation_shortfall",
     "MERGE_TOLERANCE_PERCENT",
     "merge_balance",
     "PAIRING_WINDOW_HOURS",

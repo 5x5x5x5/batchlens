@@ -166,8 +166,8 @@ passing locally and in the repository's CI; the exact counts of each step are in
 
 ## A plant that is running
 
-Five finished batches gave the rest of the suite nothing to show: its modules are about what
-a plant is doing now. The demo therefore has a sixth batch in its production culture, and the
+Finished batches alone gave the rest of the suite nothing to show: its modules are about what
+a plant is doing now. The demo therefore has one more batch in its production culture, and the
 same bioreactor signals feed a dashboard and a process display in PlantCraft View and alarm
 rules in PlantCraft Alarms.
 

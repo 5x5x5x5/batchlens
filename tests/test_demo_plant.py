@@ -125,9 +125,9 @@ def test_the_loops_file_holds_the_last_two_days_of_fast_values(tmp_path):
     ]
     assert stamps == sorted(stamps) and len(set(stamps)) == len(stamps)
     assert {(b - a).total_seconds() for a, b in zip(stamps, stamps[1:])} == {30.0}
-    # The fixed campaign ends with the batch whose record has a hole: the file stops there.
-    assert stamps[0] == datetime(2026, 10, 5, 12, 0, tzinfo=UTC)
-    assert stamps[-1] < datetime(2026, 10, 6, 15, 36, tzinfo=UTC)
+    # The last two days of the fixed campaign's last culture.
+    assert stamps[0] == datetime(2026, 10, 26, 12, 0, tzinfo=UTC)
+    assert stamps[-1] == datetime(2026, 10, 28, 11, 59, 30, tzinfo=UTC)
     assert all(row[tag] != "" for row in rows for tag in LOOP_TAGS.values())
 
 

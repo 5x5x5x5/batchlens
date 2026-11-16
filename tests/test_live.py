@@ -50,7 +50,7 @@ def test_moving_a_batch_in_time_changes_none_of_its_values():
 
 
 def test_the_dates_are_fixed_the_first_time_and_kept_afterwards(runtime):
-    assert seed_demo(runtime.batches, live_at=NOW) == [f"BL-000{n}" for n in range(1, 7)]
+    assert seed_demo(runtime.batches, live_at=NOW) == [f"BL-000{n}" for n in range(1, 8)]
     assert live_from(runtime.batches) == START
     assert seed_demo(runtime.batches, live_at=NOW + timedelta(days=2)) == []
     assert live_from(runtime.batches) == START
@@ -59,7 +59,7 @@ def test_the_dates_are_fixed_the_first_time_and_kept_afterwards(runtime):
 def test_a_first_live_seed_replaces_batches_stored_with_other_dates(seeded, runtime):
     seed_demo(runtime.batches, live_at=NOW)
     first = runtime.batches.get("BL-0001").phase("production_culture")
-    assert first.start == START - timedelta(days=105)
+    assert first.start == START - timedelta(days=126)
 
 
 def test_the_list_says_the_live_batch_is_running_and_gives_it_no_end(live, client):
