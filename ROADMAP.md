@@ -27,16 +27,46 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | The suite's modules in the demo at one address; the bioreactor's history in Historian, signal ranges for Analytics' Signal quality monitor, a dashboard and a process display in View, rules in Alarms, documents in Documents | Done by script; seen in a browser, no automated test |
 | Three control loops on the bioreactor (value, setpoint, output every 30 s), judged by Analytics' loop monitor, with View's and Alarms' own first steps | Done, tested (generator and files); the modules' side by script, seen in a browser |
 
-## Next, in the intended order (proposed)
+## Next, in the intended order
 
-1. Links from a batch into the suite's modules: its trend window in View, its alarms, its
-   loops in Analytics.
-2. A tolerance per purification step in place of one for all.
-3. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
+Agreed with the owner on 2026-11-16: depth before breadth. The work extends the evidence
+backward (what went into each step) before the chain forward.
+
+1. Seed train: the N-2 and N-1 seed reactors as earlier phase executions of the same batch,
+   with a growth rate per passage and the inoculation density, and a low-inoculum scenario
+   (fewer cells, not less product per cell).
+2. Transfers: one record (from asset, to asset, window, recorded volume, the lot or batch on
+   each end) and a transfer balance, first on inoculation and feeds; evidence paired by hours
+   since the last feed.
+3. A set of comparable batches in place of one reference batch.
+4. Media lots, then buffer lots (one mix tank and three hold tanks: Protein A elution,
+   cation-exchange elution, diafiltration), as batches of their own kind; which lot each step
+   used, its age and volume, as evidence on the recovery findings; a benchmark score for
+   evidence (is the input that truly differs in it, and how much else).
+5. Batch context published to PlantCraft (phase executions as events on their assets), which
+   lets View, Alarms and Analytics scope to a batch window. Needs a new write permission.
+6. A tolerance per purification step in place of one for all.
+7. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
    mass balance at each.
-4. An evaluation of the assistant with the tools: does a model use them, and does it keep to
-   "no cause is attributed".
-5. A set of comparable batches in place of one reference batch; cross-batch monitoring.
 
-Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything
-that claims GMP, validation or mechanistic model validity.
+The generator may make an outcome depend on an input (titer on inoculation density, recovery
+on buffer pH) so that evidence has something to show; each dependency is listed in
+`docs/scientific-assumptions.md`. It stays a shape, not a mechanistic model.
+
+## Later (ideas, not commitments)
+
+- A forecast of harvest titer or step yield from what was available at a given time, scored
+  by backtest over `as_of`.
+- Hypotheses about a finding from PlantCraft's assistant, in the model's own voice beside the
+  finding and never as its cause, scored against ground truth (does the input that truly
+  differs rank first, does it abstain on normal batches), with an evaluation of whether a
+  model keeps to "no cause is attributed". After items 1 to 4: until then the records hold
+  nothing for a model to find.
+- Cross-batch monitoring as an app of its own, once BatchLens publishes per-batch results.
+- Drug product (thaw to fill and finish) as an app of its own: another lot, counted in units.
+
+Left out of the items above: cleaning and sterilisation status, tank scheduling, raw-material
+lots behind the solutions, bioburden and endotoxin judgement, transfers detected from signals.
+
+Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product inside
+this app; anything that claims GMP, validation or mechanistic model validity.
