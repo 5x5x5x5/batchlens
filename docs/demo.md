@@ -23,10 +23,32 @@ Then, each time:
 tools/run_demo.sh             # add --reset for a fresh PlantCraft workspace
 ```
 
-It starts PlantCraft's local demo with BatchLens inside it, loads the five batches, writes the
-synthetic plant and imports it into PlantCraft. Open http://127.0.0.1:8060 (no password in
-the local demo), then BatchLens from the app switcher at the top left, or
-http://127.0.0.1:9100/batchlens/ directly. Ctrl+C stops everything. The environment lives
+It starts PlantCraft's local demo, BatchLens and the suite's modules that are installed, loads
+the five batches, writes the synthetic plant and imports it into PlantCraft. Open
+http://127.0.0.1:8088 (no password in the local demo), then BatchLens or a module from the app
+switcher at the top left. Ctrl+C stops everything.
+
+Everything is served at that one address by `tools/gateway.py`, because PlantCraft opens an
+app inside its own page only when the app comes from the same origin. PlantCraft's own
+launcher lists an app at its own port, and the switcher then does nothing on a click
+([gaps.md](gaps.md)).
+
+### The suite's modules (optional)
+
+Historian, Analytics, View, Alarms, Models and Documents come from the PlantCraft checkout.
+They pin a newer SDK than this app, so they get an environment of their own:
+
+```sh
+uv venv --seed --python 3.12 ~/.venvs/plantcraft-suite
+for app in link historian view alarms models documents; do
+  (cd ../PlantCraft && uv pip install --python ~/.venvs/plantcraft-suite/bin/python --find-links apps/$app/vendor -e apps/$app)
+  (cd ../PlantCraft/apps/$app/frontend && npm ci --no-audit --no-fund && npm run build)
+done
+```
+
+`tools/run_demo.sh` starts each one it finds there (`PLANTCRAFT_SUITE_BIN` names another
+folder). Without them the demo is PlantCraft and BatchLens. View runs on port 8085 here, not
+its own 8080. The environment lives
 outside the repository on purpose ([gaps.md](gaps.md)).
 
 Tried with PlantCraft `v0.6.0` on Linux. The script uses two of PlantCraft's own interface
