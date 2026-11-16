@@ -164,3 +164,59 @@ def test_a_reference_titer_of_zero_is_compared_without_dividing_by_it():
     result = diverge(batch, reference)
     assert result.value == pytest.approx(2.0)
     assert result.reasons[0].values["deficit_percent"] == pytest.approx(50.0)
+
+
+# A step's recovery against the reference batch's ----------------------------------------------
+
+
+def percent(metric: str, value: float | None, status: str = "usable", inputs=("x",)) -> calc.Result:
+    return calc.Result(metric, value, "%", status, (), tuple(inputs), "ratio_percent/1")
+
+
+def test_a_recovery_more_than_the_tolerance_below_the_reference_is_a_shortfall():
+    # 93.6 - 73.4 = 20.2 points below; the default tolerance is 10 points.
+    result = calc.recovery_shortfall(
+        percent("protein_a_recovery", 73.4, inputs=("e", "l")),
+        percent("protein_a_recovery", 93.6, inputs=("re", "rl")),
+    )
+    assert (result.metric, result.unit, result.status) == (
+        "protein_a_recovery_shortfall",
+        "percentage points",
+        "usable",
+    )
+    assert result.value == pytest.approx(20.2)
+    assert result.calculation_version == "recovery_shortfall/1"
+    [reason] = result.reasons
+    assert reason.code == "below_reference"
+    assert reason.values == {
+        "metric": "protein_a_recovery",
+        "value": 73.4,
+        "reference_value": 93.6,
+        "tolerance_points": 10.0,
+    }
+    assert result.inputs == ("e", "l", "re", "rl")
+
+
+def test_a_recovery_within_the_tolerance_or_above_the_reference_is_no_shortfall():
+    # 97.0 - 89.4 = 7.6 points: within 10. Exactly 10 points is not "more than" 10.
+    for value, reference in ((89.4, 97.0), (86.0, 96.0), (95.0, 91.0)):
+        result = calc.recovery_shortfall(percent("y", value), percent("y", reference))
+        assert (result.status, result.value) == ("usable", None)
+        assert codes(result) == ["within_reference"]
+    # The tolerance is a setting: 7.6 points is a shortfall at 5.
+    tight = calc.recovery_shortfall(percent("y", 89.4), percent("y", 97.0), tolerance_points=5)
+    assert tight.value == pytest.approx(7.6)
+
+
+def test_a_recovery_without_a_value_on_either_side_cannot_be_compared():
+    missing = percent("protein_a_recovery", None, "insufficient")
+    for pair in ((missing, percent("r", 93.6)), (percent("r", 73.4), missing)):
+        result = calc.recovery_shortfall(*pair)
+        assert (result.status, result.value) == ("insufficient", None)
+        assert codes(result) == ["input_not_usable"]
+
+
+def test_a_suspect_recovery_makes_the_comparison_suspect():
+    result = calc.recovery_shortfall(percent("r", 73.4), percent("r", 106.4, "suspect"))
+    assert result.status == "suspect" and result.value == pytest.approx(33.0)
+    assert codes(result) == ["below_reference", "input_suspect"]

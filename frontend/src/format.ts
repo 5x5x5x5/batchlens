@@ -32,3 +32,9 @@ export function signedBetween(difference: number | null | undefined, value: numb
 export function recorded(value: number): string {
   return value.toLocaleString(locale, { maximumFractionDigits: 6 });
 }
+
+/** A difference of two recorded values, signed, without the digits floating point adds. */
+export function signedRecorded(difference: number | null | undefined): string {
+  if (difference === null || difference === undefined) return "";
+  return difference.toLocaleString(locale, { maximumFractionDigits: 3, signDisplay: "exceptZero" });
+}

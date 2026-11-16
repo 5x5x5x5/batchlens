@@ -43,16 +43,29 @@ export interface Finding {
   finding: string;
   observation: Result;
   consequence: { metric: string; unit: string; status: string; value: number | null; reference: number | null; difference: number | null } | null;
+  /** For a divergence: the other results of the samples it rests on, beside the reference's. */
+  evidence: Evidence[];
   cause: null;
+}
+
+export interface Evidence {
+  at: string; sample_id: string; reference_sample_id: string; culture_day: number;
+  results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null }>;
 }
 
 export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; metrics: Metric[]; findings: Finding[] }
 
 export interface AssayResult { result_id: string; sample_id: string; analyte: string; value: number; unit: string; method: string; result_available_at: string; validity: string; provenance: string }
 
-export interface Sample { sample_id: string; batch_id: string; phase_id: string; collected_at: string; provenance: string; results: AssayResult[] }
+export interface Sample {
+  sample_id: string; batch_id: string; phase_id: string; collected_at: string; provenance: string; results: AssayResult[];
+  /** Days since the start of the batch's production phase. */
+  culture_day: number | null;
+  /** With `align_to`: the instant of the same culture age on the other batch's timeline. */
+  aligned_at: string | null;
+}
 
-export interface Samples { batch_id: string; as_of: string | null; samples: Sample[] }
+export interface Samples { batch_id: string; as_of: string | null; aligned_to: string | null; samples: Sample[] }
 
 export interface Trend { role: string; signal_id: string | null; name: string | null; unit: string | null; t: string[]; v: Array<number | null>; status: string; reasons: Reason[] }
 

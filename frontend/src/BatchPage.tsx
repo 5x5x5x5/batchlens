@@ -5,9 +5,9 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { DataTable, Pill } from "@plantcraft/ui";
 import { api } from "./api";
-import { recorded, signedBetween, significant } from "./format";
+import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
-import type { BatchDetail, Finding, Metric, Metrics, Samples, Trends } from "./types";
+import type { BatchDetail, Evidence, Finding, Metric, Metrics, Samples, Trends } from "./types";
 import { ErrorBox, Heading, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
 import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord } from "./words";
@@ -15,7 +15,7 @@ import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText,
 // Plotly is loaded only when a chart is drawn (@plantcraft/ui/plot).
 const TimeChart = lazy(() => import("@plantcraft/ui/plot").then((module) => ({ default: module.TimeChart })));
 
-interface Loaded { detail: BatchDetail; metrics: Metrics; samples: Samples; trends: Trends }
+interface Loaded { detail: BatchDetail; metrics: Metrics; samples: Samples; trends: Trends; reference: Samples | null }
 
 function Section({ id, title, detail, children }: { id: string; title: string; detail?: string; children: React.ReactNode }) {
   return <section data-section={id}>
@@ -56,29 +56,64 @@ function MetricsTable({ metrics }: { metrics: Metrics }) {
     ]} />;
 }
 
+const NO_CAUSE = () => t("No cause is attributed: this is an observation and a calculation, not a diagnosis.");
+
+/** The product mass a finding amounts to, against the reference batch's. */
+function Consequence({ consequence }: { consequence: Finding["consequence"] }) {
+  if (!consequence) return null;
+  const digits = metricDigits(consequence.metric);
+  if (consequence.difference === null) return <p>{t("Calculated: {metric} cannot be compared with the reference ({status}).", { metric: metricName(consequence.metric), status: statusWord(consequence.status) })}</p>;
+  return <p>{t("Calculated: {metric}: {value} {unit} against {reference} {unit} for the reference ({difference} {unit}).", {
+    metric: metricName(consequence.metric), unit: consequence.unit, value: significant(consequence.value, digits), reference: significant(consequence.reference, digits),
+    difference: signedBetween(consequence.difference, consequence.value, consequence.reference, digits),
+  })}</p>;
+}
+
+/** The other results of the samples a divergence rests on, beside the reference batch's. */
+function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
+  if (evidence.length === 0) return null;
+  return <>
+    <p className="muted">{t("Other results of the same samples, beside the reference batch's. Nothing is concluded from them.")}</p>
+    {evidence.map((group) => <div key={group.at}>
+      <h4>{group.at === "divergence"
+        ? t("At the divergence: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })
+        : t("At the last compared sample: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })}</h4>
+      <DataTable rows={group.results} rowKey={(row) => row.result_id} label={t("Evidence")}
+        columns={[
+          { key: "analyte", label: t("Analyte"), render: (row) => analyteName(row.analyte) },
+          { key: "value", label: t("This batch"), numeric: true, render: (row) => `${recorded(row.value)} ${row.unit}` },
+          { key: "reference", label: t("Reference"), numeric: true, render: (row) => (row.reference_value === null ? <span className="muted">{t("No value")}</span> : `${recorded(row.reference_value)} ${row.unit}`) },
+          { key: "difference", label: t("Difference"), numeric: true, render: (row) => signedRecorded(row.difference) },
+        ]} />
+    </div>)}
+  </>;
+}
+
 /** One finding: the observation, then the calculation, then the line that no cause is given. */
 function FindingPanel({ finding }: { finding: Finding }) {
   const { observation, consequence } = finding;
-  const seen = observation.reasons.find((reason) => reason.code === "diverged_from_reference");
-  const others = observation.reasons.filter((reason) => reason !== seen);
-  const v = seen?.values ?? {};
-  const digits = metricDigits("harvest_mass");
+  const diverged = observation.reasons.find((reason) => reason.code === "diverged_from_reference");
+  const short = observation.reasons.find((reason) => reason.code === "below_reference");
+  const others = observation.reasons.filter((reason) => reason !== diverged && reason !== short);
+  const v = (diverged ?? short)?.values ?? {};
   return <div className="panel">
-    {seen && <>
+    {diverged && <>
       <h3>{t("Titer left the reference batch at culture day {day}", { day: Number(observation.value).toFixed(1) })}</h3>
       <p>{t("Observed: sample {sample}, collected {when}, read {titer} g/L against {reference} g/L ({deficit} % below; the tolerance is {tolerance} %) for the reference sample {referenceSample} of the same culture age, and all {later} later samples stayed below.", {
         sample: String(v.result_id), when: when(String(v.collected_at)), titer: recorded(Number(v.titer)), reference: recorded(Number(v.reference_titer)),
         deficit: Number(v.deficit_percent).toFixed(0), tolerance: String(v.tolerance_percent), referenceSample: String(v.reference_result_id), later: String(v.later_samples_below),
       })}</p>
-      {consequence && (consequence.difference !== null
-        ? <p>{t("Calculated: {metric}: {value} {unit} against {reference} {unit} for the reference ({difference} {unit}).", {
-            metric: metricName(consequence.metric), unit: consequence.unit, value: significant(consequence.value, digits), reference: significant(consequence.reference, digits),
-            difference: signedBetween(consequence.difference, consequence.value, consequence.reference, digits),
-          })}</p>
-        : <p>{t("Calculated: {metric} cannot be compared with the reference ({status}).", { metric: metricName(consequence.metric), status: statusWord(consequence.status) })}</p>)}
-      <p className="muted">{t("No cause is attributed: this is an observation and a calculation, not a diagnosis. The first sample at which a gap is seen comes after whatever began it.")}</p>
+      <Consequence consequence={consequence} />
+      <p className="muted">{NO_CAUSE()} {t("The first sample at which a gap is seen comes after whatever began it.")}</p>
+    </>}
+    {short && <>
+      <h3>{t("{metric} is {points} points below the reference batch", { metric: metricName(String(v.metric)), points: Number(observation.value).toFixed(0) })}</h3>
+      <p>{t("Observed: {value} % against {reference} % for the reference (the tolerance is {tolerance} points).", { value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1), tolerance: String(v.tolerance_points) })}</p>
+      <Consequence consequence={consequence} />
+      <p className="muted">{NO_CAUSE()}</p>
     </>}
     {others.map((reason, index) => <p key={index}>{reasonText(reason)}</p>)}
+    <EvidenceTables evidence={finding.evidence} />
   </div>;
 }
 
@@ -95,11 +130,15 @@ function Pools({ detail }: { detail: BatchDetail }) {
     ]} />;
 }
 
-function TrendCharts({ trends, samples }: { trends: Trends; samples: Samples }) {
+function TrendCharts({ trends, samples, reference }: { trends: Trends; samples: Samples; reference: Samples | null }) {
   const range = { start: trends.start ?? undefined, end: trends.end ?? undefined };
   const offline = ["vcd", "titer"].map((analyte) => {
     const results = samples.samples.flatMap((sample) => sample.results.filter((result) => result.analyte === analyte).map((result) => ({ at: sample.collected_at, result })));
-    return { analyte, unit: results[0]?.result.unit, t: results.map((item) => item.at), v: results.map((item) => item.result.value) };
+    // The reference batch at the same culture age: the server placed its samples on this batch's timeline.
+    const beside = (reference?.samples ?? []).flatMap((sample) => sample.results.filter((result) => result.analyte === analyte && sample.aligned_at).map((result) => ({ at: sample.aligned_at as string, result })));
+    const lines = [{ name: analyteName(analyte), t: results.map((item) => item.at), v: results.map((item) => item.result.value), unit: results[0]?.result.unit }];
+    if (reference && beside.length > 0) lines.push({ name: t("Reference batch {batch}, same culture age", { batch: reference.batch_id }), t: beside.map((item) => item.at), v: beside.map((item) => item.result.value), unit: beside[0].result.unit });
+    return { analyte, lines };
   });
   return <Suspense fallback={<Loading />}>
     {trends.signals.map((signal) => <div className="panel" key={signal.role}>
@@ -108,10 +147,10 @@ function TrendCharts({ trends, samples }: { trends: Trends; samples: Samples }) 
         ? <TimeChart lines={[{ name: roleName(signal.role), t: signal.t, v: signal.v, unit: signal.unit ?? undefined }]} height={200} filename={`${trends.batch_id}-${signal.role}`} {...range} />
         : <p className="notice">{signal.reasons.map(reasonText).join(" ") || t("No values in the production phase.")}</p>}
     </div>)}
-    {offline.map((line) => <div className="panel" key={line.analyte}>
-      <h3>{analyteName(line.analyte)}<small className="muted"> {t("offline samples, at their collection times")}</small></h3>
-      {line.t.length > 0
-        ? <TimeChart lines={[{ name: analyteName(line.analyte), t: line.t, v: line.v, unit: line.unit }]} height={200} filename={`${trends.batch_id}-${line.analyte}`} {...range} />
+    {offline.map((chart) => <div className="panel" key={chart.analyte}>
+      <h3>{analyteName(chart.analyte)}<small className="muted"> {t("offline samples, at their collection times")}</small></h3>
+      {chart.lines[0].t.length > 0
+        ? <TimeChart lines={chart.lines} height={220} filename={`${trends.batch_id}-${chart.analyte}`} {...range} />
         : <p className="notice">{t("No results yet.")}</p>}
     </div>)}
   </Suspense>;
@@ -136,13 +175,17 @@ export function BatchPage({ batchId }: { batchId: string }) {
   const [error, setError] = useState("");
   useEffect(() => {
     Promise.all([api.batch(batchId), api.metrics(batchId), api.samples(batchId), api.trends(batchId)])
-      .then(([detail, metrics, samples, trends]) => setLoaded({ detail, metrics, samples, trends }))
+      .then(async ([detail, metrics, samples, trends]) => {
+        // The reference batch's samples, laid over this batch at the same culture age.
+        const reference = metrics.reference_batch_id ? await api.samples(metrics.reference_batch_id, batchId) : null;
+        setLoaded({ detail, metrics, samples, trends, reference });
+      })
       .catch((err) => setError(message(err)));
   }, [batchId]);
   useInstallationZone(loaded?.detail.time_zone);
   if (error) return <ErrorBox text={error} />;
   if (!loaded) return <Loading />;
-  const { detail, metrics, samples, trends } = loaded;
+  const { detail, metrics, samples, trends, reference: beside } = loaded;
   const reference = detail.batch.is_reference
     ? t("This is the reference batch.")
     : metrics.reference_batch_id ? t("Reference batch: {batch}", { batch: metrics.reference_batch_id }) : t("No reference batch is set.");
@@ -156,7 +199,7 @@ export function BatchPage({ batchId }: { batchId: string }) {
     </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
-    <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} /></Section>
+    <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
     <Section id="results" title={t("Assay results")} detail={t("Each result has two times: when its sample was collected, and when the result became available.")}><Results samples={samples} /></Section>
   </>;
 }

@@ -4,14 +4,14 @@ import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BatchDetail, BatchList, Metrics, Samples, Trends } from "./types";
 
-const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown }));
+const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown, reference: null as unknown }));
 vi.mock("./api", () => ({
   UNAUTHORIZED_EVENT: "unauthorized",
   api: {
     batches: () => Promise.resolve(answers.list),
     batch: () => Promise.resolve(answers.detail),
     metrics: () => Promise.resolve(answers.metrics),
-    samples: () => Promise.resolve(answers.samples),
+    samples: (_batch: string, alignTo?: string) => Promise.resolve(alignTo ? answers.reference : answers.samples),
     trends: () => Promise.resolve(answers.trends),
   },
 }));
@@ -63,7 +63,29 @@ const METRICS: Metrics = {
       reasons: [{ code: "diverged_from_reference", values: { result_id: "BL-0002-S09-titer", reference_result_id: "BL-0001-S09-titer", collected_at: "2026-07-30T03:42:44Z", titer: 1.68, reference_titer: 2.01, deficit_percent: 16.2786, tolerance_percent: 15, later_samples_below: 6 } }],
     },
     consequence: { metric: "harvest_mass", unit: "g", status: "usable", value: 7317.46, reference: 10174.47, difference: -2857.01 },
+    evidence: [{
+      at: "divergence", sample_id: "BL-0002-S09", reference_sample_id: "BL-0001-S09", culture_day: 7.9047,
+      results: [
+        { analyte: "glucose", unit: "g/L", result_id: "BL-0002-S09-glucose", value: 4.21, reference_result_id: "BL-0001-S09-glucose", reference_value: 3.4, difference: 0.81 },
+        { analyte: "lactate", unit: "g/L", result_id: "BL-0002-S09-lactate", value: 0.55, reference_result_id: null, reference_value: null, difference: null },
+      ],
+    }],
     cause: null,
+  }, {
+    finding: "protein_a_recovery_shortfall",
+    observation: {
+      metric: "protein_a_recovery_shortfall", value: 20.1567, unit: "percentage points", status: "usable", inputs: ["BL-0002-protein_a_eluate"], calculation_version: "recovery_shortfall/1",
+      reasons: [{ code: "below_reference", values: { metric: "protein_a_recovery", value: 73.3912, reference_value: 93.5479, tolerance_points: 10 } }],
+    },
+    consequence: { metric: "protein_a_eluate_mass", unit: "g", status: "usable", value: 7408.73, reference: 9233.98, difference: -1825.25 },
+    evidence: [], cause: null,
+  }, {
+    finding: "harvest_to_load_yield_shortfall",
+    observation: {
+      metric: "harvest_to_load_yield_shortfall", value: null, unit: "percentage points", status: "usable", inputs: [], calculation_version: "recovery_shortfall/1",
+      reasons: [{ code: "within_reference", values: { metric: "harvest_to_load_yield", value: 89.3761, reference_value: 97.0131, tolerance_points: 10 } }],
+    },
+    consequence: null, evidence: [], cause: null,
   }],
   metrics: [
     metric("qp", { value: 31.2449, unit: "pg/cell/day", inputs: ["BL-0002-S01-vcd", "BL-0002-S15-titer"], reference: { value: 29.6213, status: "usable" }, difference: 1.6236 }),
@@ -72,9 +94,9 @@ const METRICS: Metrics = {
   ],
 };
 const SAMPLES: Samples = {
-  batch_id: "BL-0002", as_of: null,
+  batch_id: "BL-0002", as_of: null, aligned_to: null,
   samples: [1, 2].map((day) => ({
-    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, provenance: "p",
+    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, culture_day: day, aligned_at: null, provenance: "p",
     results: [
       { result_id: `BL-0002-S0${day}-titer`, sample_id: `BL-0002-S0${day}`, analyte: "titer", value: 0.021 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: `2026-07-2${day + 3}T05:00:00.000Z`, validity: "valid", provenance: "p" },
       { result_id: `BL-0002-S0${day}-vcd`, sample_id: `BL-0002-S0${day}`, analyte: "vcd", value: 0.51 * day, unit: "1e6 cells/mL", method: "Automated cell counter", result_available_at: `2026-07-2${day + 2}T08:30:00.000Z`, validity: "valid", provenance: "p" },
@@ -89,7 +111,17 @@ const TRENDS: Trends = {
   ],
 };
 
-beforeEach(() => { Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS }); });
+const REFERENCE: Samples = {
+  batch_id: "BL-0001", as_of: null, aligned_to: "BL-0002",
+  samples: [1, 2, 3].map((day) => ({
+    sample_id: `BL-0001-S0${day}`, batch_id: "BL-0001", phase_id: "BL-0001-P1", collected_at: `2026-07-0${day + 1}T07:00:00.000Z`, culture_day: day, aligned_at: `2026-07-2${day + 2}T07:00:00.000Z`, provenance: "p",
+    results: [
+      { result_id: `BL-0001-S0${day}-titer`, sample_id: `BL-0001-S0${day}`, analyte: "titer", value: 0.03 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: "2026-07-05T05:00:00.000Z", validity: "valid", provenance: "p" },
+    ],
+  })),
+};
+
+beforeEach(() => { Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS, reference: REFERENCE }); });
 
 describe("the frame's pages", () => {
   it("Batches holds the list and each batch's page", () => {
@@ -176,8 +208,40 @@ describe("one batch", () => {
     expect(findings).toContain("No cause is attributed");
   });
 
+  it("lays the evidence beside the divergence without concluding anything from it", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    const findings = host.querySelector('[data-section="findings"]')!;
+    expect(findings.textContent).toContain("Other results of the same samples, beside the reference batch's. Nothing is concluded from them.");
+    expect(findings.textContent).toContain("At the divergence: BL-0002-S09 against BL-0001-S09 (culture day 7.9)");
+    const rows = [...findings.querySelectorAll("tbody tr")].map((row) => row.textContent ?? "");
+    expect(rows[0]).toContain("Glucose");
+    expect(rows[0]).toContain("4.21 g/L");
+    expect(rows[0]).toContain("3.4 g/L");
+    expect(rows[0]).toContain("+0.81");
+    // The reference has no lactate result for that sample: the row says so, with no difference.
+    expect(rows[1]).toContain("Lactate");
+    expect(rows[1]).toContain("No value");
+  });
+
+  it("states a step recovery below the reference, and one within it", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
+    expect(findings).toContain("Protein A recovery is 20 points below the reference batch");
+    expect(findings).toContain("Observed: 73.4 % against 93.5 % for the reference (the tolerance is 10 points).");
+    expect(findings).toContain("Calculated: Protein A eluate mass: 7,410 g against 9,230 g for the reference (-1,830 g).");
+    expect(findings).toContain("Harvest-to-load yield is within 10 points of the reference batch (89.4 % against 97.0 %).");
+    expect((findings.match(/No cause is attributed/g) ?? []).length).toBe(2);
+  });
+
+  it("draws the reference batch over VCD and titer at the same culture age", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    const charts = [...host.querySelectorAll("[data-chart]")].map((chart) => chart.getAttribute("data-chart"));
+    // The reference has titer results only in this test, so only the titer chart gets its line.
+    expect(charts).toEqual(["pH:2", "Viable cell density:2", "Titer:2|Reference batch BL-0001, same culture age:3"]);
+  });
+
   it("says so when the titer followed the reference, or when it cannot be compared", async () => {
-    const quiet = { ...METRICS.findings[0], consequence: null, observation: { ...METRICS.findings[0].observation, value: null, reasons: [{ code: "no_divergence", values: { pairs: 15, tolerance_percent: 15 } }] } };
+    const quiet = { ...METRICS.findings[0], consequence: null, evidence: [], observation: { ...METRICS.findings[0].observation, value: null, reasons: [{ code: "no_divergence", values: { pairs: 15, tolerance_percent: 15 } }] } };
     answers.metrics = { ...METRICS, findings: [quiet] };
     let host = await render(<BatchPage batchId="BL-0002" />);
     expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Titer stayed within 15 % of the reference batch at the end of 15 compared samples.");
@@ -207,7 +271,7 @@ describe("one batch", () => {
   it("draws the online signals and the VCD and titer trends, and says why one is missing", async () => {
     const host = await render(<BatchPage batchId="BL-0002" />);
     const charts = [...host.querySelectorAll("[data-chart]")].map((chart) => chart.getAttribute("data-chart"));
-    expect(charts).toEqual(["pH:2", "Viable cell density:2", "Titer:2"]);
+    expect(charts.map((chart) => chart?.split("|")[0])).toEqual(["pH:2", "Viable cell density:2", "Titer:2"]);
     const trends = host.querySelector('[data-section="trends"]')!;
     expect(trends.textContent).toContain("BR-2001 has no volume signal in PlantCraft.");
   });

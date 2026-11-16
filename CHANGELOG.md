@@ -23,6 +23,10 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
 - Findings against the reference batch on the metrics route and the batch page: where the
   titer left the reference's (`calc.titer_divergence`), what that is in product mass at
   harvest, and no cause. Nearest-sample pairing by culture age, never interpolated.
+- Findings for each step recovery (harvest-to-load yield, Protein A recovery) more than a
+  tolerance below the reference's; the other results of a divergence's samples as evidence
+  beside the reference's; the reference batch drawn over the VCD and titer charts at the
+  same culture age (`align_to` on the samples route).
 - `batchlens demo-plant --out DIR [--time-zone ZONE]` writes the synthetic plant as a CSV and a
   PlantCraft plant map, so an administrator can import it into a live PlantCraft and the
   demo runs end to end there (`docs/demo.md`).

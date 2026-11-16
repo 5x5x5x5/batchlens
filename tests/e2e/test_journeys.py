@@ -67,12 +67,38 @@ def test_open_the_app_open_a_batch_and_see_its_phases_and_metrics(signed_in, app
         "Calculated: Product mass at harvest: 7,317 g against 10,170 g"
     )
     expect(findings).to_contain_text("No cause is attributed")
+    expect(findings).to_contain_text("At the divergence: BL-0003-S09 against BL-0001-S09")
+    expect(findings.get_by_role("row", name=re.compile("^Lactate")).first).to_be_visible()
     # The charts are drawn: the bioreactor's four signals, then VCD and titer.
     expect(page.locator('[data-section="trends"] .js-plotly-plot')).to_have_count(6)
     expect(
         page.locator('[data-section="results"]').get_by_text("Protein A HPLC").first
     ).to_be_visible()
     _shot(page, screenshots, "2-batch")
+
+
+def test_a_batch_that_lost_product_in_the_capture_step_says_where(signed_in, app_url, screenshots):
+    page = signed_in
+    page.goto(f"{app_url}/batchlens/batches/BL-0004")
+    findings = page.locator('[data-section="findings"]')
+    expect(findings).to_contain_text("Titer stayed within 15 % of the reference batch")
+    expect(findings).to_contain_text(
+        "Harvest-to-load yield is within 10 points of the reference batch"
+    )
+    expect(
+        findings.get_by_role(
+            "heading", name=re.compile("Protein A recovery is 20 points below the reference batch")
+        )
+    ).to_be_visible()
+    expect(findings).to_contain_text("Calculated: Protein A eluate mass: 7,410 g against 9,230 g")
+    # The reference batch is drawn over VCD and titer: two lines in each of those charts.
+    expect(page.locator('[data-section="trends"] .js-plotly-plot')).to_have_count(6)
+    expect(
+        page.locator('[data-section="trends"]')
+        .get_by_text("Reference batch BL-0001, same culture age")
+        .first
+    ).to_be_visible()
+    _shot(page, screenshots, "4-recovery-finding")
 
 
 def test_a_metric_that_needs_a_missing_signal_says_why(signed_in_without_volume, screenshots):

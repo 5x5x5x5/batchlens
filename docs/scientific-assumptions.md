@@ -47,6 +47,7 @@ found"; its reason then says so (`no_divergence`).
 | `RECOVERY_SUSPECT_ABOVE_PERCENT` | 105 % | `calc/mass.py` | A yield or recovery above this is shown, flagged `suspect` |
 | `DIVERGENCE_TOLERANCE_FRACTION` | 0.15 | `calc/comparison.py` | A titer below the reference's by more than this fraction of the reference's counts as below |
 | `PAIRING_WINDOW_HOURS` | 6 h | `calc/comparison.py` | A sample is compared with the reference sample nearest in culture age, at most this far away |
+| `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
 
 ## The calculations
 
@@ -166,7 +167,32 @@ Example (`tests/test_divergence.py`), reference 1.0, 2.0, 3.0, 4.0, 5.0 g/L at d
   own peculiarities are in every comparison.
 - The comparison is plain floating-point arithmetic, with no margin added at the boundary.
 
-A finding puts three things side by side and keeps them apart: this **observation**; a
+### 8. Step recovery shortfall against the reference batch (`recovery_shortfall/1`), `percentage points`
+
+For the harvest-to-load yield and for the Protein A recovery: `reference - value`, when that is
+more than `RECOVERY_TOLERANCE_POINTS`; no value (`within_reference`) otherwise, also when the
+batch is above the reference.
+
+Example: recovery 73.4 % against 93.6 % is 20.2 points below, a shortfall at the default of 10.
+A yield of 89.4 % against 97.0 % is 7.6 points below: within.
+
+- `insufficient`: either value is missing. `suspect`: either value is `suspect`.
+- Assumption: one tolerance for both steps. In the demo the computed yield already spreads
+  from 89 to 97 % across batches whose true yield is about 93 %, because harvest mass rests
+  on a single titer result; a tolerance much under 10 points would flag normal batches on yield.
+- Assumption: points below one reference batch, not below a distribution of comparable batches.
+
+### Evidence beside a divergence
+
+When a divergence is found, the finding lists every other result of the two samples it names
+(the diverging sample and the last compared one) beside the reference sample's result of the
+same analyte, with the difference. Nothing is concluded from them, and one caution applies:
+the two samples can be up to `PAIRING_WINDOW_HOURS` apart in culture age. For anything that
+moves within a day, that alone can exceed the effect. In the demo, glucose follows a daily
+feed sawtooth, and at the divergence the batch reads 1.63 g/L *below* the reference although
+its generated glucose is 0.8 g/L *higher* at equal age.
+
+A finding puts things side by side and keeps them apart: this **observation**; a
 **consequence**, the product mass at harvest against the reference's (calculation 3, with its
 own status); and a **cause**, which is always empty. BatchLens attributes nothing.
 

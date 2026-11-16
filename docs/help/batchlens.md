@@ -19,6 +19,9 @@ on the reference batch, the one the others are compared with. Open a batch from 
   batch's, if it did. An observation (the first sample that was below the reference by more
   than the tolerance and after which every later sample stayed below), a calculation (the
   product mass at harvest against the reference's), and no cause: the app does not diagnose.
+  The same for each step: a yield or recovery more than the tolerance below the reference's.
+  Under a divergence, the other results of the same samples are listed beside the
+  reference's, for you to read; the app concludes nothing from them.
 - **Metrics**: each with its value and unit, its status, the reasons for it and the ids of its
   inputs, beside the reference batch's value and the difference.
 - **Pool measurements**: the volume and concentration behind each pool mass.
