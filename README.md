@@ -40,7 +40,7 @@ VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volum
 | Batches, phase executions, samples, assay results and pool measurements in the app's database | Implemented, tested |
 | Five read routes; online signals read from PlantCraft as the signed-in person | Implemented, tested against the SDK's fake PlantCraft |
 | Batch list and batch detail pages | Implemented, tested (Vitest, two browser journeys) |
-| Running inside a live PlantCraft with the synthetic plant loaded | **Not done.** A live PlantCraft has no bioreactor, so trends and harvest mass answer `insufficient` there ([docs/gaps.md](docs/gaps.md)) |
+| Running inside a live PlantCraft | Verified once on PlantCraft 0.6.0 (local `make dev`): after an administrator imports the files of `batchlens demo-plant`, all metrics and trends are served from PlantCraft ([docs/demo.md](docs/demo.md)). Without that import the app reports the missing bioreactor |
 
 Where the app stands in detail: [docs/STATUS.md](docs/STATUS.md). What comes next:
 [ROADMAP.md](ROADMAP.md).
