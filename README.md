@@ -28,7 +28,8 @@ The purification train of the batch with the poor capture step, and its pool gen
 
 ## What it shows
 
-Five synthetic batches on one 2,000 L bioreactor, each followed by harvest and Protein A capture:
+Six batches on one 2,000 L bioreactor. Five are finished, each followed by harvest and the
+purification train; the sixth is running now:
 
 | Batch | What happened | What the app says |
 |---|---|---|
@@ -37,9 +38,23 @@ Five synthetic batches on one 2,000 L bioreactor, each followed by harvest and P
 | `BL-0003` | Specific productivity fell from day 7 | Titer left the reference at culture day 7.9; 7,317 g against 10,170 g at harvest |
 | `BL-0004` | Normal culture, poor Protein A step | Recovery 20 points below the reference; 7,410 g against 9,230 g in the eluate |
 | `BL-0005` | Normal culture, **bad records** | Culture metrics `invalid`, harvest mass `insufficient`, each naming the record it tripped on |
+| `BL-0006` | **Running now**, nine days into its culture when the demo starts; productivity fell from day 7 | Titer left the reference at culture day 8.0; nothing about harvest yet, because it has not happened |
 
 The left column is the generator's ground truth. The app never sees it: it lives in the
 generator's separate output, the tests, the benchmark and the documents.
+
+## Inside the PlantCraft suite
+
+BatchLens is an app for [PlantCraft](https://github.com/PlantCraft/PlantCraft), an open
+industrial data suite, and the demo runs it beside the suite's own modules on one synthetic
+plant. The bioreactor's signals are live: the same values BatchLens reads for the running
+batch are on a dashboard and a process display in PlantCraft View, under alarm rules in
+PlantCraft Alarms, and the reports of this repository are in PlantCraft Documents, linked to
+the plant's assets.
+
+![The train in PlantCraft View, with the bioreactor's current values](docs/images/suite/process-display.png)
+
+![The running batch in BatchLens](docs/images/suite/live-batch.png)
 
 ## What makes it more than a dashboard
 
@@ -72,11 +87,11 @@ generator's separate output, the tests, the benchmark and the documents.
 uv venv --seed --python 3.12 ~/.venvs/batchlens
 export PATH="$HOME/.venvs/batchlens/bin:$PATH"
 make ci                    # app standard, translations, lint, interface build and tests, pytest
-tools/run_demo.sh          # PlantCraft, BatchLens and the synthetic plant, locally
+tools/run_demo.sh          # PlantCraft, its modules, BatchLens and the plant, at http://127.0.0.1:8088
 ```
 
 `tools/run_demo.sh` needs a PlantCraft checkout beside this folder; [docs/demo.md](docs/demo.md)
-has the one-time setup, a five-minute tour to follow, and what each batch contains. `make ci`
+has the one-time setup, a tour to follow, and what each batch contains. `make ci`
 alone needs no PlantCraft: the tests run against the SDK's fake.
 
 ## What it is, and is not
@@ -120,6 +135,7 @@ alone needs no PlantCraft: the tests run against the SDK's fake.
 | `src/batchlens/benchmark/` | The findings scored against the generator's ground truth |
 | `src/batchlens/api/` | The read routes, and what they read from PlantCraft (`plant.py`) |
 | `frontend/src/` | The two pages, on `@plantcraft/ui`, in English and Brazilian Portuguese |
+| `tools/` | The one-command demo, its gateway, and the seeding of the suite's modules |
 | `tests/` | pytest against the SDK's fake PlantCraft; `tests/e2e/` browser journeys |
 
 ## License

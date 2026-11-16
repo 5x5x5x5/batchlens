@@ -11,7 +11,8 @@ tests/                pytest against a fake PlantCraft; tests/e2e: browser journ
 docs/                 the project's documents (docs/README.md) and the help pages (docs/help)
 vendor/               the plantcraft-sdk wheel and the @plantcraft/ui package, with their hashes
 deploy/               requirements.in and requirements.lock: the image's pinned dependencies
-tools/                run_demo.sh (the whole demo locally); rename.py (the template's)
+tools/                run_demo.sh (the whole demo locally); gateway.py (one address for it);
+                      seed_suite.py (the mAb plant in the suite's modules); rename.py (the template's)
 .github/workflows/    ci.yml: make ci on every push and pull request
 AGENTS.md, CLAUDE.md  the rules, for people and for coding agents
 SPEC.md, ROADMAP.md   what the app does and its public sources; what comes next
@@ -76,6 +77,7 @@ in the interface, a router or a store.
 | `DemoBanner.tsx` | The synthetic, non-GxP banner shown on every page |
 | `BatchesPage.tsx` | The batch list |
 | `BatchPage.tsx` | One batch: phases, metrics, pools, trends, assay results |
+| `ProcessTrain.tsx` | The process train as a drawing, a symbol per step, with each step's state |
 | `words.ts` | Words for metric, phase and analyte ids, statuses and reason codes |
 | `format.ts` | Rounding for display only |
 | `when.tsx` | Times in the installation's zone, and the line that names it |

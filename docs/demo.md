@@ -1,9 +1,18 @@
 # The demo
 
-Five synthetic batches of `mAb-X (synthetic)`, run one after another on the same 2,000 L
-bioreactor, each followed by harvest and one aggregated Protein A capture step. Everything is
-made by `src/batchlens/demo/generator.py` from fixed seeds: the same output on every run and
-machine. **All of it is illustrative** ([scientific-assumptions.md](scientific-assumptions.md)).
+Six batches of `mAb-X (synthetic)`, run one after another on the same 2,000 L bioreactor. Five
+are finished, each followed by harvest and the purification train; the sixth is running when
+the demo starts. Everything is made by `src/batchlens/demo/generator.py` from fixed seeds: the
+same values on every run and machine. **All of it is illustrative**
+([scientific-assumptions.md](scientific-assumptions.md)).
+
+**Two campaigns, one set of values.** The tests, the benchmark and the tables below use the
+fixed campaign: five batches from 2026-07-01, three weeks apart. `tools/run_demo.sh` uses the
+live campaign: the same five moved in time by whole days so they end before a sixth,
+`BL-0006`, whose culture began nine days before the day the demo first starts. Moving a batch
+changes none of its values, so every number below holds in the demo; only the dates differ.
+The dates are set on the first start and kept, so a demo left running moves on through the
+live batch; `--reset` sets them again from today.
 
 ## Run it
 
@@ -24,7 +33,8 @@ tools/run_demo.sh             # add --reset for a fresh PlantCraft workspace
 ```
 
 It starts PlantCraft's local demo, BatchLens and the suite's modules that are installed, loads
-the five batches, writes the synthetic plant and imports it into PlantCraft. Open
+the batches, writes the synthetic plant and imports it into PlantCraft, and gives the modules
+something of the plant to show (`tools/seed_suite.py`). Open
 http://127.0.0.1:8088 (no password in the local demo), then BatchLens or a module from the app
 switcher at the top left. Ctrl+C stops everything.
 
@@ -66,9 +76,9 @@ batchlens benchmark --out docs/verification-report.md
 
 ## A five-minute tour
 
-1. **The list.** Five batches, one bioreactor, one after another. `BL-0001` carries the
-   reference mark: the batch the others are compared with. The banner on every page says what
-   this data is.
+1. **The list.** Six batches, one bioreactor, one after another. `BL-0001` carries the
+   reference mark: the batch the others are compared with. `BL-0006` is marked as running. The
+   banner on every page says what this data is.
 2. **`BL-0003`, a culture that fell behind.** Findings: the titer left the reference at
    culture day 7.9, with the sample that showed it, how far below, and that all six later
    samples stayed below. Then what that amounts to: 7,317 g at harvest against 10,170 g. Then
@@ -101,8 +111,21 @@ batchlens benchmark --out docs/verification-report.md
    the original time stays in the list of corrections, and PlantCraft's audit log has the
    change. The hole in the historian is still a hole. (`batchlens seed-demo --reset` puts
    the demo back.)
-8. **How often is it wrong?** [verification-report.md](verification-report.md): the same
-   findings over 380 seeded batches with known faults.
+8. **A batch that is running.** `BL-0006` is in its production culture. The process train
+   shows one step under way and seven not started. The titer finding is already there (it left
+   the reference at culture day 8.0), with the latest sample named as not yet reported, and
+   the consequence at harvest says it cannot be compared yet. Nothing dated later than now is
+   shown: come back in a day and there is one more sample.
+9. **The same plant in the suite's modules.** From the app switcher: in **View**, the
+   dashboard "Bioreactor BR-2001" (the four signals, moving) and the process display "mAb
+   process train" (the train in order, the bioreactor's current values); in **Alarms**, four
+   rules on the bioreactor with illustrative limits; in **Documents**, the verification
+   report, the assumptions and this page, linked to the unit. Historian, Analytics and Models
+   run and hold nothing of this plant yet ([gaps.md](gaps.md)).
+10. **How often is it wrong?** [verification-report.md](verification-report.md): the same
+    findings over 380 seeded batches with known faults.
+
+![The bioreactor's dashboard in PlantCraft View](images/suite/dashboard.png)
 
 ## Inside a live PlantCraft, by hand
 
@@ -151,7 +174,7 @@ API v1; only `tools/run_demo.sh` calls them, never the app.
 | `CH-3001` | Protein A chromatography skid | None |
 | `VI-3101`, `CH-3201`, `CH-3301`, `VF-3401`, `UF-3501` | Viral inactivation vessel, cation- and anion-exchange skids, viral filtration skid, UF/DF skid | None |
 
-The same four signals carry all five batches, so every read is scoped to a phase execution's
+The same four signals carry every batch, so every read is scoped to a phase execution's
 asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files
 above and the tests' fake PlantCraft are both made from it.
 
@@ -168,6 +191,7 @@ nothing about it.
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
 | `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
 | `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and the historian kept nothing from culture day 13.4 to the end of the phase |
+| `BL-0006` | 106 | live campaign only: nine days before the first start, 06:00 | Reduced culture productivity, running | qP is multiplied by 0.6 from day 7; generated whole like the others, and shown only up to now |
 
 ## What the app computes for them
 

@@ -10,11 +10,11 @@
 | [structure.md](structure.md) | Every package and file, and the layers the code keeps |
 | [gaps.md](gaps.md) | What is known to be missing, wrong or untested |
 | [devlog.md](devlog.md) | The development trail, newest first: plans, rulings, failures, measured check results |
-| [STATUS.md](STATUS.md) | Where the project stands and the next task |
+| [STATUS.md](STATUS.md) | Where the project stands, in a few lines |
 | [help/](help/batchlens.md) | The help page people read inside the app (English and Brazilian Portuguese) |
 
 At the root: [`README.md`](../README.md), [`SPEC.md`](../SPEC.md) (what the app does and its
-public sources), [`ROADMAP.md`](../ROADMAP.md), [`AGENTS.md`](../AGENTS.md) (the rules for
+public sources), [`ROADMAP.md`](../ROADMAP.md) (what is done and what is proposed next), [`AGENTS.md`](../AGENTS.md) (the rules for
 people and coding agents), [`ATTRIBUTION.md`](../ATTRIBUTION.md).
 
 BatchLens is built on PlantCraft's app template. The template's own how-to guides (server,

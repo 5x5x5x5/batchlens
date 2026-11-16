@@ -7,6 +7,11 @@ All notable changes to this app are recorded here ([Keep a Changelog](https://ke
 BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app template 0.2.0
 (`dc365ec`); the entries below this one are the template's own history.
 
+- A live demo inside the suite: a sixth batch running now (`seed-demo --live`), the
+  bioreactor's file written up to now, every route cut at now for a running batch; the suite's
+  modules started by `tools/run_demo.sh` at one address (`tools/gateway.py`) and given the
+  plant (`tools/seed_suite.py`); a drawing of the process train on the batch page. The app is
+  named BatchLens (manifest `BatchLensCraft`).
 - The template's example object is replaced by batches: batch, phase executions, samples,
   assay results and pool measurements in the app's database, loaded by `batchlens seed-demo`.
 - Pure calculations with one result shape (value, unit, status, reasons, inputs, version):
