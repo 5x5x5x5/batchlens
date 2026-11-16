@@ -30,3 +30,5 @@
 .train [data-state="pending"] svg .fill { fill: none; }
 .train [data-state="pending"] svg text { fill: var(--pc-text-4); }
 .train [data-state="pending"] strong { color: var(--pc-text-3); font-weight: 400; }
+/* A link in a table cell must look like one: the batch id is the only way into a batch. */
+td a { color: var(--pc-primary-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
