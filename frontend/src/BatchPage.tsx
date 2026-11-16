@@ -5,6 +5,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { confirmAction, DataTable, isoOf, localOf, Pill } from "@plantcraft/ui";
 import { api } from "./api";
+import { ProcessTrain } from "./ProcessTrain";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
 import type { BatchDetail, Downstream, Evidence, Finding, Me, Metric, Metrics, Result, Sample, Samples, Trends } from "./types";
@@ -313,7 +314,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     <p className="muted">{detail.batch.product} · {reference} · {detail.batch.provenance}</p>
     <ZoneNote />
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
-    <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><Phases detail={detail} /></Section>
+    <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><ProcessTrain phases={detail.phases} /><Phases detail={detail} /></Section>
     {metrics.findings.length > 0 && <Section id="findings" title={t("Findings")} detail={t("This batch against the reference batch. Tolerances are illustrative settings, not limits.")}>
       {metrics.findings.filter((finding) => !isQuiet(finding)).map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
       {metrics.findings.some(isQuiet) && <div className="panel" data-findings="within">

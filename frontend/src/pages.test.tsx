@@ -192,6 +192,10 @@ describe("one batch", () => {
     const phases = host.querySelector('[data-section="phases"]')!;
     expect(phases.querySelectorAll("tbody tr")).toHaveLength(1);
     expect(phases.textContent).toContain("In progress");
+    // The picture shows the whole train: the step under way, and the seven not reached yet.
+    expect(phases.querySelector('.train [data-step="production_culture"]')!.getAttribute("data-state")).toBe("running");
+    expect(phases.querySelectorAll('.train [data-state="pending"]')).toHaveLength(7);
+    expect(phases.querySelector('.train [data-step="harvest"]')!.textContent).toBe("HarvestNot started");
   });
 
   it("shows the phase executions on their assets", async () => {

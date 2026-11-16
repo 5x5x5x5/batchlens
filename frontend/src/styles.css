@@ -19,3 +19,14 @@
 .as-of label { display: grid; gap: var(--pc-space-2); font-weight: 600; }
 .as-of input[type="range"] { width: 100%; }
 .as-of p { margin: var(--pc-space-2) 0 0; }
+/* The process train: a drawing per step, in order, an arrow between them; it wraps when narrow. */
+.train { display: flex; flex-wrap: wrap; gap: var(--pc-space-2) 0; margin: 0 0 var(--pc-space-3); padding: 0; list-style: none; }
+.train li { position: relative; display: grid; justify-items: center; align-content: start; gap: 2px; flex: 1 0 104px; padding: 0 14px; text-align: center; font-size: var(--pc-fs-sm); }
+.train li:not(:last-child)::after { content: "\2192"; position: absolute; right: -0.5em; top: 28px; color: var(--pc-text-3); }
+.train svg { width: 60px; height: 70px; fill: none; stroke: var(--pc-primary); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.train svg .fill { fill: var(--pc-primary-soft); stroke: none; }
+.train svg text { fill: var(--pc-primary-text); stroke: none; font-size: 8px; font-weight: 700; text-anchor: middle; }
+.train [data-state="pending"] svg { stroke: var(--pc-text-4); stroke-dasharray: 3 2; }
+.train [data-state="pending"] svg .fill { fill: none; }
+.train [data-state="pending"] svg text { fill: var(--pc-text-4); }
+.train [data-state="pending"] strong { color: var(--pc-text-3); font-weight: 400; }
