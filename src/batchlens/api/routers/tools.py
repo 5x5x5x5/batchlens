@@ -93,6 +93,8 @@ def batch_findings(args: BatchArgs, rt: RuntimeDep, user: CurrentUser) -> dict[s
         }
         if item["finding"] == "titer_divergence":
             row["culture_day"] = observation["value"]
+        elif item["finding"] == "inoculation_density_shortfall":
+            row["percent_below_reference"] = observation["value"]
         else:
             row["percentage_points_below_reference"] = observation["value"]
         found.append(row)

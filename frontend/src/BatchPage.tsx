@@ -76,7 +76,9 @@ function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
   return <>
     <p className="muted">{t("Other results of the same samples, beside the reference batch's. Nothing is concluded from them.")}</p>
     {evidence.map((group) => <div key={group.at}>
-      <h4>{group.at === "divergence"
+      <h4>{group.at === "seed_n1_end"
+        ? t("At the end of the N-1 seed passage: {sample} against {reference} (day {day} of the passage)", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })
+        : group.at === "divergence"
         ? t("At the divergence: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })
         : t("At the last compared sample: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })}</h4>
       <DataTable rows={group.results} rowKey={(row) => row.result_id} label={t("Evidence")}
@@ -98,8 +100,9 @@ function FindingPanel({ finding }: { finding: Finding }) {
   const { observation, consequence } = finding;
   const diverged = observation.reasons.find((reason) => reason.code === "diverged_from_reference");
   const short = observation.reasons.find((reason) => reason.code === "below_reference");
-  const others = observation.reasons.filter((reason) => reason !== diverged && reason !== short);
-  const v = (diverged ?? short)?.values ?? {};
+  const low = observation.reasons.find((reason) => reason.code === "inoculated_below_reference");
+  const others = observation.reasons.filter((reason) => reason !== diverged && reason !== short && reason !== low);
+  const v = (diverged ?? short ?? low)?.values ?? {};
   return <div className="panel">
     {diverged && <>
       <h3>{t("Titer left the reference batch at culture day {day}", { day: Number(observation.value).toFixed(1) })}</h3>
@@ -118,6 +121,12 @@ function FindingPanel({ finding }: { finding: Finding }) {
     {short && <>
       <h3>{t("{metric} is {points} points below the reference batch", { metric: metricName(String(v.metric)), points: Number(observation.value).toFixed(0) })}</h3>
       <p>{t("Observed: {value} % against {reference} % for the reference (the tolerance is {tolerance} points).", { value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1), tolerance: String(v.tolerance_points) })}</p>
+      <Consequence consequence={consequence} />
+      <p className="muted">{NO_CAUSE()}</p>
+    </>}
+    {low && <>
+      <h3>{t("The culture began {deficit} % below the reference batch's density", { deficit: Number(observation.value).toFixed(0) })}</h3>
+      <p>{t("Observed: the first cell count read {value} against {reference} 1e6 cells/mL for the reference (the tolerance is {tolerance} %).", { value: recorded(Number(v.value)), reference: recorded(Number(v.reference_value)), tolerance: String(v.tolerance_percent) })}</p>
       <Consequence consequence={consequence} />
       <p className="muted">{NO_CAUSE()}</p>
     </>}

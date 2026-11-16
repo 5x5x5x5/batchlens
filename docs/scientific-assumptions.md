@@ -51,6 +51,7 @@ found"; its reason then says so (`no_divergence`).
 | `DIVERGENCE_TOLERANCE_FRACTION` | 0.15 | `calc/comparison.py` | A titer below the reference's by more than this fraction of the reference's counts as below |
 | `PAIRING_WINDOW_HOURS` | 6 h | `calc/comparison.py` | A sample is compared with the reference sample nearest in culture age, at most this far away |
 | `MERGE_TOLERANCE_PERCENT` | 3 % | `calc/mass.py` | A merged pool's mass may differ from the sum of its parts by this much before it is `suspect` |
+| `INOCULATION_TOLERANCE_FRACTION` | 0.20 | `calc/comparison.py` | An inoculation density below the reference's by more than this fraction of the reference's is a shortfall |
 | `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
 
 ## The calculations
@@ -261,6 +262,22 @@ computed from what was transferred: transfers are not recorded yet.
 - `invalid`: a negative or non-finite count; a wrong unit.
 - It rests on one count, so it carries that count's full assay error.
 
+### 13. Inoculation shortfall against the reference batch (`inoculation_shortfall/1`), `%`
+
+`deficit = 100 * (X_reference - X) / X_reference`, both the inoculation density of section 12.
+A deficit above `INOCULATION_TOLERANCE_FRACTION` is a shortfall and is the value; otherwise
+there is no value (`inoculation_within_reference`), also when the batch began above the
+reference.
+
+Example: 0.2 against 0.5 is `100 * 0.3 / 0.5 = 60 %`, a shortfall; 0.41 against 0.5 is 18 %,
+within the tolerance.
+
+- `insufficient`: either density has no value; the reference's is zero.
+- Each density is one cell count with its assay error (3 % in the generator), so two normal
+  batches differ by a few percent; the tolerance is set well above that and is illustrative.
+- Consequence shown with it: the harvest mass against the reference's. Evidence shown with
+  it: each batch's last sample of the N-1 seed passage. Neither is offered as the cause.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -297,7 +314,7 @@ Rounding happens only in the interface (`frontend/src/format.ts`); the API sends
 ## A batch that is running
 
 The demo's live campaign (`demo_campaign(live_from)`) is the fixed campaign moved in time by
-whole days, plus `BL-0006`: qP multiplied by 0.6 from day 7, seed 106, its culture begun nine
+whole days, plus `BL-0007`: qP multiplied by 0.6 from day 7, seed 106, its culture begun nine
 days before the day the demo first starts. Moving a batch changes none of its values
 (`tests/test_live.py`).
 
@@ -367,7 +384,7 @@ on the N-1 passage: with `n1_growth_factor` below about 0.8 the N-1 vessel holds
 the culture starts below the target, and it makes fewer cell-days and less product at the same
 qP. This is the first such dependency in the generator, agreed with the owner so that the seed
 records have something to show. It is a shape (a dilution and a minimum), not a model of a seed
-train, and no demo batch uses it yet: the five demo batches are seeded at the target.
+train. One demo batch uses it, `BL-0006` (factor 0.4); the others are seeded at the target.
 
 Because titer is generated from qP and the running IVCD, `tests/test_generator.py` checks that
 the calculations recover the generator's own parameters within three standard deviations of the

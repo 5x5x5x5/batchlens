@@ -190,5 +190,9 @@
   "{id} counted no cells.": "{id} não contou células.",
   "No cell count.": "Nenhuma contagem de células.",
   "The first cell count ({id}) was collected {hours} h after the phase began; only one within {window} h stands for the density it began at.": "A primeira contagem de células ({id}) foi coletada {hours} h após o início da fase; só uma dentro de {window} h representa a densidade inicial.",
-  "No record": "Sem registro"
+  "No record": "Sem registro",
+  "The culture began {deficit} % below the reference batch's density": "A cultura começou {deficit} % abaixo da densidade do lote de referência",
+  "Observed: the first cell count read {value} against {reference} 1e6 cells/mL for the reference (the tolerance is {tolerance} %).": "Observado: a primeira contagem de células foi {value} contra {reference} 1e6 cells/mL na referência (a tolerância é {tolerance} %).",
+  "At the end of the N-1 seed passage: {sample} against {reference} (day {day} of the passage)": "No fim da passagem de inóculo N-1: {sample} contra {reference} (dia {day} da passagem)",
+  "Inoculation density is within {tolerance} % of the reference batch ({value} against {reference} 1e6 cells/mL).": "A densidade de inoculação está dentro de {tolerance} % do lote de referência ({value} contra {reference} 1e6 cells/mL)."
 }

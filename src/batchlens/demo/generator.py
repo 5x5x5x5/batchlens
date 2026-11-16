@@ -532,7 +532,7 @@ CAMPAIGN_START = datetime(2026, 7, 1, 6, 0, tzinfo=UTC)
 DAYS_BETWEEN_BATCHES = 21
 
 
-LIVE_BATCH = "BL-0006"
+LIVE_BATCH = "BL-0007"
 LIVE_CULTURE_DAYS = 9  # how far into its culture the live batch is when the demo starts
 
 
@@ -547,9 +547,9 @@ def live_start(now: datetime) -> datetime:
 def demo_campaign(
     live_from: datetime | None = None,
 ) -> tuple[list[Observations], dict[str, GroundTruth]]:
-    """The five demo batches, one after another on the same bioreactor (docs/demo.md).
+    """The six demo batches, one after another on the same bioreactor (docs/demo.md).
 
-    With ``live_from`` (``live_start``), the same five moved in time to end before a sixth,
+    With ``live_from`` (``live_start``), the same six moved in time to end before a seventh,
     ``LIVE_BATCH``, whose culture begins then: generated whole like the others, its later
     records dated ahead of the clock. The app shows nothing later than now, and the plant
     files hold nothing later than now. Moving a batch in time changes none of its values."""
@@ -557,7 +557,7 @@ def demo_campaign(
     first = (
         CAMPAIGN_START
         if live_from is None
-        else live_from - timedelta(days=5 * DAYS_BETWEEN_BATCHES)
+        else live_from - timedelta(days=6 * DAYS_BETWEEN_BATCHES)
     )
 
     def start(index: int) -> datetime:
@@ -592,15 +592,18 @@ def demo_campaign(
             ),
             105,
         ),
+        # Its last seed passage grew slowly: the culture began with too few cells.
+        (Scenario("BL-0006", start(5), label="low_inoculum", n1_growth_factor=0.4), 107),
     ]
     if live_from is not None:
         live = Scenario(
             LIVE_BATCH,
-            start(5),
+            start(6),
             label="reduced_culture_productivity",
             qp_shift_day=7.0,
             qp_shift_factor=0.6,
         )
+        # The live batch keeps the seed it had before the sixth finished batch was added.
         scenarios.append((live, 106))
     made = [generate(scenario, seed) for scenario, seed in scenarios]
     return [observations for observations, _ in made], {t.batch_id: t for _, t in made}

@@ -38,8 +38,9 @@ def test_list_batches_answers_the_batches_and_which_is_the_reference(seeded, cli
         "BL-0003",
         "BL-0004",
         "BL-0005",
+        "BL-0006",
     ]
-    assert [b["reference"] for b in body["batches"]] == [True, False, False, False, False]
+    assert [b["reference"] for b in body["batches"]] == [True, *[False] * 5]
     assert body["batches"][0]["ref"] == "/batchlens/batches/BL-0001"
     assert body["batches"][0]["bioreactor"] == "BR-2001"
 
@@ -67,7 +68,7 @@ def test_batch_findings_answers_what_the_page_shows_and_attributes_no_cause(seed
     assert titer["culture_day"] == pytest.approx(page["findings"][0]["observation"]["value"])
     assert titer["consequence"]["difference"] == page["findings"][0]["consequence"]["difference"]
     assert titer["cause"] == "not attributed"
-    assert [f["found"] for f in body["findings"]] == [True, *[False] * 7]
+    assert [f["found"] for f in body["findings"]] == [True, *[False] * 8]
     assert [s["step"] for s in body["purification"]][:2] == [
         "protein_a_capture",
         "viral_inactivation",

@@ -140,6 +140,7 @@ export function reasonText(reason: Reason): string {
       ? t("{asset} has no {role} signal in PlantCraft.", { asset: text("asset_id"), role: roleWord(text("role")) })
       : t("Signal {signal} was not found in PlantCraft.", { signal: text("signal_id") });
     case "within_reference": return t("{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).", { metric: metricName(text("metric")), tolerance: text("tolerance_points"), value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1) });
+    case "inoculation_within_reference": return t("Inoculation density is within {tolerance} % of the reference batch ({value} against {reference} 1e6 cells/mL).", { tolerance: text("tolerance_percent"), value: text("value"), reference: text("reference_value") });
     case "outside_merge_tolerance": return t("The merged pool differs from the sum of its parts by more than {tolerance} %.", { tolerance: text("tolerance_percent") });
     case "no_sources": return t("No source pools recorded.");
     case "no_divergence": return t("Titer stayed within {tolerance} % of the reference batch at the end of {pairs} compared samples.", { tolerance: text("tolerance_percent"), pairs: text("pairs") });

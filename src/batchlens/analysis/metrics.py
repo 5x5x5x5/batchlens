@@ -252,11 +252,13 @@ def findings(
     order, each in separate parts:
 
     - ``observation``: a ``calc`` result with the ids it rests on: where the titer left the
-      reference's, and for each step whether it recovered less than the reference's did;
+      reference's, whether the culture began at a lower density than the reference's, and
+      for each step whether it recovered less than the reference's did;
     - ``consequence``: when something was observed, a product mass against the reference's
       (at harvest for the titer, out of the step for a recovery), with its own status;
     - ``evidence``: for a divergence, the other results of the same samples beside the
-      reference's;
+      reference's; for a low inoculation density, the last sample of the N-1 seed passage
+      beside the reference's;
     - ``cause``: always none. The app observes and calculates; it attributes nothing.
 
     No findings without a reference batch to compare with.
@@ -298,6 +300,31 @@ def findings(
             "cause": None,
         }
     ]
+    started = calc.inoculation_shortfall(own["inoculation_density"], other["inoculation_density"])
+    last_counts = []
+    if started.value is not None:
+        # Beside it, what the passage before the culture ended at: each batch's last N-1 count
+        # and the other results of that sample.
+        for item in (record, reference):
+            counts = measurements(item, "vcd", as_of, "seed_n1")
+            counts = [m for m in counts if as_of is None or m.available_at <= as_of]
+            last_counts.append(counts[-1].id if counts else None)
+    passage = record.phase("seed_n1")
+    found.append(
+        {
+            "finding": started.metric,
+            "observation": started.to_dict(),
+            "consequence": _consequence("harvest_mass", own, other)
+            if started.value is not None
+            else None,
+            "evidence": _evidence(
+                record, reference, passage.start, [("seed_n1_end", *last_counts)], as_of
+            )
+            if passage is not None and len(last_counts) == 2 and all(last_counts)
+            else [],
+            "cause": None,
+        }
+    )
     for step, mass_out in STEPS.items():
         shortfall = calc.recovery_shortfall(own[step], other[step])
         found.append(

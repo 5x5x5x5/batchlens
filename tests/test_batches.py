@@ -42,7 +42,7 @@ def codes(metric: dict) -> list[str]:
 
 
 def test_the_seed_stores_exactly_what_the_generator_made(runtime):
-    assert seed_demo(runtime.batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
+    assert seed_demo(runtime.batches) == [f"BL-000{n}" for n in range(1, 7)]
     for batch_id, observations in CAMPAIGN.items():
         assert runtime.batches.get(batch_id) == observations.record
     assert runtime.batches.get("BL-9999") is None
@@ -52,7 +52,7 @@ def test_the_seed_stores_exactly_what_the_generator_made(runtime):
 def test_seeding_twice_changes_nothing(seeded):
     before = seeded.batches.get("BL-0002")
     seed_demo(seeded.batches)
-    assert len(seeded.batches.summaries()) == 5
+    assert len(seeded.batches.summaries()) == 6
     assert seeded.batches.get("BL-0002") == before
 
 
@@ -62,10 +62,10 @@ def test_the_command_line_seeds_the_demo(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(logging.root, "handlers", [])
     assert main(["seed-demo"]) == 0
     seeded = json.loads(capsys.readouterr().out)["batches"]
-    assert seeded == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
+    assert seeded == [f"BL-000{n}" for n in range(1, 7)]
     runtime = make_runtime(tmp_path, make_fake())
     try:
-        assert len(runtime.batches.summaries()) == 5
+        assert len(runtime.batches.summaries()) == 6
     finally:
         runtime.shutdown()
 
@@ -83,8 +83,9 @@ def test_the_list_gives_each_batch_its_reference_flag_window_and_bioreactor(seed
         "BL-0003",
         "BL-0004",
         "BL-0005",
+        "BL-0006",
     ]
-    assert [row["is_reference"] for row in rows] == [True, False, False, False, False]
+    assert [row["is_reference"] for row in rows] == [True, *[False] * 5]
     first, record = rows[0], CAMPAIGN["BL-0001"].record
     assert first["product"] == "mAb-X"
     assert instant(first["start"]) == record.phases[0].start
@@ -297,7 +298,7 @@ def test_without_the_bioreactor_in_plantcraft_the_app_says_so(tmp_path):
         seed_demo(runtime.batches)
         with client_for(runtime, fake) as client:
             rows = client.get("/api/batches").json()["batches"]
-            assert len(rows) == 5 and rows[0]["asset_name"] is None
+            assert len(rows) == 6 and rows[0]["asset_name"] is None
             found = metrics_of(client, "BL-0001")
             harvest = found["harvest_mass"]
             assert (harvest["status"], harvest["value"]) == ("insufficient", None)
@@ -395,6 +396,7 @@ def finding_of(client, batch_id: str, kind: str, **params) -> dict:
 
 FINDINGS = [
     "titer_divergence",
+    "inoculation_density_shortfall",
     "harvest_to_load_yield_shortfall",
     "protein_a_recovery_shortfall",
     "viral_inactivation_yield_shortfall",
@@ -446,9 +448,54 @@ def test_the_batch_that_lost_product_in_protein_a_gets_a_recovery_finding(seeded
     assert step_yield["consequence"] is None
 
 
+def test_the_low_inoculum_batch_is_found_by_its_first_count_not_by_its_titer(seeded, client):
+    # The titer stays within the tolerance of the reference's, so that finding is quiet.
+    titer = finding_of(client, "BL-0006", "titer_divergence")
+    assert codes(titer["observation"]) == ["no_divergence"]
+    finding = finding_of(client, "BL-0006", "inoculation_density_shortfall")
+    observation = finding["observation"]
+    assert observation["status"] == "usable" and observation["value"] > 50  # percent below
+    assert codes(observation) == ["inoculated_below_reference"]
+    assert observation["inputs"] == ["BL-0006-S01-vcd", "BL-0001-S01-vcd"]
+    assert finding["cause"] is None
+    # What it amounts to: less product at harvest than the reference batch.
+    assert finding["consequence"]["metric"] == "harvest_mass"
+    assert -1500 < finding["consequence"]["difference"] < -300
+    # Beside it, the last sample of the N-1 passage against the reference's: far fewer cells.
+    [group] = finding["evidence"]
+    assert (group["at"], group["sample_id"], group["reference_sample_id"]) == (
+        "seed_n1_end",
+        "BL-0006-N1-S04",
+        "BL-0001-N1-S04",
+    )
+    assert group["culture_day"] == pytest.approx(3 - 1 / 24)
+    count = next(row for row in group["results"] if row["analyte"] == "vcd")
+    assert count["value"] < 0.5 * count["reference_value"]
+    # Every other batch began near the target: nothing found, no evidence shown.
+    for batch_id in ("BL-0002", "BL-0003", "BL-0004", "BL-0005"):
+        other = finding_of(client, batch_id, "inoculation_density_shortfall")
+        assert codes(other["observation"]) == ["inoculation_within_reference"]
+        assert other["consequence"] is None and other["evidence"] == []
+
+
+def test_the_low_inoculum_finding_uses_only_what_was_available_at_as_of(seeded, client):
+    culture = CAMPAIGN["BL-0006"].record.phase("production_culture")
+    # An hour into the culture the first count is collected, not yet reported.
+    early = (culture.start + timedelta(hours=1, minutes=5)).isoformat()
+    waiting = finding_of(client, "BL-0006", "inoculation_density_shortfall", as_of=early)
+    assert waiting["observation"]["status"] == "insufficient"
+    assert waiting["consequence"] is None and waiting["evidence"] == []
+    # A day in, it is found; the harvest it would be compared by has not happened.
+    day_one = (culture.start + timedelta(days=1)).isoformat()
+    found = finding_of(client, "BL-0006", "inoculation_density_shortfall", as_of=day_one)
+    assert found["observation"]["value"] > 50
+    assert found["consequence"]["difference"] is None
+    assert [group["at"] for group in found["evidence"]] == ["seed_n1_end"]
+
+
 @pytest.mark.parametrize("batch_id", ["BL-0002", "BL-0003"])
 def test_batches_with_a_normal_capture_step_get_no_recovery_shortfall(seeded, client, batch_id):
-    for kind in FINDINGS[1:]:
+    for kind in FINDINGS[2:]:
         observation = finding_of(client, batch_id, kind)["observation"]
         assert (observation["status"], observation["value"]) == ("usable", None)
         assert codes(observation) == ["within_reference"]
@@ -648,7 +695,8 @@ def test_the_badly_recorded_batch_is_flagged_everywhere_and_answered_nowhere_it_
     assert found["protein_a_recovery"]["status"] == "usable"
     # No number, so no difference from the reference either.
     assert found["ivcd"]["difference"] is None and found["harvest_mass"]["difference"] is None
-    titer, step_yield, recovery, *later = findings_of(client, "BL-0005")
+    titer, started, step_yield, recovery, *later = findings_of(client, "BL-0005")
+    assert codes(started["observation"]) == ["inoculation_within_reference"]
     assert all(codes(f["observation"]) == ["within_reference"] for f in later)
     assert (titer["observation"]["status"], titer["observation"]["value"]) == ("invalid", None)
     assert codes(titer["observation"]) == ["times_not_increasing"]

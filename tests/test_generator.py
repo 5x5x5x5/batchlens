@@ -50,9 +50,9 @@ def test_different_seeds_differ():
     assert first.online != second.online
 
 
-def test_five_batches_run_one_after_another_on_the_same_bioreactor(campaign):
+def test_six_batches_run_one_after_another_on_the_same_bioreactor(campaign):
     batches, _ = campaign
-    assert sorted(batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
+    assert sorted(batches) == [f"BL-000{n}" for n in range(1, 7)]
     windows = []
     for observations in batches.values():
         kinds = [phase.kind for phase in observations.record.phases]
@@ -72,13 +72,7 @@ def test_five_batches_run_one_after_another_on_the_same_bioreactor(campaign):
             assert culture.start <= points[0][0] and points[-1][0] <= culture.end
     windows.sort()
     assert all(end < start for (_, end), (start, _) in zip(windows, windows[1:]))
-    assert [o.record.batch.is_reference for o in batches.values()] == [
-        True,
-        False,
-        False,
-        False,
-        False,
-    ]
+    assert [o.record.batch.is_reference for o in batches.values()] == [True, *[False] * 5]
 
 
 def test_the_data_problem_batch_has_a_normal_culture_recorded_badly(campaign):
@@ -187,9 +181,14 @@ def test_a_batch_begins_with_two_seed_passages_whose_growth_rates_are_recovered(
                 result_id.startswith(f"{batch_id}-{kind[-2:].upper()}-")
                 for result_id in rate.inputs
             )
-        # Every demo batch was seeded at the target density.
-        assert truth[batch_id].inoculation_density == 0.5
-        assert found["inoculation_density"].value == pytest.approx(0.5 * 1.03, rel=0.1)
+        # Every demo batch but the low-inoculum one was seeded at the target density.
+        target = (
+            0.5 if truth[batch_id].scenario != "low_inoculum" else pytest.approx(0.19, abs=0.01)
+        )
+        assert truth[batch_id].inoculation_density == target
+        assert found["inoculation_density"].value == pytest.approx(
+            truth[batch_id].inoculation_density * 1.03, rel=0.1
+        )
 
 
 def test_a_slow_last_passage_starts_the_culture_with_fewer_cells_not_less_per_cell(campaign):

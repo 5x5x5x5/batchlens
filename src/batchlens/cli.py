@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     seed.add_argument(
         "--live",
         action="store_true",
-        help="The live campaign: the same batches ending before a sixth that is running now.",
+        help="The live campaign: the same batches ending before one more that is running now.",
     )
     bench = commands.add_parser(
         "benchmark",
