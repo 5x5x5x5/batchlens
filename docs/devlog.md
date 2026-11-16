@@ -3,6 +3,47 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: Phase 3, the pages
+
+- **Planned:** the batch list and batch detail pages on `@plantcraft/ui`, the banner, both
+  languages, a Vitest test per page and one browser journey.
+- **Built:** `BatchesPage.tsx`, `BatchPage.tsx`, `DemoBanner.tsx`, `words.ts` (ids and reason
+  codes into words), `format.ts` (display rounding only), `when.tsx` (times and the zone line);
+  100 interface strings in Brazilian Portuguese; two browser journeys; the documents
+  (`README.md`, `SPEC.md`, `ROADMAP.md`, `docs/demo.md`, the help pages, `docs/structure.md`).
+- **Where the code disagreed with the kickoff:**
+  - `Plot` is not exported from the package root. The chart (`TimeChart`) is on the subpath
+    `@plantcraft/ui/plot` and needs the app to install `react-plotly.js` and
+    `plotly.js-cartesian-dist-min`. The owner approved adding both (asked, as a new npm
+    dependency). Their type packages `@types/plotly.js` and `@types/react-plotly.js` came with
+    them as build-only dependencies, as in PlantCraft's own apps. `react-plotly.js` also makes
+    npm install its peer `plotly.js` (about 220 packages in the lockfile); it is not bundled.
+  - `PeriodPicker` is not used: a batch's chart always spans its production phase.
+- **Rulings:**
+  - The sidebar shows the short name "Batchlens": the frame clips "BatchlensCraft" at the
+    "Larger text" display size and the template's display-size test fails on it. The manifest
+    name is unchanged (`docs/gaps.md`).
+  - Two journeys instead of one: none of the four batches has a flagged metric when the whole
+    synthetic plant is served, so the second journey runs against a PlantCraft whose
+    bioreactor has no volume signal and reads the reason on the page.
+  - Metrics show three significant digits, harvest mass four; a difference is shown no finer
+    than the coarser of the two values beside it.
+  - Batch detail lists the pool measurements, and each metric row lists its input ids.
+  - The Dockerfile's description label follows the new `app.toml` summary (a suite test
+    requires them to agree).
+- **Failed, and how it was resolved:** dates were first asserted in a form the suite's
+  formatter does not use (it writes "Jul 1, 2026, 6:00 AM UTC" in this locale); a row locator
+  matched two rows because another metric's reason quotes the metric's name (anchored).
+- **Seen in the browser** (`docs/images/first-slice/`): `1-batches.png` the list with four
+  batches and the reference mark; `2-batch.png` batch BL-0003 with phases, seven usable
+  metrics beside the reference, six charts and the results table; `3-missing-signal.png`
+  batch BL-0001 without a volume signal, harvest mass and yield `Insufficient` with the reason.
+- **Final checks:** `make ci` exit 0: standard and strict translations pass (100/100 and 2/2),
+  ruff clean (81 files), Vitest 16 passed, pytest 110 passed, 0 skipped (the 4 browser tests
+  now run inside `make ci` too, since Playwright is installed). `make e2e` exit 0: 4 passed.
+- **Not run:** Phase 4 (inside a live PlantCraft); `make image`, `make package`, `make lock`;
+  the GitHub workflow (no remote yet).
+
 ## 2026-11-15: Phase 2, the object, the seed and the read API
 
 - **Planned:** replace the example object with `batches`, a seed loader with a CLI command,

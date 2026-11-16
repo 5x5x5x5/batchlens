@@ -1,9 +1,9 @@
-# AGENTS.md: BatchlensCraft, the starting point for an app of your own
+# AGENTS.md: BatchlensCraft (BatchLens)
 
 This folder is a working app of the PlantCraft suite, made to be copied: **BatchlensCraft**
-(`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) keeps a note on any asset of the plant.
-It has only the parts every suite app needs, so an agent (Claude Code or another) can turn
-it into a new app in one session and try it inside the platform.
+(`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) was made from the suite's app template
+and is now BatchLens: synthetic, non-GxP mAb batch analytics (see "BatchLens rules" below and
+`README.md`). The template's rules that follow all still hold.
 
 It lives in two places: `templates/app/` of the PlantCraft repository (where CI tests it against
 the current SDK and interface) and the app template repository made from it at each release.
@@ -49,10 +49,12 @@ tools/          rename.py (`make rename`)
 | -1 | `i18n` | `t()`; anything may use it |
 | 0 | `config`, `meta` | settings from the environment; `app.toml` and the help pages |
 | 1 | `suite` | what the app sends to PlantCraft with its app key (none yet; `docs/recipes/`) |
-| 2 | `notes` | the app's object: contract (`NoteDraft`), store (`NoteStore`), rules (`NoteService`) |
-| 3 | `api`, `cli` | FastAPI app under `/batchlens`, command line |
+| 1 | `calc` | pure formulas and result types: standard library only, nothing from the app |
+| 2 | `batches` | the app's object: records, store (`BatchStore`), rules (`BatchService`) |
+| 3 | `demo`, `analysis` | the seeded generator and seed loader; metrics assembled from records |
+| 4 | `api`, `cli` | FastAPI app under `/batchlens`, command line |
 
-A new object goes in layer 2 beside `notes` (its own package: contract and store). Methods that
+A new object goes in layer 2 beside `batches` (its own package: contract and store). Methods that
 compute something (an analysis on plant signals) go in a layer between the objects and the API.
 `tests/test_suite_rules.py` enforces the table: a package imports only from lower layers.
 

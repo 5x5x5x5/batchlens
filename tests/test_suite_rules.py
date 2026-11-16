@@ -21,7 +21,7 @@ FLOORS = tomllib.loads((ROOT / "tests" / "floors.toml").read_text(encoding="utf-
 # | 0 | config, meta (the store is plantcraft_sdk.server.store) |
 # | 1 | suite (what the app sends to PlantCraft on its own; none yet, docs/recipes/) |
 # | 1 | calc (pure formulas and result types: standard library only, nothing from the app) |
-# | 2 | batches (the app's own object: records, store and service); notes until Phase 2 |
+# | 2 | batches (the app's own object: records, store and service) |
 # | 3 | demo (the seeded generator and the seed loader), analysis (metrics from records) |
 # | 4 | api, cli |
 LAYERS = {
@@ -30,7 +30,6 @@ LAYERS = {
     "meta": 0,
     "suite": 1,
     "calc": 1,
-    "notes": 2,
     "batches": 2,
     "demo": 3,
     "analysis": 3,

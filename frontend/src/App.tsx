@@ -1,7 +1,9 @@
 import { SuiteShell, signOut, useSuiteSession } from "@plantcraft/ui";
 import { useEffect, useMemo, useState } from "react";
 import { api, UNAUTHORIZED_EVENT } from "./api";
-import { NotePage, NotesPage } from "./NotesPage";
+import { BatchPage } from "./BatchPage";
+import { BatchesPage } from "./BatchesPage";
+import { DemoBanner } from "./DemoBanner";
 import { HelpView } from "./SuitePages";
 import { t } from "./i18n";
 import { href, navigate, usePath } from "./nav";
@@ -9,12 +11,11 @@ import { NAV, tourSteps } from "./pages";
 import type { Me } from "./types";
 import { ErrorBox, Loading } from "./ui";
 
-function Route({ path, me }: { path: string; me: Me }) {
+function Route({ path }: { path: string }) {
   const [, section, id] = path.split("/").map((part) => decodeURIComponent(part));
-  if (section === "notes" && id) return <NotePage key={id} noteId={id} me={me} />;
-  if (section === "assets" && id) return <NotesPage key={id} assetId={id} me={me} />;
+  if (section === "batches" && id) return <BatchPage key={id} batchId={id} />;
   if (section === "help") return <HelpView pageId={id || undefined} />;
-  if (!section) return <NotesPage me={me} />;
+  if (!section) return <BatchesPage />;
   return <ErrorBox text={t("Page not found.")} />;
 }
 
@@ -29,8 +30,10 @@ export function App() {
   const tour = useMemo(() => (me ? () => tourSteps() : undefined), [me]);
   return <SuiteShell
     app="batchlens"
-    appName="BatchlensCraft"
-    subtitle={t("Example")}
+    // The short name inside the suite (app standard, D10); the frame clips the full
+    // "BatchlensCraft" at the "Larger text" display size (docs/gaps.md).
+    appName="Batchlens"
+    subtitle={t("Synthetic demo")}
     nav={NAV.map((item) => ({ ...item, label: t(item.label) }))}
     path={path}
     href={href}
@@ -41,6 +44,7 @@ export function App() {
     version={me?.version ?? null}
     tour={tour}
   >
-    {error ? <ErrorBox text={error} /> : me ? <Route path={path} me={me} /> : <Loading />}
+    <DemoBanner />
+    {error ? <ErrorBox text={error} /> : me ? <Route path={path} /> : <Loading />}
   </SuiteShell>;
 }

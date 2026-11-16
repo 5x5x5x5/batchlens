@@ -63,7 +63,7 @@ ARG REVISION=unknown
 ARG CREATED=unknown
 
 LABEL org.opencontainers.image.title="batchlens" \
-      org.opencontainers.image.description="The smallest app of the PlantCraft suite: a note on any asset of the plant." \
+      org.opencontainers.image.description="Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery." \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.created="${CREATED}" \

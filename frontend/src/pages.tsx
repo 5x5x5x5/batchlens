@@ -1,14 +1,14 @@
 import { tourClosing, tt, type ShellNavItem, type TourStep } from "@plantcraft/ui";
-import { NotebookPen } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 
 /** The app's own pages in the suite frame (app standard, section 10); Help is the frame's own entry.
- * Notes holds each note and the asset deep link (`/assets/<id>`). */
+ * Batches holds the list and each batch's page (`/batches/<id>`). */
 export const NAV: Array<Omit<ShellNavItem, "label"> & { label: string }> = [
   {
     to: "/",
-    label: "Notes",
-    icon: <NotebookPen />,
-    match: (path) => path === "/" || path.startsWith("/notes/") || path.startsWith("/assets/"),
+    label: "Batches",
+    icon: <FlaskConical />,
+    match: (path) => path === "/" || path.startsWith("/batches/"),
   },
 ];
 
@@ -16,14 +16,14 @@ export const NAV: Array<Omit<ShellNavItem, "label"> & { label: string }> = [
 export function tourSteps(): TourStep[] {
   return [
     {
-      title: tt("Welcome to Batchlens"),
-      body: tt("Batchlens keeps notes on the plant's assets: what a person saw, did or wants the next shift to know."),
+      title: tt("Welcome to BatchLens"),
+      body: tt("BatchLens follows synthetic antibody batches from cell culture to Protein A capture. Everything here is a demonstration: synthetic data, non-GxP."),
     },
     {
       path: "/",
-      target: ".pcs-content .panel",
-      title: tt("Notes"),
-      body: tt("Every note, newest first. An editor writes one on any asset of PlantCraft's asset tree."),
+      target: ".pcs-content table",
+      title: tt("Batches"),
+      body: tt("Each batch with its bioreactor and its window. Open one to see its phases, its metrics beside the reference batch, and where each number comes from."),
     },
     tourClosing(),
   ];

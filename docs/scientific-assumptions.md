@@ -128,6 +128,17 @@ For both ratios:
 - Assumption for review: the bound is applied to the harvest-to-load yield as well as to the
   recovery.
 
+## Display
+
+Rounding happens only in the interface (`frontend/src/format.ts`); the API sends full values.
+
+- A metric is shown at the significant digits its inputs carry: three (cell counts and pool
+  concentrations are recorded to three), four for the harvest mass (titer and online volume
+  carry four). The reference value uses the same digits.
+- A difference is shown no finer than the coarser of the two values beside it.
+- A recorded value (an assay result, a pool volume) is shown as recorded, without trailing zeros.
+- Times are shown in the installation's time zone, which every page names.
+
 ## The generator's model
 
 `src/batchlens/demo/generator.py`, a deterministic function of (scenario parameters, seed) on

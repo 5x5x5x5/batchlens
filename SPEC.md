@@ -1,27 +1,75 @@
-# SPEC: BatchlensCraft
+# SPEC: BatchLens (BatchlensCraft)
 
-What the app does and the public sources it relies on (AGENTS.md, "Clean room"). An app made from
-the template replaces this file with its own.
+What the app does and the public sources it relies on (AGENTS.md, "Clean room").
 
 ## Purpose
 
-A note on any asset of PlantCraft's asset tree: the smallest object that shows every part of a
-suite app (manifest, store, API, interface, help, tests, image, package).
+A synthetic-data-only, non-GxP demonstration of mAb manufacturing analytics: for four
+synthetic batches it shows the chain from viable cell density to Protein A recovery, with every
+number traceable to its inputs. It makes no release, disposition or control decision.
+
+## Who owns what
+
+| Owner | Holds |
+|---|---|
+| PlantCraft | People, sign-in, roles, the asset tree, signals, time series, audit |
+| BatchLens (its SQLite database) | Batches, phase executions, samples, assay results, pool measurements |
+| Nobody (computed on request) | Metrics: derived from the two above each time, never stored |
 
 ## Object
 
-| Field | Rule |
+One aggregate, the batch record (`src/batchlens/batches/models.py`), in five tables.
+
+| Record | Fields |
 |---|---|
-| `note_id` | Given by the store, never by a person |
-| `asset_id` | A PlantCraft asset id; the name is read from PlantCraft when shown |
-| `text` | 1 to 4,000 characters |
-| `created_by`, `created_at`, `updated_at` | Set by the server |
+| Batch | `batch_id`, `product`, `is_reference`, `created_at` |
+| Phase execution | `phase_id`, `batch_id`, `kind` (`production_culture`, `harvest`, `protein_a_capture`), `asset_id` (PlantCraft's), `start`, `end` |
+| Sample | `sample_id`, `batch_id`, `phase_id`, `collected_at` |
+| Assay result | `result_id`, `sample_id`, `analyte`, `value`, `unit`, `method`, `result_available_at`, `validity` |
+| Pool measurement | `measurement_id`, `batch_id`, `phase_id`, `pool` (`protein_a_load`, `protein_a_eluate`), `volume`, `volume_unit`, `concentration`, `concentration_unit`, `method`, `measured_at`, `result_available_at` |
+
+Every record carries `provenance` (here always the synthetic generator and its seed). Stored
+instants are UTC. Records are loaded only by `batchlens seed-demo`; there is no create, change
+or delete route in this version.
 
 ## API
 
-`GET /api/notes`, `POST /api/notes`, `GET|PUT|DELETE /api/notes/{note_id}`, plus the standard
-`/healthz`, `/api/me`, `/api/meta`, `/api/help`.
+All read-only, all behind a PlantCraft token that grants this app; viewers and editors read alike.
+
+| Route | Answers |
+|---|---|
+| `GET /api/batches` | The batches, with reference flag, window and bioreactor |
+| `GET /api/batches/{id}` | One batch with its phase executions and pool measurements |
+| `GET /api/batches/{id}/samples?as_of=` | Samples and assay results, both timestamps on each |
+| `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference |
+| `GET /api/batches/{id}/trends?as_of=` | The bioreactor's online signals over the production phase, read from PlantCraft as the person, downsampled |
+
+`as_of` is an ISO 8601 instant (UTC without an offset): the answer holds only what was collected
+and available by then. Unknown batch 404; malformed `as_of` 422; no token 401; no access 403. A
+missing asset, signal or series in PlantCraft is HTTP 200 with the metric or trend
+`insufficient` and a reason. Plus the standard `/healthz`, `/api/me`, `/api/meta`, `/api/help`.
+
+Permissions (`app.toml`): read `assets`, `signals`, `series`; write `audit`; no plant write, no
+outbound connection.
+
+## Calculations
+
+IVCD, specific productivity, product mass at harvest, Protein A load and eluate masses,
+harvest-to-load yield and Protein A recovery: formulas, units, worked examples, statuses and
+every assumption are in [docs/scientific-assumptions.md](docs/scientific-assumptions.md).
 
 ## Sources
 
-None outside the PlantCraft suite (its app standard and SDK).
+Only public, textbook-level knowledge and the PlantCraft suite's own documents:
+
+- PlantCraft's app standard, API v1 and SDK (`docs/app-standard.md`, `docs/api-v1.md` of the
+  PlantCraft repository, Apache-2.0).
+- The trapezoidal rule for the integral of viable cell density, and specific productivity as
+  product formed per integral of viable cells: standard definitions in cell culture
+  engineering textbooks and review articles. No specific publication's data, figures or
+  parameter values are used.
+- The mass balance (mass = concentration x volume; step yield = mass out / mass in).
+
+Every number in the generator is illustrative and chosen by hand
+([docs/scientific-assumptions.md](docs/scientific-assumptions.md)); none comes from a
+publication, a facility, an employer or a client.
