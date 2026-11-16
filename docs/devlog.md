@@ -3,6 +3,36 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The benchmark and the verification report
+
+Branch `benchmark`. Pull request 5 was merged on local `make ci` and `make e2e` alone: its
+GitHub run failed at checkout ("Repository not found", GitHub's side) and the re-run sat in
+the queue.
+
+- **Built:** `src/batchlens/benchmark/` (layer 4, the one package outside the tests that reads
+  the ground truth), `batchlens benchmark`, `docs/verification-report.md`, and 9 tests written
+  first, one of which fails when the published report is not what the command gives.
+- **What it runs:** 20 seeds of 16 variants (normal; qP falling to 55, 70 or 85 % from day 5, 7
+  or 9; Protein A recovery of 74, 80 or 86 %; three kinds of bad records) = 320 batches, each
+  against 5 reference batches = 1,600 comparisons, in under 3 seconds.
+- **What it found:**
+  - Bad records: 0 numbers where none should be (IVCD, qP, titer finding, harvest mass, yield
+    finding), and Protein A recovery still answered for 60 of 60.
+  - Titer divergence at the default 15 %: 0 false alarms in 400; falls of qP to 55 % found
+    300 of 300 with a median delay of 1.9 days, to 70 % 84 %, to 85 % 20 %. At 5 %: 13.5 % false
+    alarms and 129 findings dated before the change began. At 10 %: 0.5 % false alarms and
+    better detection of the milder falls. The default stays at 15 %; the owner may prefer 10 %.
+  - Recovery shortfall at the default 10 points: no false alarms on either step; 74 % always
+    found, 80 % in 88 of 100, 86 % never.
+  - Calculation error against the true values: IVCD 0.7 % mean, harvest mass 1.5 % mean and
+    6.6 % at worst, which is the single final titer's assay noise.
+- **Rulings:** bad-record batches are scored on their own and left out of the tolerance
+  tables; a batch's true recovery is matched to the nearest level the benchmark set, since the
+  generator adds 0.5 % variation; the report carries no date, so it is reproducible.
+- **Honest limit, stated in the report:** the examiner and the examined share one generator.
+  The false-alarm rates are a floor.
+- **Final checks:** `make ci` exit 0 (Vitest 21 passed, pytest 172 passed, 0 skipped).
+
 ## 2026-11-16: The fifth batch: good process, bad records
 
 Branch `data-problem-batch`. The original proposal's fourth scenario: a historian or sample-data

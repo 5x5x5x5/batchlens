@@ -40,6 +40,8 @@ VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volum
 | Batches, phase executions, samples, assay results and pool measurements in the app's database | Implemented, tested |
 | Five read routes; online signals read from PlantCraft as the signed-in person | Implemented, tested against the SDK's fake PlantCraft |
 | Batch list and batch detail pages | Implemented, tested (Vitest, two browser journeys) |
+| Findings against the reference batch: titer divergence, step recovery shortfall, with evidence and no attributed cause | Implemented, tested |
+| Benchmark over 320 seeded batches, 1,600 comparisons ([docs/verification-report.md](docs/verification-report.md)) | Implemented; the report is regenerated and compared by a test |
 | Running inside a live PlantCraft | Verified once on PlantCraft 0.6.0 (local `make dev`): after an administrator imports the files of `batchlens demo-plant`, all metrics and trends are served from PlantCraft ([docs/demo.md](docs/demo.md)). Without that import the app reports the missing bioreactor |
 
 Where the app stands in detail: [docs/STATUS.md](docs/STATUS.md). What comes next:
@@ -75,7 +77,8 @@ be missing or wrong).
 | `src/batchlens/calc/` | The formulas and the result type. Standard library only |
 | `src/batchlens/batches/` | The app's object: records, store, service |
 | `src/batchlens/demo/` | The seeded generator and the seed loader |
-| `src/batchlens/analysis/` | A batch's metrics, assembled from records and the volume signal |
+| `src/batchlens/analysis/` | A batch's metrics and findings, assembled from records and the volume signal |
+| `src/batchlens/benchmark/` | The findings scored against the generator's ground truth |
 | `src/batchlens/api/` | The routes, and what they read from PlantCraft (`plant.py`) |
 | `frontend/src/` | The two pages, on `@plantcraft/ui` |
 | `tests/` | pytest against the SDK's fake PlantCraft; `tests/e2e/` browser journeys |

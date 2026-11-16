@@ -38,12 +38,13 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `demo/seed.py` | `seed_demo`: loads the four demo batches into the store |
 | `demo/plant.py` | The synthetic plant, defined once: the CSV and plant map a live PlantCraft imports |
 | `analysis/metrics.py` | A batch's metrics from its records and the volume signal; the comparison with the reference |
+| `benchmark/run.py`, `benchmark/report.py` | The findings scored against ground truth over many seeded batches; the verification report |
 | `api/runtime.py` | `Runtime`: one server's settings, database, services and PlantCraft clients |
 | `api/deps.py` | Who may do what (`CurrentUser`) and shared checks (`batch_or_404`) |
 | `api/plant.py` | What the pages read from PlantCraft as the person: asset names, volume, trends |
 | `api/routers/batches.py` | The five read routes |
 | `api/app.py` | `create_app()`: the suite's standard endpoints plus the routers and the built interface |
-| `cli.py` | `batchlens serve`, `check`, `seed-demo` and `demo-plant` |
+| `cli.py` | `batchlens serve`, `check`, `seed-demo`, `demo-plant` and `benchmark` |
 
 ### Layers
 
@@ -58,7 +59,8 @@ fails on an import that points up.
 | 1 | `calc` | pure functions and result types: standard library only, nothing from the app |
 | 2 | `batches` | the app's object: records, store, service |
 | 3 | `demo`, `analysis` | the generator and seed loader; metrics assembled from records |
-| 4 | `api`, `cli` | the entry points |
+| 4 | `benchmark` | scores the analysis against the generator's ground truth |
+| 5 | `api`, `cli` | the entry points |
 
 Routers stay thin and only the service touches the store. Formulas live in `calc` only: never
 in the interface, a router or a store.
@@ -90,6 +92,7 @@ in the interface, a router or a store.
 | `plant.py`, `conftest.py` | A fake PlantCraft with the suite's test plant plus the synthetic bioprocess plant, and four people; a runtime and a client wired to it |
 | `test_calc.py` | Each formula against a hand-calculated oracle; each failure status |
 | `test_divergence.py` | The titer divergence rule against hand-worked cases |
+| `test_benchmark.py` | The benchmark's counts and invariants; the published report is what it gives today |
 | `test_generator.py` | Determinism, internal consistency, the scenarios, no ground truth in what the app sees |
 | `test_demo_plant.py` | The plant files: every value at its time, the time zone, the map, agreement with the fake |
 | `test_batches.py` | The store, the seed, each route, `as_of`, what PlantCraft lacks, scope between batches |
