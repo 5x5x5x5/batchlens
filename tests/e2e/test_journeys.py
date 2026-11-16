@@ -126,6 +126,32 @@ def test_a_badly_recorded_batch_is_flagged_not_answered(signed_in, app_url, scre
     _shot(page, screenshots, "5-bad-records")
 
 
+def test_going_back_in_time_shows_only_what_was_known_then(signed_in, app_url, screenshots):
+    page = signed_in
+    page.goto(f"{app_url}/batchlens/batches/BL-0003")
+    findings = page.locator('[data-section="findings"]')
+    expect(findings).to_contain_text("Titer left the reference batch at culture day 7.9")
+    expect(page.get_by_text("Showing everything recorded.")).to_be_visible()
+    # Culture day 6 (24 steps of 6 hours): before the titer left the reference.
+    page.get_by_label("What was known when").fill("24")
+    expect(
+        page.get_by_text(
+            re.compile("Showing only what had been collected and reported by Aug 18, 2026")
+        )
+    ).to_be_visible()
+    expect(findings).to_contain_text("Titer stayed within 15 % of the reference batch")
+    expect(findings).not_to_contain_text("Titer left the reference batch")
+    metrics = page.locator('[data-section="metrics"]')
+    harvest = metrics.get_by_role("row", name=re.compile("^Product mass at harvest"))
+    expect(harvest).to_contain_text("The production phase had not ended.")
+    # Day 6's own titer was reported a day later: it is not in the list yet.
+    results = page.locator('[data-section="results"]')
+    expect(results.get_by_text(re.compile(r"1[–-]25 of \d+"))).to_be_visible()
+    _shot(page, screenshots, "6-as-of-day-6")
+    page.get_by_role("button", name="Show everything").click()
+    expect(findings).to_contain_text("Titer left the reference batch at culture day 7.9")
+
+
 def test_a_metric_that_needs_a_missing_signal_says_why(signed_in_without_volume, screenshots):
     page, url = signed_in_without_volume
     page.goto(f"{url}/batchlens/batches/BL-0001")

@@ -27,6 +27,8 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   tolerance below the reference's; the other results of a divergence's samples as evidence
   beside the reference's; the reference batch drawn over the VCD and titer charts at the
   same culture age (`align_to` on the samples route).
+- An as-of slider on the batch page: the whole page as it stood at an earlier moment. In an
+  as-of view later samples, pools and phases do not exist, and a phase in progress has no end.
 - `tools/run_demo.sh` runs the whole demo inside a local PlantCraft in one command. The
   template's guides, recipes and prompts are removed (they are in the template's repository);
   two case studies and a tour are added.

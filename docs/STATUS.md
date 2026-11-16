@@ -8,14 +8,13 @@ Where the app stands, for people and agents picking up work here. Updated 2026-1
   inside a live PlantCraft (`tools/run_demo.sh`); three findings per compared batch with
   evidence and a reference overlay; a fifth, badly recorded batch that is flagged, not
   answered; the benchmark and `docs/verification-report.md`; `make lock` and `make image`; the
-  documents cleaned up for publication, with a tour and two case studies. Counts in
+  documents cleaned up for publication, with a tour and two case studies; an as-of slider on the batch page. Counts in
   `docs/devlog.md`.
 - **Waiting for the owner:** making the repository public. It exposes the commit author's
   email address in the history, so that step is the owner's.
-- **Next tasks, in order** (the optional extensions of `ROADMAP.md`): (1) an as-of control in
-  the interface, so "what was known on day 6" can be shown by clicking; (2) editing with audit
-  (a sample's collection time, the reference designation); (3) batch genealogy and cumulative
-  recovery across the rest of downstream; (4) read-only assistant tools over the verified
+- **Next tasks, in order** (the optional extensions of `ROADMAP.md`): (1) editing with audit
+  (a sample's collection time, the reference designation); (2) batch genealogy and cumulative
+  recovery across the rest of downstream; (3) read-only assistant tools over the verified
   calculations.
 - **Blockers:** none. Known gaps: `docs/gaps.md`.
 - **Careful:** `var/` at the root is the app's default data folder and also holds the owner's

@@ -13,6 +13,9 @@ on the reference batch, the one the others are compared with. Open a batch from 
 
 ## One batch
 
+- **What was known when**: drag the slider to see the batch as it stood at an earlier moment.
+  Everything below then shows only what had been collected and reported by then. A result
+  reported later is not used, even if its sample was taken before.
 - **Phase executions**: what happened on which asset, and when. A batch is a window on shared
   equipment: the same bioreactor carries one batch after another.
 - **Findings** (not on the reference batch): where this batch's titer left the reference

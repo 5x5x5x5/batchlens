@@ -3,6 +3,23 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The as-of slider
+
+Branch `as-of-control`. First of the optional extensions.
+
+- **Built:** a slider on the batch page over the span in which anything about the batch became
+  known (the detail route now gives that span), in 6-hour steps; every read of the page takes
+  the chosen instant as `as_of`. Tests first: 2 API, 2 Vitest, 1 browser journey.
+- **Found by looking at the page, and fixed:** the as-of view knew the future in two ways. A
+  metric named as "not yet available" the results of samples that had not been collected yet,
+  and the phase table showed end times that had not happened. Now a sample collected after
+  `as_of`, a pool measured after it and a phase not yet begun do not exist in that view, and a
+  phase in progress has no end. The detail route takes `as_of` too.
+- **Rulings:** the slider's last position means "everything recorded" (no `as_of`); the span
+  itself, which the slider needs, is the one thing the as-of view is told about the future.
+- **Final checks:** `make ci` exit 0 (Vitest 23 passed, pytest 175 passed, 0 skipped);
+  `make e2e` exit 0 (7 passed).
+
 ## 2026-11-16: Packaging, a one-command demo, and the documents for publication
 
 Branch `packaging`.

@@ -4,15 +4,16 @@ import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BatchDetail, BatchList, Metrics, Samples, Trends } from "./types";
 
+const calls = vi.hoisted(() => [] as string[]);
 const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown, reference: null as unknown }));
 vi.mock("./api", () => ({
   UNAUTHORIZED_EVENT: "unauthorized",
   api: {
     batches: () => Promise.resolve(answers.list),
-    batch: () => Promise.resolve(answers.detail),
-    metrics: () => Promise.resolve(answers.metrics),
-    samples: (_batch: string, alignTo?: string) => Promise.resolve(alignTo ? answers.reference : answers.samples),
-    trends: () => Promise.resolve(answers.trends),
+    batch: (_batch: string, asOf?: string) => { calls.push(`batch:${asOf ?? ""}`); return Promise.resolve(answers.detail); },
+    metrics: (_batch: string, asOf?: string) => { calls.push(`metrics:${asOf ?? ""}`); return Promise.resolve(answers.metrics); },
+    samples: (_batch: string, asOf?: string, alignTo?: string) => { calls.push(`samples:${asOf ?? ""}:${alignTo ?? ""}`); return Promise.resolve(alignTo ? answers.reference : answers.samples); },
+    trends: (_batch: string, asOf?: string) => { calls.push(`trends:${asOf ?? ""}`); return Promise.resolve(answers.trends); },
   },
 }));
 // The chart needs Plotly and a real layout: the page test only checks what it is given.
@@ -45,6 +46,7 @@ const LIST: BatchList = {
 const DETAIL: BatchDetail = {
   time_zone: "UTC",
   batch: { batch_id: "BL-0002", product: "mAb-X (synthetic)", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102" },
+  as_of: null, timeline: { start: "2026-07-22T06:00:00.000Z", end: "2026-08-06T10:00:00.000Z" },
   phases: [
     { phase_id: "BL-0002-P1", batch_id: "BL-0002", kind: "production_culture", asset_id: "BR-2001", start: "2026-07-22T06:00:00.000Z", end: "2026-08-05T12:00:00.000Z", provenance: "p", asset_name: null },
     { phase_id: "BL-0002-P3", batch_id: "BL-0002", kind: "protein_a_capture", asset_id: "CH-3001", start: "2026-08-05T22:00:00.000Z", end: "2026-08-06T08:00:00.000Z", provenance: "p", asset_name: "Protein A chromatography skid" },
@@ -121,7 +123,7 @@ const REFERENCE: Samples = {
   })),
 };
 
-beforeEach(() => { Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS, reference: REFERENCE }); });
+beforeEach(() => { calls.length = 0; Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS, reference: REFERENCE }); });
 
 describe("the frame's pages", () => {
   it("Batches holds the list and each batch's page", () => {
@@ -163,6 +165,14 @@ describe("the batch list", () => {
 });
 
 describe("one batch", () => {
+  it("shows a phase that has not ended as in progress", async () => {
+    answers.detail = { ...DETAIL, as_of: "2026-07-28T06:00:00.000Z", phases: [{ ...DETAIL.phases[0], end: null }], pools: [] };
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    const phases = host.querySelector('[data-section="phases"]')!;
+    expect(phases.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(phases.textContent).toContain("In progress");
+  });
+
   it("shows the phase executions on their assets", async () => {
     const host = await render(<BatchPage batchId="BL-0002" />);
     const phases = host.querySelector('[data-section="phases"]')!;
@@ -283,6 +293,30 @@ describe("one batch", () => {
     expect(charts.map((chart) => chart?.split("|")[0])).toEqual(["pH:2", "Viable cell density:2", "Titer:2"]);
     const trends = host.querySelector('[data-section="trends"]')!;
     expect(trends.textContent).toContain("BR-2001 has no volume signal in PlantCraft.");
+  });
+
+  it("shows only what was known at a chosen time, and goes back to everything", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" />);
+    expect(calls).toEqual(["batch:", "metrics:", "samples::", "trends:", "samples::BL-0002"]);
+    expect(host.textContent).toContain("Showing everything recorded.");
+    const slider = host.querySelector('input[type="range"]') as HTMLInputElement;
+    // The span is 15 days and 4 hours, in steps of 6 hours: positions 0 to 61.
+    expect([slider.min, slider.max, slider.value]).toEqual(["0", "61", "61"]);
+    calls.length = 0;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(slider, "24");
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    // 24 steps of 6 hours after the start: 2026-07-28 06:00 UTC, sent to every read.
+    const asOf = "2026-07-28T06:00:00.000Z";
+    expect(calls).toEqual([`batch:${asOf}`, `metrics:${asOf}`, `samples:${asOf}:`, `trends:${asOf}`, `samples:${asOf}:BL-0002`]);
+    expect(host.textContent).toContain("Showing only what had been collected and reported by Jul 28, 2026, 6:00 AM UTC");
+    calls.length = 0;
+    await act(async () => { (host.querySelector('[data-action="show-everything"]') as HTMLButtonElement).click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(calls).toEqual(["batch:", "metrics:", "samples::", "trends:", "samples::BL-0002"]);
+    expect(host.textContent).toContain("Showing everything recorded.");
   });
 
   it("shows the server's words when the batch does not exist", async () => {

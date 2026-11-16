@@ -14,6 +14,9 @@ referência, aquele com que os outros são comparados. Abra um lote pelo seu ide
 
 ## Um lote
 
+- **O que se sabia em cada momento**: arraste o controle para ver o lote como estava em um
+  momento anterior. Tudo abaixo mostra então apenas o que havia sido coletado e reportado até
+  ali. Um resultado reportado depois não é usado, mesmo que a amostra seja anterior.
 - **Execuções de fase**: o que aconteceu em qual ativo, e quando. Um lote é uma janela em
   equipamento compartilhado: o mesmo biorreator recebe um lote depois do outro.
 - **Constatações** (não no lote de referência): onde o título deste lote se afastou do título

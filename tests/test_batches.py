@@ -542,9 +542,12 @@ def test_the_reference_batch_is_not_compared_with_itself(seeded, client):
 
 def test_a_finding_uses_only_what_was_available_at_as_of(seeded, client):
     culture = CAMPAIGN["BL-0003"].record.phases[0]
-    # Day 6: before the titer left the reference, and before day 6's own titer came in.
+    # Day 6.5: before the titer left the reference, and before day 6's own titer came in.
     early = finding_of(
-        client, "BL-0003", "titer_divergence", as_of=(culture.start + timedelta(days=6)).isoformat()
+        client,
+        "BL-0003",
+        "titer_divergence",
+        as_of=(culture.start + timedelta(days=6.5)).isoformat(),
     )
     assert early["observation"]["value"] is None
     assert codes(early["observation"]) == ["no_divergence", "result_not_yet_available"]
@@ -627,3 +630,57 @@ def test_the_hole_in_the_historian_shows_in_the_trends_as_missing_values(seeded,
         # Nothing is drawn across the hole: no value, or no point at all.
         assert all(v is None for t, v in values.items() if t >= hole)
         assert sum(v is None for v in signal["v"]) >= 15  # about 20 h at 69 min a step
+
+
+# The span an as-of control moves over ------------------------------------------------------------
+
+
+def test_a_batch_says_from_when_to_when_anything_about_it_became_known(seeded, client):
+    record = CAMPAIGN["BL-0003"].record
+    timeline = client.get("/api/batches/BL-0003").json()["timeline"]
+    assert instant(timeline["start"]) == record.phases[0].start
+    last_known = max(
+        [phase.end for phase in record.phases]
+        + [result.result_available_at for result in record.results]
+        + [pool.result_available_at for pool in record.pools]
+    )
+    assert instant(timeline["end"]) == last_known
+    # At the end of the span everything is known: the same answer as without as_of.
+    whole = client.get("/api/batches/BL-0003/metrics").json()
+    at_end = client.get("/api/batches/BL-0003/metrics", params={"as_of": timeline["end"]}).json()
+    assert at_end["metrics"] == whole["metrics"] and at_end["findings"] == whole["findings"]
+
+
+def test_an_as_of_view_does_not_know_the_future(seeded, client):
+    record = CAMPAIGN["BL-0003"].record
+    culture = record.phases[0]
+    as_of = culture.start + timedelta(days=6.5)  # day 6's sample is taken, its titer not reported
+    params = {"as_of": as_of.isoformat()}
+    # Samples collected after as_of do not exist yet: no metric or finding names them.
+    answer = client.get("/api/batches/BL-0003/metrics", params=params).json()
+    collected = {s.sample_id: s.collected_at for s in record.samples}
+    named = [
+        result_id
+        for item in [*answer["metrics"], *(f["observation"] for f in answer["findings"])]
+        for reason in item["reasons"]
+        for result_id in reason["values"].get("ids", [])
+    ]
+    assert named, "day 6's own titer is collected and still pending: it is named"
+    assert all(collected[i.rsplit("-", 1)[0]] <= as_of for i in named if i.startswith("BL-0003"))
+    # The batch itself: the culture is in progress, the later phases have not begun, and no
+    # pool has been measured.
+    detail = client.get("/api/batches/BL-0003", params=params).json()
+    assert instant(detail["as_of"]) == as_of
+    [phase] = detail["phases"]
+    assert (phase["kind"], phase["end"]) == ("production_culture", None)
+    assert detail["pools"] == []
+    # After everything: all three phases with their ends, both pools.
+    whole = client.get("/api/batches/BL-0003").json()
+    assert whole["as_of"] is None and len(whole["phases"]) == 3 and len(whole["pools"]) == 2
+    assert all(phase["end"] for phase in whole["phases"])
+    assert client.get("/api/batches/BL-0003", params={"as_of": "soon"}).status_code == 422
+    # The list is not an as-of view: it has no as_of.
+    before = client.get(
+        "/api/batches/BL-0003", params={"as_of": (culture.start - timedelta(days=1)).isoformat()}
+    )
+    assert before.status_code == 200 and before.json()["phases"] == []

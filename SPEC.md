@@ -39,7 +39,7 @@ All read-only, all behind a PlantCraft token that grants this app; viewers and e
 | Route | Answers |
 |---|---|
 | `GET /api/batches` | The batches, with reference flag, window and bioreactor |
-| `GET /api/batches/{id}` | One batch with its phase executions and pool measurements |
+| `GET /api/batches/{id}?as_of=` | One batch with its phase executions and pool measurements, and the span over which anything about it became known |
 | `GET /api/batches/{id}/samples?as_of=&align_to=` | Samples and assay results, both timestamps on each, and each sample's culture day; with `align_to`, also the instant of the same culture age on another batch's timeline |
 | `GET /api/batches/{id}/metrics?as_of=` | Every metric as a result object, the reference batch's value and the difference; and `findings` against the reference batch (titer divergence, and a shortfall of each step recovery), each with an `observation` (a result object), a `consequence`, `evidence` and a `cause` that is always null |
 | `GET /api/batches/{id}/trends?as_of=` | The bioreactor's online signals over the production phase, read from PlantCraft as the person, downsampled |

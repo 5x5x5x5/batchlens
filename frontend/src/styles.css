@@ -12,3 +12,7 @@
 [data-section] .panel { margin-bottom: calc(12px * var(--pc-space-scale, 1)); }
 [data-section] .panel h3 { margin: 0 0 var(--pc-space-2); font-size: var(--pc-fs-base); }
 [data-section] .panel h4 { margin: var(--pc-space-3) 0 var(--pc-space-2); font-size: var(--pc-fs-sm); }
+/* The as-of slider takes the panel's width; its sentence sits under it. */
+.as-of label { display: grid; gap: var(--pc-space-2); font-weight: 600; }
+.as-of input[type="range"] { width: 100%; }
+.as-of p { margin: var(--pc-space-2) 0 0; }

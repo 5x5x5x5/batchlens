@@ -30,7 +30,7 @@ function Phases({ detail }: { detail: BatchDetail }) {
       { key: "phase", label: t("Phase"), render: (phase) => phaseName(phase.kind) },
       { key: "asset", label: t("Asset"), render: (phase) => phase.asset_name ?? <>{phase.asset_id}<NotInPlantCraft /></> },
       { key: "start", label: t("Start"), render: (phase) => when(phase.start) },
-      { key: "end", label: t("End"), render: (phase) => when(phase.end) },
+      { key: "end", label: t("End"), render: (phase) => (phase.end ? when(phase.end) : <span className="muted">{t("In progress")}</span>) },
     ]} />;
 }
 
@@ -159,6 +159,27 @@ function TrendCharts({ trends, samples, reference }: { trends: Trends; samples: 
   </Suspense>;
 }
 
+const AS_OF_STEP_MS = 6 * 3600 * 1000;
+
+/** Move through the batch's history: everything below shows only what had been collected and
+ * reported by the chosen instant. The server does the filtering (`as_of` on every route). */
+function AsOfControl({ timeline, asOf, onChange }: { timeline: BatchDetail["timeline"]; asOf: string | null; onChange: (asOf: string | null) => void }) {
+  if (!timeline.start || !timeline.end) return null;
+  const start = Date.parse(timeline.start);
+  const last = Math.ceil((Date.parse(timeline.end) - start) / AS_OF_STEP_MS);
+  const position = asOf ? Math.round((Date.parse(asOf) - start) / AS_OF_STEP_MS) : last;
+  const choose = (value: number) => onChange(value >= last ? null : new Date(start + value * AS_OF_STEP_MS).toISOString());
+  return <div className="panel as-of">
+    <label>{t("What was known when")}
+      <input type="range" min={0} max={last} step={1} value={position} onChange={(event) => choose(Number(event.target.value))} />
+    </label>
+    <p className={asOf ? "notice" : "muted"}>
+      {asOf ? t("Showing only what had been collected and reported by {when}. A result reported later is not used, even if its sample was taken before.", { when: when(asOf) }) : t("Showing everything recorded.")}
+      {asOf && <> <button type="button" className="button button-small" data-action="show-everything" onClick={() => onChange(null)}>{t("Show everything")}</button></>}
+    </p>
+  </div>;
+}
+
 function Results({ samples }: { samples: Samples }) {
   const rows = samples.samples.flatMap((sample) => sample.results.map((result) => ({ ...result, collected_at: sample.collected_at })));
   return <DataTable rows={rows} rowKey={(row) => row.result_id} label={t("Assay results")}
@@ -175,16 +196,18 @@ function Results({ samples }: { samples: Samples }) {
 
 export function BatchPage({ batchId }: { batchId: string }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [asOf, setAsOf] = useState<string | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
-    Promise.all([api.batch(batchId), api.metrics(batchId), api.samples(batchId), api.trends(batchId)])
+    const at = asOf ?? undefined;
+    Promise.all([api.batch(batchId, at), api.metrics(batchId, at), api.samples(batchId, at), api.trends(batchId, at)])
       .then(async ([detail, metrics, samples, trends]) => {
         // The reference batch's samples, laid over this batch at the same culture age.
-        const reference = metrics.reference_batch_id ? await api.samples(metrics.reference_batch_id, batchId) : null;
+        const reference = metrics.reference_batch_id ? await api.samples(metrics.reference_batch_id, at, batchId) : null;
         setLoaded({ detail, metrics, samples, trends, reference });
       })
       .catch((err) => setError(message(err)));
-  }, [batchId]);
+  }, [batchId, asOf]);
   useInstallationZone(loaded?.detail.time_zone);
   if (error) return <ErrorBox text={error} />;
   if (!loaded) return <Loading />;
@@ -196,6 +219,7 @@ export function BatchPage({ batchId }: { batchId: string }) {
     <Heading title={t("Batch {batch}", { batch: detail.batch.batch_id })} />
     <p className="muted">{detail.batch.product} · {reference} · {detail.batch.provenance}</p>
     <ZoneNote />
+    <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
     <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><Phases detail={detail} /></Section>
     {metrics.findings.length > 0 && <Section id="findings" title={t("Findings")} detail={t("This batch against the reference batch. Tolerances are illustrative settings, not limits.")}>
       {metrics.findings.map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}

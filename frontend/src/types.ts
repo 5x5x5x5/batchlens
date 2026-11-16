@@ -15,14 +15,19 @@ export interface BatchRow extends Batch {
 
 export interface BatchList { time_zone: string; batches: BatchRow[] }
 
-export interface Phase { phase_id: string; batch_id: string; kind: string; asset_id: string; start: string; end: string; provenance: string; asset_name: string | null }
+/** `end` is null in an as-of view of a phase that had not ended yet. */
+export interface Phase { phase_id: string; batch_id: string; kind: string; asset_id: string; start: string; end: string | null; provenance: string; asset_name: string | null }
 
 export interface Pool {
   measurement_id: string; batch_id: string; phase_id: string; pool: string; volume: number; volume_unit: string;
   concentration: number; concentration_unit: string; method: string; measured_at: string; result_available_at: string; provenance: string;
 }
 
-export interface BatchDetail { time_zone: string; batch: Batch; phases: Phase[]; pools: Pool[] }
+export interface BatchDetail {
+  time_zone: string; as_of: string | null; batch: Batch; phases: Phase[]; pools: Pool[];
+  /** From the batch's start to the last moment anything about it became known. */
+  timeline: { start: string | null; end: string | null };
+}
 
 /** Why a result is as it is: a code and the values involved (words in words.ts). */
 export interface Reason { code: string; values: Record<string, unknown> }
