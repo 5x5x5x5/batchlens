@@ -12,11 +12,13 @@ Known gaps, with the date they were found.
 | 2026-11-15 | Viewer access was not checked in a live PlantCraft: its local demo has only admins. Covered by tests on the fake only. | Open |
 | 2026-11-15 | In `make dev` the launcher names the app "batchlens" (its id): an app registered by address has no display name. A packaged install reads the name from `app.toml`; not tried. | Open |
 | 2026-11-15 | The frame clips the full name "BatchlensCraft" in the sidebar at the "Larger text" display size (the template's display-size test fails on it). The sidebar shows the short name "Batchlens"; the manifest name is unchanged. Belongs upstream. | Worked around |
-| 2026-11-15 | The template's guides (`docs/quickstart.md`, `backend.md`, `data.md`, `frontend.md`, `testing.md`, the recipes) and `prompts/` still describe the template's notes example, which this app no longer has. | Open |
+| 2026-11-15 | The template's guides and `prompts/` described the template's notes example, which this app no longer has. | Closed 2026-11-16: removed; they live in the template's repository |
 | 2026-11-15 | Recorded values are shown without trailing zeros (a titer of 0.300 g/L reads 0.3): the API sends numbers and the page does not know how many decimals an assay reports. | Open |
 | 2026-11-15 | No `as_of` control in the interface (out of scope for this slice); `as_of` works on the API only. | Open, planned |
 | 2026-11-15 | The metrics route reads the reference batch's volume from PlantCraft on every request, and `series`/`signal` one call each: fine for four batches, not measured at scale. | Open |
-| 2026-11-15 | The image (`make image`), the signed package and `make lock` were not run after the dependency and code changes; `deploy/requirements.lock` is the template's. | Open |
+| 2026-11-15 | The image and `make lock` had not been run. | Closed 2026-11-16: `make lock` (comments only changed) and `make image` pass; the image runs read-only as uid 20100, answers `/healthz`, seeds the demo and runs the benchmark |
+| 2026-11-16 | The signed package (`make dev-package`, `make package`) is not built: it needs a publisher key, and the development key is made inside the PlantCraft checkout, which this project does not modify. Installing from a package is untried. | Open |
+| 2026-11-16 | `tools/run_demo.sh` imports the plant map through PlantCraft's interface routes (`/api/session`, `/api/map/apply`), which are not API v1 and were tried on PlantCraft 0.6.0 only. | Open, stated in the script |
 | 2026-11-15 | The harvest-to-load yield inherits the full assay error of one titer result (see `docs/demo.md`: 89 to 97 % computed against about 93 % true). No uncertainty is shown beside the value. | Open |
 | 2026-11-15 | Review, minor: `analysis/metrics.py` takes the first pool measurement of a name whatever its availability. With a re-measurement it could answer `insufficient` or use a superseded value. One measurement per pool exists today. | Open |
 | 2026-11-15 | Review, minor: `calc.specific_productivity` paired titers by collection time, so two titers of one instant collapsed silently. | Closed 2026-11-16: `invalid` |

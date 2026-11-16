@@ -3,6 +3,34 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Packaging, a one-command demo, and the documents for publication
+
+Branch `packaging`.
+
+- **Packaging:** `make lock` exit 0 (only the comments changed: the template's lock named
+  another app); `make image` exit 0, `batchlens:0.2.0`, 423 MB. The image runs with a
+  read-only root as uid 20100, answers `/healthz`, answers 401 to a page request without a
+  token, seeds the demo and runs the benchmark. **Not built:** the signed package, which needs
+  a publisher key made inside the PlantCraft checkout.
+- **`tools/run_demo.sh`:** PlantCraft's local demo, the app, the five batches and the plant map
+  import in one command. Tried with a fresh workspace: source, 4 assets and 4 signals created,
+  no issues. Read back live for `BL-0001`, `BL-0003` and `BL-0005`: every metric, finding and
+  trend equals the fake's, including the 18 empty trend steps of the badly recorded batch
+  with the new trend code. The script calls two of PlantCraft's interface routes that are not
+  API v1; the app does not.
+- **Documents:** removed the template's guides, recipes and prompts (they described the
+  template's example and live in its repository) and the kickoff plan; rewrote `README.md`,
+  `docs/README.md` and `docs/demo.md` (run instructions and a five-minute tour); added
+  `docs/case-study-engineering.md` and `docs/case-study-ai-development.md`. Screenshots are
+  now `docs/images/batches.png`, `batch.png` and `findings/`; image paths named in older
+  entries below (`first-slice/`, `live-plantcraft/`) no longer exist.
+- **Not done:** the repository is still private. Publishing exposes the commit author's email
+  address, so the owner does it.
+- **GitHub CI:** the runs for pull requests 5 and 6 were still queued when this was written;
+  both were merged on local `make ci` and `make e2e`.
+- **Final checks:** `make ci` exit 0 (Vitest 21 passed, pytest 172 passed, 0 skipped);
+  `make e2e` exit 0 (6 passed).
+
 ## 2026-11-16: The benchmark and the verification report
 
 Branch `benchmark`. Pull request 5 was merged on local `make ci` and `make e2e` alone: its

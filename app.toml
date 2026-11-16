@@ -13,7 +13,7 @@ integral of viable cell density, specific productivity, product mass at harvest,
 and eluted, yield and recovery, each with its status, reasons and inputs. Synthetic data only, \
 non-GxP: not for process control, release or batch disposition."""
 # "Dev Publisher" matches PlantCraft's development key (`make dev-package`); a real release names
-# the company whose key the stack trusts (prompts/05-package-and-install.md).
+# the company whose key the stack trusts (the template's packaging guide).
 publisher = "Dev Publisher"
 license = "Apache-2.0"
 homepage = ""
@@ -48,7 +48,7 @@ results = []
 
 # What the app adds to PlantCraft's own screens (Ctrl+K search, widgets, Desk's calendar and
 # to-do, language model uses, references) and the events it writes go in [contributes] and
-# [[publishes.events]]. This template starts without any: docs/recipes/ has one recipe each.
+# [[publishes.events]]. BatchLens contributes none; the template's recipes show each one.
 
 [backup]                            # its data folder in the suite's backup (PlantCraft docs/operations.md)
 sqlite = ["batchlens.sqlite3"]

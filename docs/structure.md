@@ -8,11 +8,10 @@ Dockerfile            the image: three stages, hashed dependencies, non-root, re
 src/batchlens/          the server (Python, FastAPI on plantcraft-sdk)
 frontend/             the interface (Vite, React, TypeScript on @plantcraft/ui)
 tests/                pytest against a fake PlantCraft; tests/e2e: browser journeys
-docs/                 this documentation, the help pages (docs/help) and the app's own notes
+docs/                 the project's documents (docs/README.md) and the help pages (docs/help)
 vendor/               the plantcraft-sdk wheel and the @plantcraft/ui package, with their hashes
 deploy/               requirements.in and requirements.lock: the image's pinned dependencies
-prompts/              prompts for a coding agent: new app, add an object, add a page, try, package
-tools/rename.py       make rename
+tools/                run_demo.sh (the whole demo locally); rename.py (the template's)
 .github/workflows/    ci.yml: make ci on every push and pull request
 AGENTS.md, CLAUDE.md  the rules, for people and for coding agents
 SPEC.md, ROADMAP.md   what the app does and its public sources; what comes next
@@ -25,7 +24,7 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | File | What it does |
 |---|---|
 | `__init__.py` | `APP_ID` and `__version__` |
-| `i18n.py`, `locales/` | `t()` and the server's translations ([translations.md](translations.md)) |
+| `i18n.py`, `locales/` | `t()` and the server's translations |
 | `config.py` | `Settings`: every setting from the environment, each with a safe default |
 | `meta.py` | Reads `app.toml` and the help pages for `/api/meta` and `/api/help` |
 | `calc/results.py` | The result type, its statuses and reasons, and the input types |

@@ -27,6 +27,9 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   tolerance below the reference's; the other results of a divergence's samples as evidence
   beside the reference's; the reference batch drawn over the VCD and titer charts at the
   same culture age (`align_to` on the samples route).
+- `tools/run_demo.sh` runs the whole demo inside a local PlantCraft in one command. The
+  template's guides, recipes and prompts are removed (they are in the template's repository);
+  two case studies and a tour are added.
 - `batchlens benchmark` scores the findings against the generator's ground truth over 320
   seeded batches and writes `docs/verification-report.md`; a test keeps the published report
   equal to what the command gives.
