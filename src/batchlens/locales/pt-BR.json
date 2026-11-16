@@ -1,4 +1,4 @@
 {
-  "No asset {asset} in PlantCraft.": "Não há ativo {asset} no PlantCraft.",
-  "Note not found.": "Nota não encontrada."
+  "Batch not found.": "Lote não encontrado.",
+  "as_of is an ISO 8601 time, like 2026-07-06T06:00:00Z.": "as_of é um instante ISO 8601, como 2026-07-06T06:00:00Z."
 }

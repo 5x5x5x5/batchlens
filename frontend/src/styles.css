@@ -5,6 +5,9 @@
 @import "@plantcraft/ui/base.css";
 
 
-/* The note form: the text takes the whole row, the button sits under the fields. */
-.form-wide { grid-column: 1 / -1; }
-.form-actions { margin-top: calc(14px * var(--pc-space-scale, 1)); }
+/* The demo banner: one line, the same on every page. */
+.demo-banner { font-weight: 600; letter-spacing: 0.02em; text-align: center; }
+/* A section of the batch page: its title, then its table or charts. */
+[data-section] { margin-top: calc(22px * var(--pc-space-scale, 1)); }
+[data-section] .panel { margin-bottom: calc(12px * var(--pc-space-scale, 1)); }
+[data-section] .panel h3 { margin: 0 0 var(--pc-space-2); font-size: var(--pc-fs-base); }

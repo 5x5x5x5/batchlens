@@ -4,6 +4,23 @@ All notable changes to this app are recorded here ([Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app template 0.2.0
+(`dc365ec`); the entries below this one are the template's own history.
+
+- The template's example object is replaced by batches: batch, phase executions, samples,
+  assay results and pool measurements in the app's database, loaded by `batchlens seed-demo`.
+- Pure calculations with one result shape (value, unit, status, reasons, inputs, version):
+  IVCD, specific productivity, product mass at harvest, Protein A load and eluate masses,
+  harvest-to-load yield, Protein A recovery; all honour `as_of` (no look-ahead).
+- A seeded generator of four synthetic batches on one bioreactor, its ground truth kept apart.
+- Five read routes under `/api/batches`; online signals are read from PlantCraft as the person,
+  and a missing asset or signal is an `insufficient` result with its reason.
+- Batch list and batch detail pages with the synthetic-demo banner, in English and Brazilian
+  Portuguese. Trend charts use the suite's `TimeChart`, which needs `react-plotly.js` and
+  `plotly.js-cartesian-dist-min` (added with the owner's approval).
+- `app.toml` reads `assets`, `signals` and `series`.
+- Removed: the notes object, its routes, page and tests; the template's rename test.
+
 ## [0.2.0] - 2026-11-01
 
 - Only the basics: the template keeps the notes (list, create, change, delete, audit),

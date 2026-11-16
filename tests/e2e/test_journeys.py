@@ -1,4 +1,5 @@
-"""The main journey in a real browser: sign-in, then a note written, opened and deleted."""
+"""The journeys in a real browser: sign-in, then the batch list, one batch with its phases and
+metrics, and a flagged metric that says why it has no value."""
 
 from __future__ import annotations
 
@@ -26,20 +27,57 @@ def test_a_browser_without_a_token_is_sent_to_sign_in(anonymous, app_url):
     assert re.search(r"/login\?next=/batchlens/", anonymous.url), anonymous.url
 
 
-def test_write_a_note_open_it_and_delete_it(signed_in, app_url, screenshots):
+BANNER = "SYNTHETIC DEMO · NON-GxP · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION"
+
+
+def test_open_the_app_open_a_batch_and_see_its_phases_and_metrics(signed_in, app_url, screenshots):
     page = signed_in
     page.goto(f"{app_url}/batchlens/")
-    expect(page.get_by_text("No notes yet")).to_be_visible()
-    _shot(page, screenshots, "1-empty")
+    expect(page.get_by_text(BANNER)).to_be_visible()
+    expect(page.get_by_role("row", name=re.compile("BL-0001.*Reference"))).to_be_visible()
+    expect(page.get_by_role("row", name=re.compile("BL-0004"))).to_be_visible()
+    expect(page.get_by_text(re.compile("Times are shown in"))).to_be_visible()
+    _shot(page, screenshots, "1-batches")
 
-    page.get_by_label("Asset").fill("FIC-1001")
-    page.get_by_label("Note", exact=True).fill("Valve sticks below 20 % opening.")
-    page.get_by_role("button", name="Save note").click()
-    row = page.get_by_role("row", name=re.compile("Valve sticks"))
-    expect(row).to_be_visible()
-    _shot(page, screenshots, "2-a-note")
+    page.get_by_role("link", name="BL-0003").click()
+    expect(page.get_by_role("heading", name="Batch BL-0003")).to_be_visible()
+    expect(page.get_by_text(BANNER)).to_be_visible()
+    expect(page.get_by_text("Reference batch: BL-0001")).to_be_visible()
+    phases = page.locator('[data-section="phases"]')
+    for phase in ("Production culture", "Harvest", "Protein A capture"):
+        expect(phases.get_by_role("cell", name=phase, exact=True)).to_be_visible()
+    expect(phases.get_by_text("Production bioreactor 2000 L")).to_be_visible()
+    metrics = page.locator('[data-section="metrics"]')
+    productivity = metrics.get_by_role("row", name=re.compile("Specific productivity"))
+    expect(productivity).to_contain_text("pg/cell/day")
+    expect(productivity).to_contain_text("Usable")
+    expect(productivity).to_contain_text("-")  # lower than the reference batch
+    expect(metrics.get_by_role("row", name=re.compile("^Product mass at harvest"))).to_contain_text(
+        "Estimated from concentration × volume (Protein A HPLC)."
+    )
+    # The charts are drawn: the bioreactor's four signals, then VCD and titer.
+    expect(page.locator('[data-section="trends"] .js-plotly-plot')).to_have_count(6)
+    expect(
+        page.locator('[data-section="results"]').get_by_text("Protein A HPLC").first
+    ).to_be_visible()
+    _shot(page, screenshots, "2-batch")
 
-    page.get_by_role("link", name=re.compile("Valve sticks")).click()
-    expect(page.get_by_text("Valve sticks below 20 % opening.")).to_be_visible()
-    page.get_by_role("button", name="Delete").click()
-    expect(page.get_by_text("No notes yet")).to_be_visible()
+
+def test_a_metric_that_needs_a_missing_signal_says_why(signed_in_without_volume, screenshots):
+    page, url = signed_in_without_volume
+    page.goto(f"{url}/batchlens/batches/BL-0001")
+    metrics = page.locator('[data-section="metrics"]')
+    harvest = metrics.get_by_role("row", name=re.compile("^Product mass at harvest"))
+    expect(harvest).to_contain_text("Insufficient")
+    expect(harvest).to_contain_text("No value")
+    expect(harvest).to_contain_text("BR-2001 has no volume signal in PlantCraft.")
+    step_yield = metrics.get_by_role("row", name=re.compile("Harvest-to-load yield"))
+    expect(step_yield).to_contain_text("Product mass at harvest has no value (Insufficient).")
+    # What rests on the app's own records is still there.
+    expect(metrics.get_by_role("row", name=re.compile("Protein A recovery"))).to_contain_text(
+        "Usable"
+    )
+    trends = page.locator('[data-section="trends"]')
+    expect(trends.get_by_text("BR-2001 has no volume signal in PlantCraft.")).to_be_visible()
+    expect(trends.locator(".js-plotly-plot")).to_have_count(5)
+    _shot(page, screenshots, "3-missing-signal")

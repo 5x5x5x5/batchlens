@@ -10,7 +10,8 @@ from pathlib import Path
 from plantcraft_sdk import apptest
 
 from batchlens.api.app import create_app
-from tests.conftest import client_for, make_runtime, note
+from batchlens.demo.seed import seed_demo
+from tests.conftest import client_for, make_runtime
 from tests.plant import make_fake
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,9 +20,22 @@ FLOORS = tomllib.loads((ROOT / "tests" / "floors.toml").read_text(encoding="utf-
 # | -1 | i18n (everything may use t()) |
 # | 0 | config, meta (the store is plantcraft_sdk.server.store) |
 # | 1 | suite (what the app sends to PlantCraft on its own; none yet, docs/recipes/) |
-# | 2 | notes (the app's own object, its store and its service) |
-# | 3 | api, cli |
-LAYERS = {"i18n": -1, "config": 0, "meta": 0, "suite": 1, "notes": 2, "api": 3, "cli": 3}
+# | 1 | calc (pure formulas and result types: standard library only, nothing from the app) |
+# | 2 | batches (the app's own object: records, store and service) |
+# | 3 | demo (the seeded generator and the seed loader), analysis (metrics from records) |
+# | 4 | api, cli |
+LAYERS = {
+    "i18n": -1,
+    "config": 0,
+    "meta": 0,
+    "suite": 1,
+    "calc": 1,
+    "batches": 2,
+    "demo": 3,
+    "analysis": 3,
+    "api": 4,
+    "cli": 4,
+}
 
 
 def test_offline_by_default():
@@ -65,14 +79,12 @@ def test_every_api_route_answers_junk_without_a_server_error(tmp_path):
     fake = make_fake()
     runtime = make_runtime(tmp_path, fake)
     try:
+        seed_demo(runtime.batches)
         with client_for(runtime, fake, "admin") as client:
-            real = client.post("/api/notes", json=note()).json()
             failures, answered = apptest.hostile_failures(
                 client,
-                real={"note_id": real["note_id"]},
-                keep={real["note_id"]},
-                bodies=[note(text=""), note(asset_id="x" * 400), note(text="x" * 9000), {}],
-                queries=[{"asset": "nowhere"}],
+                real={"batch_id": "BL-0001"},  # a real batch, so validation past the lookup runs
+                queries=[{"as_of": "yesterday"}, {"as_of": "2026-13-45T00:00:00Z"}, {"as_of": ""}],
             )
     finally:
         runtime.shutdown()

@@ -28,47 +28,54 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `i18n.py`, `locales/` | `t()` and the server's translations ([translations.md](translations.md)) |
 | `config.py` | `Settings`: every setting from the environment, each with a safe default |
 | `meta.py` | Reads `app.toml` and the help pages for `/api/meta` and `/api/help` |
-| `notes/models.py` | `NoteDraft`: what a person may send, with every limit |
-| `notes/store.py` | `NoteStore`: the `notes` table in the app's SQLite database |
-| `notes/service.py` | `NoteService`: the rules of the object, without HTTP |
+| `calc/results.py` | The result type, its statuses and reasons, and the input types |
+| `calc/culture.py`, `calc/mass.py` | The formulas: IVCD, qP; harvest mass, pool mass, the ratios |
+| `batches/models.py` | The records: batch, phase execution, sample, assay result, pool measurement |
+| `batches/store.py` | `BatchStore`: five tables in the app's SQLite database |
+| `batches/service.py` | `BatchService`: the object's rules, without HTTP |
+| `demo/generator.py` | The seeded generator; observations and ground truth as separate objects |
+| `demo/seed.py` | `seed_demo`: loads the four demo batches into the store |
+| `analysis/metrics.py` | A batch's metrics from its records and the volume signal; the comparison with the reference |
 | `api/runtime.py` | `Runtime`: one server's settings, database, services and PlantCraft clients |
-| `api/deps.py` | Who may do what (`CurrentUser`, `EditorUser`) and shared checks (`note_or_404`) |
-| `api/routers/notes.py` | The HTTP routes of the notes |
-| `api/app.py` | `create_app()`: the suite's standard endpoints plus your routers and the built interface |
-| `cli.py` | `batchlens serve` and `batchlens check` |
+| `api/deps.py` | Who may do what (`CurrentUser`) and shared checks (`batch_or_404`) |
+| `api/plant.py` | What the pages read from PlantCraft as the person: asset names, volume, trends |
+| `api/routers/batches.py` | The five read routes |
+| `api/app.py` | `create_app()`: the suite's standard endpoints plus the routers and the built interface |
+| `cli.py` | `batchlens serve`, `batchlens check` and `batchlens seed-demo` |
 
 ### Layers
 
-The code is in layers, and a package imports only from layers below it. `tests/test_suite_rules.py`
-holds the table and fails on an import that points up.
+A package imports only from layers below it. `tests/test_suite_rules.py` holds the table and
+fails on an import that points up.
 
 | Layer | Packages | Role |
 |---|---|---|
 | -1 | `i18n` | `t()`; anything may use it |
 | 0 | `config`, `meta` | settings, the manifest, the help pages |
-| 1 | `suite` | what the app sends to PlantCraft on its own (events, Desk, a model); empty in the template, see [recipes/](recipes/README.md) |
-| 2 | `notes` | the app's object: contract, store, service |
-| 3 | `api`, `cli` | the entry points |
+| 1 | `suite` | what the app sends to PlantCraft on its own (nothing yet) |
+| 1 | `calc` | pure functions and result types: standard library only, nothing from the app |
+| 2 | `batches` | the app's object: records, store, service |
+| 3 | `demo`, `analysis` | the generator and seed loader; metrics assembled from records |
+| 4 | `api`, `cli` | the entry points |
 
-A second object goes beside `notes`, in its own package with the same three files. Code that
-computes something from plant signals (a method) goes in a package between the objects and the
-API; add it to `LAYERS` in `tests/test_suite_rules.py`.
-
-Within the API, routers stay thin: they check the input and the person, call the service and
-answer. Only the service touches the store, and only `suite/` sends anything to PlantCraft for
-the app (a page that reads plant data as the person stays in its router).
+Routers stay thin and only the service touches the store. Formulas live in `calc` only: never
+in the interface, a router or a store.
 
 ## The interface: `frontend/src/`
 
 | File | What it does |
 |---|---|
 | `main.tsx` | Starts the app: theme, language, the frame |
-| `App.tsx` | The frame (`SuiteShell`) and the routes: which page each path shows |
+| `App.tsx` | The frame (`SuiteShell`), the banner and the routes |
 | `pages.tsx` | `NAV` (the sidebar) and the guided tour |
-| `NotesPage.tsx` | The pages of the notes: list with the form, one note, one asset's notes |
+| `DemoBanner.tsx` | The synthetic, non-GxP banner shown on every page |
+| `BatchesPage.tsx` | The batch list |
+| `BatchPage.tsx` | One batch: phases, metrics, pools, trends, assay results |
+| `words.ts` | Words for metric, phase and analyte ids, statuses and reason codes |
+| `format.ts` | Rounding for display only |
+| `when.tsx` | Times in the installation's zone, and the line that names it |
 | `SuitePages.tsx` | The help page, the same in every app |
-| `api.ts` | Every call to the server, typed |
-| `types.ts` | The shapes the server sends |
+| `api.ts`, `types.ts` | Every call to the server, and the shapes it sends |
 | `nav.ts` | Paths under the app's prefix, `Link`, `navigate` |
 | `i18n.ts`, `locales/` | `t()` and the interface's translations |
 | `ui.tsx` | The shared blocks the pages use, in one import |
@@ -78,8 +85,10 @@ the app (a page that reads plant data as the person stays in its router).
 
 | File | What it checks |
 |---|---|
-| `plant.py`, `conftest.py` | A fake PlantCraft with a small plant and four people; a runtime and a client wired to it |
-| `test_notes.py` | The object: create, change, delete, limits, who may do what |
+| `plant.py`, `conftest.py` | A fake PlantCraft with the suite's test plant plus the synthetic bioprocess plant, and four people; a runtime and a client wired to it |
+| `test_calc.py` | Each formula against a hand-calculated oracle; each failure status |
+| `test_generator.py` | Determinism, internal consistency, the scenarios, no ground truth in what the app sees |
+| `test_batches.py` | The store, the seed, each route, `as_of`, what PlantCraft lacks, scope between batches |
 | `test_app_standard.py` | `app.toml` agrees with the code; the standard endpoints answer |
 | `test_suite_rules.py` | Offline, layers, thin routers, junk never answers 500, no route without a token, the image |
 | `floors.toml` | Numbers that only rise (API operations under test) |

@@ -1,73 +1,88 @@
-<p align="center"><img src="docs/images/logo.svg" width="72" height="72" alt="BatchlensCraft"></p>
+<p align="center"><img src="docs/images/logo.svg" width="72" height="72" alt="BatchLens"></p>
 
-# BatchlensCraft: the app template of PlantCraft
+# BatchLens
 
-The smallest complete app of the [PlantCraft](https://github.com/PlantCraft/PlantCraft)
-suite, made to be copied. It keeps a note on any asset of the plant, listed, audited and kept in
-the app's own database. Around that one object it has only the parts every app needs: the
-manifest, the server on the SDK, the interface on the suite's frame, a help page, tests that hold
-it to the suite's rules, the image and the signed package. Everything else (search, widgets,
-events for Alarms, Desk, a language model, background work) is a recipe you add when you need it.
+**Synthetic demo · non-GxP · not for process control, release or batch disposition.**
 
-**Start here: [docs/quickstart.md](docs/quickstart.md).** All the guides are listed in
-[docs/README.md](docs/README.md).
+BatchLens is a demonstration of monoclonal antibody (mAb) manufacturing analytics, built as an
+app of the [PlantCraft](https://github.com/PlantCraft/PlantCraft) suite. It joins batch phases,
+plant signals, offline assay results and product mass balances, and shows every number with
+its inputs, its status and the reasons for it.
 
-The suite, and this template, were built with Claude Code. The template is made for the same way
-of working: the prompts in [`prompts/`](prompts/README.md) take an agent from a copy of this
-folder to a new app that runs inside PlantCraft.
+The question it is being built to answer: *why did this batch yield less recoverable antibody
+than comparable batches?* This first slice delivers the chain that question needs, for four
+synthetic batches:
 
-## Make an app from it
-
-On GitHub, press **Use this template** to make your own repository, clone it, then:
-
-```sh
-make rename NAME=Logbook      # once: LogbookCraft, id logbook, prefix /logbook/
-make ci                       # app standard, lint, interface build and tests, pytest
-make dev                      # the Simulator, PlantCraft on :8060 and the app on :9100
+```
+VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volume
+            -> product mass at harvest -> mass loaded on Protein A -> mass eluted -> recovery
 ```
 
-Then open http://127.0.0.1:8060 (the demo has no password; the profile menu switches people)
-and open the app from the launcher. `make dev` needs a PlantCraft checkout (the repository's root when
-this folder is `templates/app`, else `../PlantCraft`, or `PLANTCRAFT_DIR=`) with PlantCraft
-installed in the same Python:
+## What it is, and is not
+
+- **Independent.** BatchLens is a personal portfolio project. It is not written, reviewed or
+  endorsed by the PlantCraft maintainers. It is built on PlantCraft's Apache-2.0 app template
+  and SDK, and keeps their licence notices ([LICENSE](LICENSE), [ATTRIBUTION.md](ATTRIBUTION.md)).
+- **Synthetic only.** Every batch, sample, signal and limit is made by a seeded generator
+  ([docs/demo.md](docs/demo.md)). Nothing comes from a real facility, employer or client.
+- **Not GxP.** It is not an MES, LIMS or QMS, it is not validated, and it makes no release,
+  disposition or control decision. Its model of a cell culture is a shape generator, not a
+  mechanistic or validated model ([docs/scientific-assumptions.md](docs/scientific-assumptions.md)).
+- **Named** `BatchlensCraft` (id `batchlens`, prefix `/batchlens/`) in its manifest, the form
+  PlantCraft's app standard prescribes for an app outside the suite.
+
+## What works today
+
+| Part | State |
+|---|---|
+| Pure calculations (`src/batchlens/calc/`), each with a hand-calculated oracle test | Implemented, tested |
+| Seeded generator of four batches, with its ground truth kept out of the app | Implemented, tested |
+| Batches, phase executions, samples, assay results and pool measurements in the app's database | Implemented, tested |
+| Five read routes; online signals read from PlantCraft as the signed-in person | Implemented, tested against the SDK's fake PlantCraft |
+| Batch list and batch detail pages | Implemented, tested (Vitest, two browser journeys) |
+| Running inside a live PlantCraft with the synthetic plant loaded | **Not done.** A live PlantCraft has no bioreactor, so trends and harvest mass answer `insufficient` there ([docs/gaps.md](docs/gaps.md)) |
+
+Where the app stands in detail: [docs/STATUS.md](docs/STATUS.md). What comes next:
+[ROADMAP.md](ROADMAP.md).
+
+## Run it
+
+You need `uv`, Python 3.12, Node.js, `make` and Git. The Python environment lives outside the
+tree (a `.venv` inside it breaks a test that walks the folder, [docs/gaps.md](docs/gaps.md)).
 
 ```sh
-cd ../PlantCraft   # or the repository's root
-python3 -m pip install -e sdk/python -e ".[server,opcua]" && python3 -m pip install -e simulator
+uv venv --seed --python 3.12 ~/.venvs/batchlens
+export PATH="$HOME/.venvs/batchlens/bin:$PATH"
+make ci                    # app standard, translations, lint, interface build and tests, pytest
+make e2e                   # browser journeys (see docs/testing.md for Playwright)
 ```
 
-To install it as a package on a PlantCraft stack: `make dev-package` (signed with PlantCraft's
-development key, `make dev-publisher` there) and Apps > Install from file.
-[`prompts/05-package-and-install.md`](prompts/05-package-and-install.md) has the steps for a
-production key.
+[docs/demo.md](docs/demo.md) reproduces the demo from a clean checkout and says which batch
+carries which scenario.
 
-## What each part does
+## How it was built
+
+With a coding agent, under written rules, and the trail is part of the project:
+[AGENTS.md](AGENTS.md) (the rules), [docs/agent/kickoff.md](docs/agent/kickoff.md) (the plan
+the agent was given), [docs/devlog.md](docs/devlog.md) (what was planned, what failed and how it
+was resolved, the measured check results) and [docs/gaps.md](docs/gaps.md) (what is known to
+be missing or wrong).
+
+## Where things are
 
 | Path | What it is |
 |---|---|
-| [`app.toml`](app.toml) | The manifest: id, name, version, prefix, port, uid, permissions. The launcher, the Apps page, the package, the image labels and `/api/meta` read it. |
-| `src/batchlens/notes/` | The app's object: `NoteDraft` (what a person may send, checked), `NoteStore` (its SQLite table) and `NoteService` (its rules). |
-| `src/batchlens/api/` | `runtime.py` (settings, database, PlantCraft clients), `deps.py` (who may do what), `routers/` (the routes), `app.py` (the suite's API frame). |
-| `src/batchlens/meta.py`, `docs/help/` | The manifest and the help pages served at `/api/meta` and `/api/help`. |
-| `frontend/src/` | `App.tsx` (routes), `pages.tsx` (sidebar), `NotesPage.tsx` (the page), `api.ts` (calls). All on `@plantcraft/ui`. |
-| `tests/` | `conftest.py` and `plant.py` (a fake PlantCraft with a small plant), `test_notes.py` (the object), `test_app_standard.py` and `test_suite_rules.py` (the suite's rules), `e2e/` (browser journeys). |
-| `vendor/` | The SDK wheel and the interface package, with their SHA-256: the image is built offline. |
-| `Dockerfile`, `deploy/` | The image: three stages, hashed dependencies, non-root, read-only root. |
-| `docs/` | The guides ([docs/README.md](docs/README.md)), the recipes, and the app's help pages (`docs/help/`). |
-| `prompts/` | Prompts for Claude Code or another coding agent, from a new app to its package. |
+| `src/batchlens/calc/` | The formulas and the result type. Standard library only |
+| `src/batchlens/batches/` | The app's object: records, store, service |
+| `src/batchlens/demo/` | The seeded generator and the seed loader |
+| `src/batchlens/analysis/` | A batch's metrics, assembled from records and the volume signal |
+| `src/batchlens/api/` | The routes, and what they read from PlantCraft (`plant.py`) |
+| `frontend/src/` | The two pages, on `@plantcraft/ui` |
+| `tests/` | pytest against the SDK's fake PlantCraft; `tests/e2e/` browser journeys |
+| `docs/` | The template's guides, plus this app's own notes and assumptions |
 
-## The rules
-
-[`AGENTS.md`](AGENTS.md) lists the rules every suite app follows (read-only on the plant, refer
-to assets and signals by id, sign-in and audit through PlantCraft, offline, one frame, tests as
-the gate) and points to the full standard in PlantCraft (`docs/app-standard.md`).
-
-## Where it comes from
-
-This template lives in `templates/app/` of the PlantCraft repository, where CI tests it against
-every change to the SDK and the interface, and is published to
-[PlantCraft/plantcraft-app-template](https://github.com/PlantCraft/plantcraft-app-template) at
-each PlantCraft release. Issues and changes to the template go to the PlantCraft repository.
+The guides under `docs/` (quickstart, backend, data, frontend, testing, packaging, publishing,
+recipes) and `prompts/` are the template's own and still describe its example app.
 
 ## License
 

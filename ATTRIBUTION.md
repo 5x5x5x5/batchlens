@@ -18,7 +18,8 @@ PlantCraft authors (Apache-2.0).
 | Library | License |
 |---|---|
 | React, React DOM | MIT |
-| Plotly.js (`plotly.js-cartesian-dist-min`), `react-plotly.js` | MIT |
+| Plotly.js (`plotly.js-cartesian-dist-min`), `react-plotly.js` (direct dependencies since the batch page draws charts; `react-plotly.js` also installs its peer `plotly.js`, which is not bundled) | MIT |
+| `@types/plotly.js`, `@types/react-plotly.js` (type declarations, build only) | MIT |
 | `@plantcraft/ui` (vendored package, PlantCraft authors) | Apache-2.0 |
 | Vite, Vitest, TypeScript, jsdom (build and test only) | MIT |
 
@@ -38,4 +39,14 @@ PlantCraft authors (Apache-2.0).
 ## Data
 
 No third-party dataset is committed. The test plant (`plantcraft_sdk.testplant`, a port of
-The Simulator's loop equations) is synthetic.
+The Simulator's loop equations) is synthetic. The bioprocess batches, samples and signals are
+made by this repository's own seeded generator (`src/batchlens/demo/generator.py`); every
+parameter in it is illustrative and chosen by hand, none taken from a publication or a facility.
+
+## Built on
+
+BatchLens is an independent project built from the PlantCraft app template
+(`PlantCraft/plantcraft-app-template` at `dc365ec`, Apache-2.0) and the vendored
+`plantcraft-sdk` 0.104.0 and `@plantcraft/ui` 0.108.0 (Apache-2.0, PlantCraft authors). The
+template's files keep their licence; the PlantCraft maintainers did not write, review or
+endorse BatchLens.

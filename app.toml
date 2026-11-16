@@ -1,18 +1,17 @@
 # BatchlensCraft's manifest: the single source of its metadata (the suite's app standard, section 4).
 # The launcher card, the Apps page, the package manifest, the image labels and /api/meta read it.
-# `make rename NAME=Logbook` makes it LogbookCraft (`logbook`, prefix /logbook/) everywhere.
 
 [app]
 id = "batchlens"
 name = "BatchlensCraft"
 version = "0.2.0"
 category = "Example"
-summary = "The smallest app of the PlantCraft suite: a note on any asset of the plant."
+summary = "Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery."
 description = """\
-A starting point for an app of one's own: notes on the assets of PlantCraft's asset tree, \
-listed and kept in the app's own database. It has only the parts every app of the suite needs: \
-the manifest, the server on the SDK, the interface on the suite's frame, a help page, the tests \
-and the signed package."""
+BatchLens follows four synthetic antibody batches from production culture to Protein A capture: \
+integral of viable cell density, specific productivity, product mass at harvest, the mass loaded \
+and eluted, yield and recovery, each with its status, reasons and inputs. Synthetic data only, \
+non-GxP: not for process control, release or batch disposition."""
 # "Dev Publisher" matches PlantCraft's development key (`make dev-package`); a real release names
 # the company whose key the stack trusts (prompts/05-package-and-install.md).
 publisher = "Dev Publisher"
@@ -36,7 +35,7 @@ asset_types = []
 roles = {}
 
 [permissions]
-read = ["assets"]
+read = ["assets", "signals", "series"]
 write = ["audit"]
 plant_write = false
 outbound = []

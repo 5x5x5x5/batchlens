@@ -1,23 +1,45 @@
-# BatchlensCraft
+# BatchLens
 
-O BatchlensCraft guarda uma nota sobre qualquer ativo da planta: uma leitura feita em campo, um
-lembrete para o próximo turno, o que foi mudado em uma malha e por quê.
+**Demonstração sintética · não GxP · não usar para controle de processo, liberação ou
+disposição de lotes.**
 
-## Notas
+O BatchLens acompanha lotes de anticorpos da cultura de produção até a etapa de captura por
+Proteína A e mostra, para cada lote, quanto produto havia em cada ponto e de onde vem cada
+número. Todos os lotes aqui são sintéticos: feitos por um gerador, não medidos em planta alguma.
 
-**Notas** lista todas as notas, das mais novas para as mais antigas, com o ativo de cada uma.
-Digite no filtro para reduzir a lista, ou abra as notas de um ativo pelo link dele.
+## Lotes
 
-- **Nova nota**: escolha o ativo na árvore de ativos do PlantCraft e escreva o texto (até 4.000
-  caracteres). Editores e administradores escrevem notas; quem é
-  visualizador, lê.
-- **Excluir** uma nota pela página dela. Toda mudança fica registrada no log de auditoria do
-  PlantCraft, com quem fez e quando.
+**Lotes** lista cada lote com seu produto, seu biorreator, início e fim, e uma marca no lote de
+referência, aquele com que os outros são comparados. Abra um lote pelo seu identificador.
 
-Uma nota aponta para o ativo; ela não o copia. Quando o ativo é renomeado no PlantCraft, a nota
-mostra o novo nome. Quando o ativo é removido, a nota continua e mostra o id do ativo.
+## Um lote
 
-## Crie o seu próprio app
+- **Execuções de fase**: o que aconteceu em qual ativo, e quando. Um lote é uma janela em
+  equipamento compartilhado: o mesmo biorreator recebe um lote depois do outro.
+- **Métricas**: cada uma com valor e unidade, estado, os motivos e os identificadores das
+  entradas, ao lado do valor do lote de referência e da diferença.
+- **Medições de pool**: o volume e a concentração por trás de cada massa de pool.
+- **Tendências**: os sinais online do biorreator durante a fase de produção, lidos do
+  PlantCraft, e a densidade de células viáveis e o título offline nos instantes de coleta.
+- **Resultados de ensaio**: cada resultado com dois instantes, quando a amostra foi coletada e
+  quando o resultado ficou disponível. Nunca são a mesma coisa.
 
-O BatchlensCraft é o modelo dos apps da suíte: copie, dê um nome (`make rename NAME=Logbook`) e
-siga o `docs/quickstart.md` dele.
+## Como ler um estado
+
+| Estado | Significado |
+|---|---|
+| Utilizável | Calculado a partir de entradas válidas |
+| Suspeito | Calculado, mas uma entrada ou o resultado é implausível. O valor é mostrado, sinalizado |
+| Insuficiente | Não calculado: falta algo necessário ou ainda não está disponível |
+| Inválido | Não calculado: uma entrada viola uma regra (unidade errada, valor negativo) |
+
+Uma métrica sem valor sempre diz por quê. Quando o PlantCraft não tem o ativo ou o sinal, o app
+diz qual não encontrou em vez de desenhar uma tendência que não tem.
+
+## Bom saber
+
+- As massas são estimativas de concentração vezes volume; o método de ensaio é indicado.
+- Unidades nunca são convertidas. Um valor em outra unidade é inválido.
+- Os horários são mostrados no fuso da instalação, indicado em cada página.
+- As fórmulas, suas premissas e as configurações estão em `docs/scientific-assumptions.md`
+  do projeto.

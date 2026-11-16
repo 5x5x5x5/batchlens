@@ -48,10 +48,14 @@ def client(runtime, fake):
         yield test_client
 
 
-def note(**fields) -> dict:
-    """A note on FIC-1001, a loop of the test plant."""
+@pytest.fixture
+def seeded(runtime):
+    """The runtime with the four demo batches loaded, as ``batchlens seed-demo`` loads them."""
 
-    return {"asset_id": "FIC-1001", "text": "Valve sticks below 20 % opening.", **fields}
+    from batchlens.demo.seed import seed_demo
+
+    seed_demo(runtime.batches)
+    return runtime
 
 
 def pytest_sessionfinish(session, exitstatus):

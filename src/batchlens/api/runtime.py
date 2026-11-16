@@ -1,4 +1,4 @@
-"""Everything one BatchlensCraft server holds: settings, the notes and the PlantCraft clients.
+"""Everything one BatchlensCraft server holds: settings, the batches and the PlantCraft clients.
 
 Who reads plant data: the pages read with the person's own token, so PlantCraft's permissions
 decide what each person sees. The app key (``PLANTCRAFT_APP_KEY``) is for what the app does on
@@ -17,9 +17,9 @@ from plantcraft_sdk.server.platform import PlatformRuntime
 from plantcraft_sdk.server.store import Database
 
 from batchlens import APP_ID, __version__
+from batchlens.batches.service import BatchService
+from batchlens.batches.store import BatchStore
 from batchlens.config import Settings
-from batchlens.notes.service import NoteService
-from batchlens.notes.store import NoteStore
 
 
 class Runtime(PlatformRuntime):
@@ -34,7 +34,7 @@ class Runtime(PlatformRuntime):
         self.settings = settings
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.db = Database(settings.database_path, version=__version__)
-        self.notes = NoteService(NoteStore(self.db))
+        self.batches = BatchService(BatchStore(self.db))
         self.connect(
             APP_ID,
             settings,
@@ -50,4 +50,4 @@ class Runtime(PlatformRuntime):
         self.close_platform()
 
     def status(self) -> dict[str, Any]:
-        return {"service_key": self.has_service_key, "notes": len(self.notes.list())}
+        return {"service_key": self.has_service_key, "batches": len(self.batches.summaries())}
