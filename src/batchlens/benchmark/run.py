@@ -1,8 +1,8 @@
 """Run the analysis over many seeded batches and count what it found against what was true.
 
 Every batch is made by the demo generator with one thing varied: nothing (normal), a fall in
-specific productivity from a given day, a lower Protein A recovery, or bad records. Each is
-compared with several normal batches taken in turn as the reference, at several tolerances.
+specific productivity from a given day, a lower Protein A recovery, a later purification step
+that yields less, or bad records. Each is compared with several normal batches taken in turn as the reference, at several tolerances.
 The same inputs always give the same numbers.
 """
 
@@ -12,9 +12,11 @@ import statistics
 from typing import Any
 
 from batchlens import calc
+from batchlens.analysis.downstream import downstream
 from batchlens.analysis.metrics import batch_metrics, measurements
 from batchlens.demo.generator import (
     CAMPAIGN_START,
+    DOWNSTREAM,
     VERSION,
     VOLUME_UNIT,
     GroundTruth,
@@ -28,6 +30,8 @@ RECOVERY_TOLERANCES = (5.0, 10.0, 15.0)
 ONSET_DAYS = (5.0, 7.0, 9.0)
 QP_FACTORS = (0.55, 0.70, 0.85)
 RECOVERIES = (0.74, 0.80, 0.86)
+# One later purification step yielding this fraction of its nominal yield.
+STEP_MULTIPLIERS = (0.75, 0.85, 0.92)
 BAD_RECORDS = (
     {"mis_keyed_sample": 8},
     {"online_gap_days": (13.4, 14.25)},
@@ -58,10 +62,15 @@ def cases(batches: int) -> list[Case]:
         for factor in QP_FACTORS
     ]
     variants += [("reduced_recovery", {"protein_a_recovery": level}) for level in RECOVERIES]
-    variants += [("bad_records", changes) for changes in BAD_RECORDS]
     seed, made = FIRST_SEED, []
-    for _ in range(batches):
-        for kind, changes in variants:
+    for index in range(batches):
+        # The poor step moves along the train from seed to seed, so every step gets its turn.
+        poor = []
+        for shift, multiplier in enumerate(STEP_MULTIPLIERS):
+            step, _, _, nominal, _ = DOWNSTREAM[(index + shift) % len(DOWNSTREAM)]
+            poor.append(("reduced_step_yield", {"downstream_yields": {step: nominal * multiplier}}))
+        bad = [("bad_records", changes) for changes in BAD_RECORDS]
+        for kind, changes in [*variants, *poor, *bad]:
             made.append(_case(kind, seed, **changes))
             seed += 1
     return made
@@ -179,6 +188,55 @@ def truth_level(truth: GroundTruth) -> float:
     return min(RECOVERIES, key=lambda level: abs(level - truth.protein_a_recovery))
 
 
+def _later_step_scores(made: list[Case], references: list[Case]) -> list[dict[str, Any]]:
+    """The findings for the steps after capture: found where a step truly yielded less, named
+    for another step, or raised where nothing was wrong."""
+
+    nominal = {kind: value for kind, _, _, value, _ in DOWNSTREAM}
+    rows = []
+    for tolerance in RECOVERY_TOLERANCES:
+        alarms = {"comparisons": 0, "found": 0}
+        wrong = 0
+        sizes = {m: {"yield_multiplier": m, "comparisons": 0, "found": 0} for m in STEP_MULTIPLIERS}
+        for kind, observations, truth, results in made:
+            if kind == "bad_records":
+                continue
+            # The step this batch truly lost in, and by how much, from the ground truth.
+            lost = {}
+            for step, value in nominal.items():
+                ratio = truth.step_yields[step] / value
+                if ratio < 0.96:
+                    lost[step] = min(STEP_MULTIPLIERS, key=lambda m, ratio=ratio: abs(m - ratio))
+            for _, other, _, other_results in references:
+                answer = downstream(
+                    observations.record,
+                    results["harvest_mass"],
+                    reference=(other.record, other_results["harvest_mass"]),
+                )
+                for finding in answer["findings"]:
+                    step = finding["finding"].removesuffix("_yield_shortfall")
+                    values = finding["observation"]["reasons"][0]["values"]
+                    if "reference_value" not in values:
+                        continue  # not compared: a yield without a value
+                    found = values["reference_value"] - values["value"] > tolerance
+                    if step in lost:
+                        sizes[lost[step]]["comparisons"] += 1
+                        sizes[lost[step]]["found"] += found
+                    else:
+                        alarms["comparisons"] += 1
+                        alarms["found"] += found
+                        wrong += found and bool(lost)
+        rows.append(
+            {
+                "tolerance_points": tolerance,
+                "by_yield_multiplier": list(sizes.values()),
+                "false_alarms": alarms,
+                "wrong_step_named": wrong,
+            }
+        )
+    return rows
+
+
 def _bad_record_scores(made: list[Case], references: list[Case]) -> dict[str, Any]:
     bad = [case for case in made if case[0] == "bad_records"]
     mis_keyed = [case for case in bad if case[2].mis_keyed_sample is not None]
@@ -257,17 +315,20 @@ def run(batches: int = DEFAULT_BATCHES, references: int = DEFAULT_REFERENCES) ->
             "onset_days": list(ONSET_DAYS),
             "qp_factors": list(QP_FACTORS),
             "recoveries": list(RECOVERIES),
+            "step_multipliers": list(STEP_MULTIPLIERS),
         },
         "counts": {
             "references": references,
             "normal": kinds.count("normal"),
             "reduced_productivity": kinds.count("reduced_productivity"),
             "reduced_recovery": kinds.count("reduced_recovery"),
+            "reduced_step_yield": kinds.count("reduced_step_yield"),
             "bad_records": kinds.count("bad_records"),
             "comparisons": len(made) * references,
         },
         "bad_records": _bad_record_scores(made, reference_cases),
         "titer_divergence": _titer_scores(made, reference_cases),
         "recovery_shortfall": _recovery_scores(made, reference_cases),
+        "later_step_shortfall": _later_step_scores(made, reference_cases),
         "calculation_error_percent": _errors(made),
     }

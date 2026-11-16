@@ -3,6 +3,34 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A finding for every purification step
+
+Branch `step-findings`. The first item left on the status page after the listed extensions.
+
+- **Built:** `analysis.downstream` now compares each step after capture with the reference
+  batch's (`calc.recovery_shortfall`, the mass out of the step as the consequence, no cause),
+  so a compared batch has eight findings; the page lists what was found first and what was
+  checked and within tolerance together below; the generator can be told a step's nominal
+  yield; the benchmark gains 60 batches with one later step at 75, 85 or 92 % of nominal, the
+  poor step moving along the train from seed to seed. Tests first: 2 analysis, 1 benchmark,
+  2 Vitest; 5 older tests updated for eight findings.
+- **Measured** (`docs/verification-report.md`, now 380 batches and 1,900 comparisons): at the
+  default 10 points a later step at 75 % of nominal is found 100 of 100, at 85 % 99 of 100, at
+  92 % 12 of 100; no false alarm in 7,700 chances; a finding never named a step other than the
+  one that lost.
+- **The older numbers moved**, because adding variants changed which seed each batch gets:
+  titer divergence at 15 % is now 0 false alarms in 700, falls of qP to 55 % found 297 of 300
+  (it was 300 of 300), and 3 of 604 detections name a sample up to 0.1 day before the true
+  onset. Every document that quoted the old figures was updated; the devlog entries below
+  keep the figures of their day.
+- **Rulings:** one tolerance for every step (`docs/gaps.md` has why that is questionable); the
+  capture step's finding stays the Protein A recovery's, not a second one for the same number.
+- **Failed, and how it was resolved:** the edit helper refused to change the benchmark file
+  because a docstring did not match, and said so; the rest was applied after correcting it.
+  That is the helper working as intended.
+- **Final checks:** `make ci` exit 0 (Vitest 28 passed, pytest 225 passed, 0 skipped);
+  `make e2e` exit 0 (8 passed).
+
 ## 2026-11-16: The second review, and the documents brought up to date
 
 Branch `docs-refresh`. Everything since the first slice was built without the owner watching,

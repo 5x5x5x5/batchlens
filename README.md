@@ -61,9 +61,10 @@ generator's separate output, the tests, the benchmark and the documents.
   assistant the same numbers as the page, with statuses and reasons, and tell it that no cause
   is attributed.
 - **It is measured.** [docs/verification-report.md](docs/verification-report.md) scores the
-  findings against ground truth over 320 seeded batches: at the default tolerances, no false
-  alarms in 400 comparisons, every strong fall in productivity found within about two days,
-  mild ones mostly missed, and no number ever returned for a badly recorded batch.
+  findings against ground truth over 380 seeded batches: at the default tolerances, no false
+  alarms in 700 comparisons of the titer or 7,700 of the later steps, 99 % of strong falls in
+  productivity found with a median delay of about two days, mild ones mostly missed, and no
+  number ever returned for a badly recorded batch.
 
 ## Run it
 

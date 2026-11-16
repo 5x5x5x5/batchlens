@@ -27,6 +27,10 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   tolerance below the reference's; the other results of a divergence's samples as evidence
   beside the reference's; the reference batch drawn over the VCD and titer charts at the
   same culture age (`align_to` on the samples route).
+- A finding for each purification step after capture, and benchmark cases with a poor later
+  step (380 batches, 1,900 comparisons). Fixes from a second review: reseeding a stale batch
+  keeps one reference and an honest history; an as-of view no longer shows a phase end to
+  come or later corrections.
 - Two read-only tools for PlantCraft's assistant (`list_batches`, `batch_findings`), declared
   in `app.toml`. The generator is now `synthetic-generator/2`, and `seed-demo` replaces
   batches made by an older version.

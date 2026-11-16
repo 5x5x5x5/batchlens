@@ -12,7 +12,11 @@ export function metricName(metric: string): string {
     case "protein_a_eluate_mass": return t("Protein A eluate mass");
     case "harvest_to_load_yield": return t("Harvest-to-load yield");
     case "protein_a_recovery": return t("Protein A recovery");
-    default: return metric;
+    default:
+      // A purification step's yield and a pool's mass are named from the step and the pool.
+      if (metric.endsWith("_yield") && phaseName(metric.slice(0, -6)) !== metric.slice(0, -6)) return t("{step} yield", { step: phaseName(metric.slice(0, -6)) });
+      if (metric.endsWith("_mass") && poolName(metric.slice(0, -5)) !== metric.slice(0, -5)) return t("{pool} mass", { pool: poolName(metric.slice(0, -5)) });
+      return metric;
   }
 }
 

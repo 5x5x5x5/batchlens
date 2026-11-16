@@ -4,7 +4,7 @@
 |---|---|
 | [demo.md](demo.md) | How to run the demo, a five-minute tour of it, and what each synthetic batch contains |
 | [scientific-assumptions.md](scientific-assumptions.md) | Every formula with units and a worked example, every assumption and setting, the generator's model |
-| [verification-report.md](verification-report.md) | The findings scored against ground truth over 320 seeded batches: false alarms, detections, refusals, calculation error |
+| [verification-report.md](verification-report.md) | The findings scored against ground truth over 380 seeded batches: false alarms, detections, refusals, calculation error |
 | [case-study-engineering.md](case-study-engineering.md) | The design: what the software has to understand about a batch, and the decisions that follow |
 | [case-study-ai-development.md](case-study-ai-development.md) | How it was built with a coding agent: the rules, the trail, what went wrong |
 | [structure.md](structure.md) | Every package and file, and the layers the code keeps |

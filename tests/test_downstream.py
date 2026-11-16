@@ -244,3 +244,55 @@ def test_a_pool_measured_twice_under_one_name_keeps_each_measurements_own_mass()
         "no-such-pool"
         not in next(n for n in answer["genealogy"] if n["pool"] == "protein_a_eluate")["sources"]
     )
+
+
+# Findings for the later steps ------------------------------------------------------------------
+
+
+def later_steps(answer):
+    return {f["finding"]: f for f in answer["findings"]}
+
+
+def test_a_later_step_that_yields_far_less_than_the_reference_is_a_finding():
+    from batchlens.demo.generator import CAMPAIGN_START, Scenario, generate
+
+    poor, truth = generate(
+        Scenario("X-1", CAMPAIGN_START, downstream_yields={"cation_exchange": 0.72}), 31
+    )
+    good, _ = generate(Scenario("X-0", CAMPAIGN_START), 32)
+    assert truth.step_yields["cation_exchange"] == pytest.approx(0.72, rel=0.02)
+
+    def harvest(item):
+        volume = calc.Online("volume", VOLUME_UNIT, item.online["volume"])
+        return {r.metric: r for r in batch_metrics(item.record, volume)}["harvest_mass"]
+
+    answer = downstream(poor.record, harvest(poor), reference=(good.record, harvest(good)))
+    found = later_steps(answer)
+    assert list(found) == [
+        "viral_inactivation_yield_shortfall",
+        "cation_exchange_yield_shortfall",
+        "anion_exchange_yield_shortfall",
+        "viral_filtration_yield_shortfall",
+        "ufdf_yield_shortfall",
+    ]
+    cex = found["cation_exchange_yield_shortfall"]
+    assert cex["observation"]["status"] == "usable" and 12 < cex["observation"]["value"] < 24
+    assert cex["observation"]["reasons"][0]["code"] == "below_reference"
+    # The consequence: what came out of that step, against the reference.
+    assert cex["consequence"]["metric"] == "cation_exchange_pool_mass"
+    assert cex["consequence"]["difference"] < 0 and cex["cause"] is None and cex["evidence"] == []
+    # The steps around it are within the tolerance: the loss is located in one step.
+    for name in (
+        "viral_inactivation_yield_shortfall",
+        "anion_exchange_yield_shortfall",
+        "ufdf_yield_shortfall",
+    ):
+        assert found[name]["observation"]["reasons"][0]["code"] == "within_reference"
+        assert found[name]["consequence"] is None
+    # Each step also carries the comparison in its own row.
+    row = next(r for r in answer["steps"] if r["step"] == "cation_exchange")
+    assert row["yield_difference"] == pytest.approx(-cex["observation"]["value"])
+
+
+def test_without_a_reference_there_are_no_step_findings(trains):
+    assert trains[0]["BL-0001"][1]["findings"] == []

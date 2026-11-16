@@ -78,7 +78,7 @@ batchlens benchmark --out docs/verification-report.md
    change. The hole in the historian is still a hole. (`batchlens seed-demo --reset` puts
    the demo back.)
 8. **How often is it wrong?** [verification-report.md](verification-report.md): the same
-   findings over 320 seeded batches with known faults.
+   findings over 380 seeded batches with known faults.
 
 ## Inside a live PlantCraft, by hand
 
@@ -165,7 +165,10 @@ happened to read 5 % low. The app shows that number as it is.
 ## What the app finds
 
 Against the reference batch `BL-0001`, with the default tolerances (15 % of titer, 10 points of
-a step recovery). Every compared batch gets the same three findings.
+a step recovery). Every compared batch gets the same eight findings: the titer, the
+harvest-to-load yield, the Protein A recovery, and the yield of each of the five later steps.
+In the demo every later step of every batch is within the tolerance; the page lists what was
+found first and what was checked and within tolerance together below it.
 
 | Batch | Titer | Harvest-to-load yield | Protein A recovery |
 |---|---|---|---|

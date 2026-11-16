@@ -99,6 +99,8 @@ class Scenario:
     mis_keyed_sample: int | None = None
     # Culture days between which the historian kept nothing.
     online_gap_days: tuple[float, float] | None = None
+    # A purification step's nominal yield, where it is not DOWNSTREAM's: {phase kind: fraction}.
+    downstream_yields: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -343,7 +345,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         phase = PhaseExecution(
             f"{batch_id}-P{number}", batch_id, kind, asset_id, begin, clock, provenance
         )
-        true_yields[kind] = nominal * later.gauss(1, 0.005)
+        true_yields[kind] = scenario.downstream_yields.get(kind, nominal) * later.gauss(1, 0.005)
         mass *= true_yields[kind]
         made = later_pool(
             pool_name,

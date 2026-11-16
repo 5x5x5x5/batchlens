@@ -37,7 +37,9 @@ def render(result: dict[str, Any]) -> str:
         f"  productivity (from culture day {', '.join(f'{d:g}' for d in settings['onset_days'])}; to",
         f"  {', '.join(f'{100 * f:g} %' for f in settings['qp_factors'])} of nominal), {counts['reduced_recovery']} with",
         f"  reduced Protein A recovery ({', '.join(f'{100 * r:g} %' for r in settings['recoveries'])} against a",
-        f"  nominal 92 %), {counts['bad_records']} badly recorded.",
+        f"  nominal 92 %), {counts['reduced_step_yield']} with one later purification step at",
+        f"  {', '.join(f'{100 * m:g} %' for m in settings['step_multipliers'])} of its nominal yield,",
+        f"  {counts['bad_records']} badly recorded.",
         f"- Each is compared with {counts['references']} normal batches taken in turn as the reference:",
         f"  {counts['comparisons']} comparisons.",
         f"- Defaults in the app: titer tolerance {settings['titer_tolerance_default_percent']:g} %, recovery",
@@ -112,6 +114,29 @@ def render(result: dict[str, Any]) -> str:
         lines.append(
             f"| {row['tolerance_points']:g} points | {_share(quiet['found'], quiet['comparisons'])} | "
             f"{levels} | {_share(alarms['found'], alarms['comparisons'])} |"
+        )
+    lines += [
+        "",
+        "## Later purification steps",
+        "",
+        "The findings for viral inactivation, cation exchange, anion exchange, viral filtration",
+        "and UF/DF, in batches where one of those steps yields less than nominal (the step moves",
+        "along the train from seed to seed). A false alarm is a finding on a step where nothing",
+        'was changed; "wrong step" counts those raised in a batch whose loss was in another step.',
+        "",
+        "| Tolerance | "
+        + " | ".join(f"Step at {100 * m:g} % of nominal" for m in settings["step_multipliers"])
+        + " | False alarms | Wrong step named |",
+        "|---|" + "---|" * len(settings["step_multipliers"]) + "---|---|",
+    ]
+    for row in result["later_step_shortfall"]:
+        sizes = " | ".join(
+            _share(item["found"], item["comparisons"]) for item in row["by_yield_multiplier"]
+        )
+        alarms = row["false_alarms"]
+        lines.append(
+            f"| {row['tolerance_points']:g} points | {sizes} | "
+            f"{_share(alarms['found'], alarms['comparisons'])} | {row['wrong_step_named']} |"
         )
     lines += [
         "",

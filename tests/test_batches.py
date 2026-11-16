@@ -389,10 +389,19 @@ def finding_of(client, batch_id: str, kind: str, **params) -> dict:
     return found[0]
 
 
-FINDINGS = ["titer_divergence", "harvest_to_load_yield_shortfall", "protein_a_recovery_shortfall"]
+FINDINGS = [
+    "titer_divergence",
+    "harvest_to_load_yield_shortfall",
+    "protein_a_recovery_shortfall",
+    "viral_inactivation_yield_shortfall",
+    "cation_exchange_yield_shortfall",
+    "anion_exchange_yield_shortfall",
+    "viral_filtration_yield_shortfall",
+    "ufdf_yield_shortfall",
+]
 
 
-def test_every_compared_batch_gets_the_same_three_findings_in_the_same_order(seeded, client):
+def test_every_compared_batch_gets_the_same_findings_in_the_same_order(seeded, client):
     for batch_id in ("BL-0002", "BL-0003", "BL-0004"):
         assert [f["finding"] for f in findings_of(client, batch_id)] == FINDINGS
         assert all(f["cause"] is None for f in findings_of(client, batch_id))
@@ -631,7 +640,8 @@ def test_the_badly_recorded_batch_is_flagged_everywhere_and_answered_nowhere_it_
     assert found["protein_a_recovery"]["status"] == "usable"
     # No number, so no difference from the reference either.
     assert found["ivcd"]["difference"] is None and found["harvest_mass"]["difference"] is None
-    titer, step_yield, recovery = findings_of(client, "BL-0005")
+    titer, step_yield, recovery, *later = findings_of(client, "BL-0005")
+    assert all(codes(f["observation"]) == ["within_reference"] for f in later)
     assert (titer["observation"]["status"], titer["observation"]["value"]) == ("invalid", None)
     assert codes(titer["observation"]) == ["times_not_increasing"]
     assert titer["consequence"] is None and titer["evidence"] == []
