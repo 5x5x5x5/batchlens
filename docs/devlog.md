@@ -3,6 +3,39 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: Phase 1, calculations and synthetic data
+
+- **Planned:** the pure `calc` package with one result shape, the seeded generator with ground
+  truth kept apart, oracle tests for both.
+- **Built:** `calc` (IVCD, qP, harvest mass, pool mass, the yield and recovery ratio),
+  `batches/models.py` (the record shapes), `demo/generator.py`, and `analysis/metrics.py`
+  (pulled forward from Phase 2 because the generator tests need records turned into metrics).
+- **Rulings** (decisions the kickoff left open):
+  - qP's window runs from the first to the last sample that has both a cell count and a titer
+    available, so an early `as_of` shortens the window instead of failing.
+  - Harvest mass takes the last titer sample *collected* in the phase; if that one result is
+    not yet available the metric is `insufficient` rather than falling back to an older sample.
+  - "Volume at the sample's collection time" is the last online value at or before it, at most
+    15 minutes old (`VOLUME_MAX_AGE_SECONDS`); never a later value, never interpolated.
+  - The 105 % plausibility bound applies to the harvest-to-load yield too, not only recovery.
+  - A negative qP is shown as `suspect`.
+  - The two ratios take already computed results, so they have no `as_of` argument of their own.
+  - Harvest mass does not cut the volume series itself: once the titer is available every
+    value near the sample is older than `as_of`. The cut happens where the series is read.
+- **Failed, and how it was resolved:**
+  - The calc tests and the calc code were written in one step, so those tests were not seen
+    red first. Checked afterwards by breaking the trapezoid factor (7 tests failed) and
+    restoring it. The generator tests were run red before the generator existed.
+  - A stale `.pyc` (two edits in the same second, same size) made restored code look broken;
+    cleared `__pycache__`.
+  - The first recovery tolerances were guesses and one failed by 0.1 %: the reference batch's
+    final titer drew 5 % low. Tolerances are now three standard deviations of the generator's
+    stated assay noise, and the seeds were left alone. Consequence worth knowing: the reference
+    batch shows a 97 % harvest-to-load yield against a true 92.6 %, because harvest mass rests
+    on one titer result.
+- **Final checks:** `make ci` exit 0: standard and strict translations pass, ruff clean (80 files),
+  Vitest 3 passed, pytest 71 passed, 2 skipped (browser journeys: Playwright not installed yet).
+
 ## 2026-11-15: Phase 0, bootstrap (BatchLens first slice)
 
 Plan: `docs/agent/kickoff.md`. Template `PlantCraft/plantcraft-app-template` @ `dc365ec`,

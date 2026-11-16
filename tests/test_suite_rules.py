@@ -19,9 +19,23 @@ FLOORS = tomllib.loads((ROOT / "tests" / "floors.toml").read_text(encoding="utf-
 # | -1 | i18n (everything may use t()) |
 # | 0 | config, meta (the store is plantcraft_sdk.server.store) |
 # | 1 | suite (what the app sends to PlantCraft on its own; none yet, docs/recipes/) |
-# | 2 | notes (the app's own object, its store and its service) |
-# | 3 | api, cli |
-LAYERS = {"i18n": -1, "config": 0, "meta": 0, "suite": 1, "notes": 2, "api": 3, "cli": 3}
+# | 1 | calc (pure formulas and result types: standard library only, nothing from the app) |
+# | 2 | batches (the app's own object: records, store and service); notes until Phase 2 |
+# | 3 | demo (the seeded generator and the seed loader), analysis (metrics from records) |
+# | 4 | api, cli |
+LAYERS = {
+    "i18n": -1,
+    "config": 0,
+    "meta": 0,
+    "suite": 1,
+    "calc": 1,
+    "notes": 2,
+    "batches": 2,
+    "demo": 3,
+    "analysis": 3,
+    "api": 4,
+    "cli": 4,
+}
 
 
 def test_offline_by_default():
