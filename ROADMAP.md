@@ -7,7 +7,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Item | State |
 |---|---|
 | Pure calculations with one result shape, statuses and reasons | Done, oracle-tested |
-| Seeded generator: four batches on one bioreactor, ground truth kept apart | Done, tested |
+| Seeded generator: five batches on one bioreactor (one of them badly recorded), ground truth kept apart | Done, tested |
 | Batches in the app's store, `batchlens seed-demo` | Done, tested |
 | Read API with `as_of` (no look-ahead) | Done, tested against the fake PlantCraft |
 | Batch list and batch detail pages, English and Brazilian Portuguese | Done, Vitest and browser journeys |
@@ -17,15 +17,13 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 
 ## Next, in the intended order (proposed)
 
-1. A fifth demo batch with a data problem (a missing historian window, mis-keyed sample
-   times), which the analysis must flag rather than answer.
-2. A benchmark over many seeded normal and faulty batches, including missing windows and
+1. A benchmark over many seeded normal and faulty batches, including missing windows and
    misaligned sample times (the fourth scenario of the original proposal: a data problem
    the analysis must flag rather than answer), publishing false positives, misses and incomplete-data behaviour.
-3. An as-of control in the interface, then editing (samples, reference designation) with audit.
-4. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
+2. An as-of control in the interface, then editing (samples, reference designation) with audit.
+3. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
    filtration, UF/DF), where pools split and merge.
-5. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
+4. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
    verified calculations.
 
 Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything

@@ -4,7 +4,7 @@
 Two parts: the suite's test plant (``plantcraft_sdk.testplant``: the Simulator's loops and 12
 hours of their signals ending at ``NOW``), and the synthetic bioprocess plant of
 ``batchlens.demo.plant``: a unit with a bioreactor, a harvest skid and a Protein A skid, and
-the bioreactor's online signals for the four demo batches, as a PlantCraft answers them once
+the bioreactor's online signals for the demo batches, as a PlantCraft answers them once
 ``batchlens demo-plant``'s map is imported. The app reads them through the
 real client calls, exactly as it would read a live PlantCraft.
 """
@@ -12,6 +12,7 @@ real client calls, exactly as it would read a live PlantCraft.
 from __future__ import annotations
 
 import tomllib
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -75,7 +76,7 @@ def bio_signals() -> list[dict[str, Any]]:
 
 
 def bio_series() -> dict[str, pd.Series]:
-    """One series per signal carrying all four batches, one after another."""
+    """One series per signal carrying every demo batch, one after another."""
 
     observations, _ = demo_campaign()
     found = {}
@@ -104,7 +105,8 @@ def make_fake(*, bioprocess: bool = True, **options) -> FakePlantCraft:
             **{key: value.copy() for key, value in plant_series().items()},
             **(bio_series() if bioprocess else {}),
         },
-        now=NOW,
+        # After the last demo batch (the loops' own data still ends at NOW).
+        now=NOW + timedelta(days=30),
         **options,
     )
     fake.client(None, app="batchlens", key=APP_KEY).put_contributions(contributions(MANIFEST))

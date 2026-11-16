@@ -59,7 +59,7 @@ DESCRIPTION = "Synthetic demo equipment of BatchLens. Not a real asset."
 
 
 def recorded() -> dict[datetime, dict[str, float]]:
-    """Every online value of the four demo batches: ``{instant: {tag: value}}``."""
+    """Every online value of the demo batches: ``{instant: {tag: value}}``."""
 
     observations, _ground_truth = demo_campaign()
     rows: dict[datetime, dict[str, float]] = {}

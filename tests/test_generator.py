@@ -6,7 +6,7 @@ from __future__ import annotations
 import ast
 import dataclasses
 import sys
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -48,9 +48,9 @@ def test_different_seeds_differ():
     assert first.online != second.online
 
 
-def test_four_batches_run_one_after_another_on_the_same_bioreactor(campaign):
+def test_five_batches_run_one_after_another_on_the_same_bioreactor(campaign):
     batches, _ = campaign
-    assert sorted(batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004"]
+    assert sorted(batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
     windows = []
     for observations in batches.values():
         kinds = [phase.kind for phase in observations.record.phases]
@@ -63,7 +63,62 @@ def test_four_batches_run_one_after_another_on_the_same_bioreactor(campaign):
             assert culture.start <= points[0][0] and points[-1][0] <= culture.end
     windows.sort()
     assert all(end < start for (_, end), (start, _) in zip(windows, windows[1:]))
-    assert [o.record.batch.is_reference for o in batches.values()] == [True, False, False, False]
+    assert [o.record.batch.is_reference for o in batches.values()] == [
+        True,
+        False,
+        False,
+        False,
+        False,
+    ]
+
+
+def test_the_data_problem_batch_has_a_normal_culture_recorded_badly(campaign):
+    batches, truth = campaign
+    problem, expected = batches["BL-0005"], truth["BL-0005"]
+    assert expected.scenario == "data_problem"
+    assert (expected.mis_keyed_sample, expected.online_gap_days) == ("BL-0005-S09", (13.4, 14.25))
+    # A mis-keyed collection time: sample 9 carries sample 8's instant.
+    times = {sample.sample_id: sample.collected_at for sample in problem.record.samples}
+    assert times["BL-0005-S09"] == times["BL-0005-S08"]
+    assert len(set(times.values())) == len(times) - 1
+    # A hole in the historian over the end of the culture, where the harvest sample sits.
+    culture = problem.record.phases[0]
+    for points in problem.online.values():
+        assert max(moment for moment, _ in points) < culture.start + timedelta(days=13.4)
+    assert times["BL-0005-S15"] > culture.start + timedelta(days=13.4)
+    # The assay values themselves are those of a normal batch.
+    titers = [r.value for r in problem.record.results if r.analyte == "titer"]
+    assert 4.5 < max(titers) < 6.5
+
+
+def test_the_calculations_refuse_the_badly_recorded_batch_instead_of_answering(campaign):
+    batches, _ = campaign
+    found = metrics(batches["BL-0005"])
+    assert (found["ivcd"].status, found["ivcd"].value) == ("invalid", None)
+    assert found["ivcd"].reasons[0].code == "times_not_increasing"
+    assert (found["qp"].status, found["qp"].value) == ("invalid", None)
+    assert (found["harvest_mass"].status, found["harvest_mass"].value) == ("insufficient", None)
+    assert found["harvest_mass"].reasons[0].code == "no_volume_near_sample"
+    assert found["harvest_to_load_yield"].status == "insufficient"
+    # What does not depend on the bad records is still answered.
+    assert found["protein_a_recovery"].status == "usable"
+    assert found["protein_a_load_mass"].status == found["protein_a_eluate_mass"].status == "usable"
+
+
+def test_two_titers_recorded_at_one_instant_are_invalid_not_silently_merged():
+    at = datetime(2026, 7, 1, tzinfo=UTC)
+    cells = [
+        calc.Measurement(f"v{i}", at + timedelta(days=i), 1.0 + i, "1e6 cells/mL", at)
+        for i in range(3)
+    ]
+    titers = [
+        calc.Measurement("t0", at, 0.0, "g/L", at),
+        calc.Measurement("t1", at + timedelta(days=2), 0.5, "g/L", at),
+        calc.Measurement("t1-again", at + timedelta(days=2), 0.9, "g/L", at),
+    ]
+    result = calc.specific_productivity(cells, titers)
+    assert (result.status, result.value) == ("invalid", None)
+    assert [reason.code for reason in result.reasons] == ["times_not_increasing"]
 
 
 def test_a_batch_has_roughly_daily_samples_with_each_result_available_later(campaign):
@@ -87,6 +142,8 @@ def test_a_batch_has_roughly_daily_samples_with_each_result_available_later(camp
 def test_the_calculations_recover_the_generators_own_parameters(campaign):
     batches, truth = campaign
     for batch_id, observations in batches.items():
+        if truth[batch_id].scenario == "data_problem":
+            continue  # its numbers are not meant to be recovered: see the tests below
         found, expected = metrics(observations), truth[batch_id]
         assert all(result.status == "usable" for result in found.values()), batch_id
         # Tolerances are three standard deviations of the generator's assay noise
@@ -125,7 +182,16 @@ def test_what_the_app_sees_carries_no_ground_truth(campaign):
     batches, truth = campaign
     for batch_id, observations in batches.items():
         seen = repr(dataclasses.asdict(observations.record)).lower()
-        for word in ("reduced", "normal", "fault", "scenario", truth[batch_id].scenario):
+        for word in (
+            "reduced",
+            "normal",
+            "fault",
+            "scenario",
+            "problem",
+            "mis_keyed",
+            "gap",
+            truth[batch_id].scenario,
+        ):
             assert word not in seen, (batch_id, word)
         assert all("synthetic-generator" in row.provenance for row in observations.record.results)
 

@@ -10,8 +10,8 @@ plant signals, offline assay results and product mass balances, and shows every 
 its inputs, its status and the reasons for it.
 
 The question it is being built to answer: *why did this batch yield less recoverable antibody
-than comparable batches?* This first slice delivers the chain that question needs, for four
-synthetic batches:
+than comparable batches?* It follows five synthetic batches along the chain that question
+needs:
 
 ```
 VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volume
@@ -36,7 +36,7 @@ VCD samples -> IVCD -> specific productivity -> harvest titer x bioreactor volum
 | Part | State |
 |---|---|
 | Pure calculations (`src/batchlens/calc/`), each with a hand-calculated oracle test | Implemented, tested |
-| Seeded generator of four batches, with its ground truth kept out of the app | Implemented, tested |
+| Seeded generator of five batches (a reference, a normal one, reduced productivity, reduced Protein A recovery, bad records), with its ground truth kept out of the app | Implemented, tested |
 | Batches, phase executions, samples, assay results and pool measurements in the app's database | Implemented, tested |
 | Five read routes; online signals read from PlantCraft as the signed-in person | Implemented, tested against the SDK's fake PlantCraft |
 | Batch list and batch detail pages | Implemented, tested (Vitest, two browser journeys) |

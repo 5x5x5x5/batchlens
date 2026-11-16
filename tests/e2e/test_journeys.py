@@ -101,6 +101,31 @@ def test_a_batch_that_lost_product_in_the_capture_step_says_where(signed_in, app
     _shot(page, screenshots, "4-recovery-finding")
 
 
+def test_a_badly_recorded_batch_is_flagged_not_answered(signed_in, app_url, screenshots):
+    page = signed_in
+    page.goto(f"{app_url}/batchlens/")
+    page.get_by_role("link", name="BL-0005").click()
+    metrics = page.locator('[data-section="metrics"]')
+    cells = metrics.get_by_role("row", name=re.compile("^Integral of viable cell density"))
+    expect(cells).to_contain_text("Invalid")
+    expect(cells).to_contain_text("No value")
+    expect(cells).to_contain_text("Sample times are duplicated or out of order at BL-0005-S09-vcd.")
+    harvest = metrics.get_by_role("row", name=re.compile("^Product mass at harvest"))
+    expect(harvest).to_contain_text("Insufficient")
+    expect(harvest).to_contain_text("No bioreactor volume value within")
+    expect(metrics.get_by_role("row", name=re.compile("^Protein A recovery"))).to_contain_text(
+        "Usable"
+    )
+    findings = page.locator('[data-section="findings"]')
+    expect(findings).to_contain_text(
+        "The titer could not be compared with the reference batch (Invalid)"
+    )
+    expect(findings).to_contain_text(
+        "Harvest-to-load yield could not be compared with the reference batch"
+    )
+    _shot(page, screenshots, "5-bad-records")
+
+
 def test_a_metric_that_needs_a_missing_signal_says_why(signed_in_without_volume, screenshots):
     page, url = signed_in_without_volume
     page.goto(f"{url}/batchlens/batches/BL-0001")

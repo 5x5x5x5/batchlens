@@ -1,6 +1,6 @@
 # The demo
 
-Four synthetic batches of `mAb-X (synthetic)`, run one after another on the same 2,000 L
+Five synthetic batches of `mAb-X (synthetic)`, run one after another on the same 2,000 L
 bioreactor, each followed by harvest and one aggregated Protein A capture step. Everything is
 made by `src/batchlens/demo/generator.py` from fixed seeds: the same output on every run and
 machine. **All of it is illustrative** ([scientific-assumptions.md](scientific-assumptions.md)).
@@ -16,7 +16,7 @@ BATCHLENS_E2E_SCREENSHOTS=shots make e2e        # the pages in a browser, screen
 
 `make e2e` needs Playwright and Chromium once ([testing.md](testing.md), with `uv pip` in place
 of `pip`): `uv pip install --python ~/.venvs/batchlens/bin/python --find-links vendor -e ".[e2e]"`
-and `python -m playwright install chromium`. The journeys start the app with the four batches
+and `python -m playwright install chromium`. The journeys start the app with the five batches
 seeded, against the SDK's fake PlantCraft serving the synthetic plant (`tests/plant.py`).
 
 To load the batches into an app database yourself:
@@ -25,7 +25,7 @@ To load the batches into an app database yourself:
 BATCHLENS_DATA_DIR=/some/folder batchlens seed-demo
 ```
 
-It stores the four batches under stable ids and can be run again without changing anything.
+It stores the five batches under stable ids and can be run again without changing anything.
 
 ## Inside a live PlantCraft
 
@@ -73,7 +73,7 @@ of API v1, and nothing in this repository calls them.
 | `HV-2101` | Harvest clarification skid | None |
 | `CH-3001` | Protein A chromatography skid | None |
 
-The same four signals carry all four batches, so every read is scoped to a phase execution's
+The same four signals carry all five batches, so every read is scoped to a phase execution's
 asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files
 above and the tests' fake PlantCraft are both made from it.
 
@@ -89,6 +89,7 @@ nothing about it.
 | `BL-0002` | 102 | 2026-07-22 06:00 | Normal | Ordinary variability only |
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
 | `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
+| `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and the historian kept nothing from culture day 13.4 to the end of the phase |
 
 ## What the app computes for them
 
@@ -100,6 +101,7 @@ Read from the API through the fake PlantCraft on 2026-11-15 (values as the page 
 | `BL-0002` | 181 | 31.2 | 11,290 g | 91.9 % | 91.5 % |
 | `BL-0003` | 177 | 20.6 | 7,317 g | 91.0 % | 92.6 % |
 | `BL-0004` | 184 | 30.7 | 11,290 g | 89.4 % | 73.4 % |
+| `BL-0005` | invalid | invalid | insufficient | insufficient | 91.5 % |
 
 IVCD in `1e6 cell-days/mL`, qP in `pg/cell/day`. Worth noticing: the true harvest-to-load
 yield is about 93 % in every batch, yet the computed one ranges from 89 to 97 %. Harvest mass
@@ -116,6 +118,7 @@ a step recovery). Every compared batch gets the same three findings.
 | `BL-0002` | Within the tolerance over 15 compared samples | Within (91.9 % against 97.0 %) | Within (91.5 % against 93.6 %) |
 | `BL-0003` | Left the reference at culture day 7.9 (sample `BL-0003-S09-titer`, 1.681 against 2.008 g/L), below in all 6 later samples; 7,317 g against 10,170 g at harvest | Within (91.0 %) | Within (92.6 %) |
 | `BL-0004` | Within the tolerance | Within (89.4 %) | 20 points below (73.4 % against 93.6 %); 7,410 g against 9,230 g in the eluate |
+| `BL-0005` | Could not be compared (invalid: duplicated sample time at `BL-0005-S09-titer`) | Could not be compared (no harvest mass) | Within (91.5 %) |
 
 The ground truth says `BL-0003`'s productivity changes from day 7. The app sees it at the next
 sample, day 7.9, and says so: the first sample at which a gap is seen comes after whatever
@@ -123,3 +126,10 @@ began it. Under the divergence the page lists the other results of the same samp
 reference's (lactate is 1.72 g/L higher at the last sample), and concludes nothing from them.
 No cause is attributed anywhere (`images/findings/`). The VCD and titer charts draw the
 reference batch over each batch at the same culture age.
+
+`BL-0005` is the batch whose process was fine and whose records were not. The app does not
+guess which of the two samples with one timestamp is right, and it does not reach across the
+hole in the historian for a volume: IVCD and qP are `invalid`, the product mass at harvest is
+`insufficient`, each with the record it tripped on, and the trends stop where the data stops
+(`images/findings/bad-records.png`). What rests on good records, the pool masses and the
+Protein A recovery, is still answered.

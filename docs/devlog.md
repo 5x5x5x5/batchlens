@@ -3,6 +3,37 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The fifth batch: good process, bad records
+
+Branch `data-problem-batch`. The original proposal's fourth scenario: a historian or sample-data
+problem that the analysis must flag rather than answer.
+
+- **Built:** two record-keeping options in the generator (`mis_keyed_sample`,
+  `online_gap_days`) and batch `BL-0005` using both; the tests' fake PlantCraft now has its
+  clock after the last batch; a fourth browser journey.
+- **What the app does with it:** IVCD and qP `invalid` (duplicated sample time, naming the
+  result), harvest mass `insufficient` (no volume within 15 minutes before the sample), yield
+  `insufficient`; pool masses and Protein A recovery `usable`; the titer finding `invalid`, the
+  yield finding `insufficient`, the recovery finding "within". No number anywhere it should
+  not be.
+- **Found on the way, and fixed:**
+  - **The trends drew values that were never recorded.** PlantCraft's stepped means hold the
+    last value across a gap: in the fake, twelve hours of a flat 2000 L after the historian
+    stopped. The trends route now reads the recorded values and averages them per step in the
+    app, and a step with no value breaks the line. Caught by the new test, not by eye.
+  - `calc.specific_productivity` paired titers by time and silently kept one of two titers
+    recorded at one instant (a deferred finding of the first review). Now `invalid`.
+  - A finding that cannot be made now says which comparison failed, not only why.
+- **Rulings:** the bad batch keeps a normal culture, so the only difference from a normal batch
+  is in the records; the app refuses the whole culture calculation rather than dropping the
+  suspect sample, because choosing which record is wrong is a person's call.
+- **Tests:** 11 run red first (generator, API, calc). One edit script missed a text match
+  again and wrote nothing; caught by the red tests staying red, then redone.
+- **Seen in the browser:** `docs/images/findings/bad-records.png`: the flags, and the online
+  trends ending where the data ends.
+- **Final checks:** `make ci` exit 0 (Vitest 21 passed, pytest 163 passed, 0 skipped);
+  `make e2e` exit 0 (6 passed).
+
 ## 2026-11-16: Recovery findings, evidence and the reference overlay
 
 Branch `mvp-findings`. The owner asked for a finding on both steps, left the tolerance to the

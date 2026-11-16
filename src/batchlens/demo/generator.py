@@ -1,4 +1,4 @@
-"""Four synthetic mAb batches, as a deterministic function of (scenario parameters, seed).
+"""Synthetic mAb batches, as a deterministic function of (scenario parameters, seed).
 
 Illustrative throughout: a 2,000 L CHO fed-batch production culture of about 14 days on one
 bioreactor, harvest, and one aggregated Protein A capture step. It is a shape generator, not a
@@ -72,6 +72,11 @@ class Scenario:
     qp_shift_factor: float = 1.0
     harvest_to_load_yield: float = 0.93
     protein_a_recovery: float = 0.92
+    # Record-keeping problems, not process ones: the culture itself is unchanged.
+    # The sample (counted from 0) whose collection time was keyed in as the one before it.
+    mis_keyed_sample: int | None = None
+    # Culture days between which the historian kept nothing.
+    online_gap_days: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -96,6 +101,8 @@ class GroundTruth:
     harvest_mass: float  # g, true final titer times true volume
     harvest_to_load_yield: float  # fraction
     protein_a_recovery: float  # fraction
+    mis_keyed_sample: str | None = None  # the sample id
+    online_gap_days: tuple[float, float] | None = None
 
 
 def _vcd(day: float, peak: float, rate: float) -> float:
@@ -110,7 +117,9 @@ def _volume(day: float) -> float:
     return START_LITRES + FEED_LITRES * feeds
 
 
-def _online(rng: random.Random, start: datetime) -> dict[str, list[tuple[datetime, float]]]:
+def _online(
+    rng: random.Random, start: datetime, gap: tuple[float, float] | None = None
+) -> dict[str, list[tuple[datetime, float]]]:
     series: dict[str, list[tuple[datetime, float]]] = {role: [] for role in ONLINE_UNITS}
     for index in range(int(CULTURE_DAYS * 86400 / ONLINE_INTERVAL_SECONDS) + 1):
         seconds = index * ONLINE_INTERVAL_SECONDS
@@ -122,6 +131,8 @@ def _online(rng: random.Random, start: datetime) -> dict[str, list[tuple[datetim
             "temperature": 36.5 - 3.5 * shift + rng.gauss(0, 0.05),
             "volume": _volume(day) + rng.gauss(0, 0.5),
         }
+        if gap is not None and gap[0] <= day <= gap[1]:
+            continue  # drawn (so the noise is the same as without a gap) but never kept
         for role, value in values.items():
             series[role].append((moment, round(value, 2 if role != "volume" else 1)))
     return series
@@ -199,8 +210,11 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
             "titer": titer,
         }
         collected = start + timedelta(seconds=round(day * 86400))
+        recorded_at = collected
+        if index == scenario.mis_keyed_sample:
+            recorded_at = samples[-1].collected_at  # keyed in as the sample before it
         sample_id = f"{batch_id}-S{index + 1:02d}"
-        samples.append(Sample(sample_id, batch_id, phases[0].phase_id, collected, provenance))
+        samples.append(Sample(sample_id, batch_id, phases[0].phase_id, recorded_at, provenance))
         for analyte, value in truth.items():
             # Cell counts and metabolites within hours; titer many hours later.
             hours = rng.uniform(18, 30) if analyte == "titer" else rng.uniform(0.5, 3)
@@ -265,8 +279,10 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         harvest_mass,
         step_yield,
         recovery,
+        None if scenario.mis_keyed_sample is None else samples[scenario.mis_keyed_sample].sample_id,
+        scenario.online_gap_days,
     )
-    return Observations(record, _online(rng, start)), truth_out
+    return Observations(record, _online(rng, start, scenario.online_gap_days)), truth_out
 
 
 CAMPAIGN_START = datetime(2026, 7, 1, 6, 0, tzinfo=UTC)
@@ -274,7 +290,7 @@ DAYS_BETWEEN_BATCHES = 21
 
 
 def demo_campaign() -> tuple[list[Observations], dict[str, GroundTruth]]:
-    """The four demo batches, one after another on the same bioreactor (docs/demo.md)."""
+    """The five demo batches, one after another on the same bioreactor (docs/demo.md)."""
 
     def start(index: int) -> datetime:
         return CAMPAIGN_START + timedelta(days=DAYS_BETWEEN_BATCHES * index)
@@ -297,6 +313,16 @@ def demo_campaign() -> tuple[list[Observations], dict[str, GroundTruth]]:
                 "BL-0004", start(3), label="reduced_protein_a_recovery", protein_a_recovery=0.74
             ),
             104,
+        ),
+        (
+            Scenario(
+                "BL-0005",
+                start(4),
+                label="data_problem",
+                mis_keyed_sample=8,
+                online_gap_days=(13.4, 14.25),
+            ),
+            105,
         ),
     ]
     made = [generate(scenario, seed) for scenario, seed in scenarios]

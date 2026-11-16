@@ -1,4 +1,4 @@
-"""The app's own object and its read API: the four seeded batches, their samples, metrics and
+"""The app's own object and its read API: the seeded batches, their samples, metrics and
 trends, read through the fake PlantCraft as the signed-in person."""
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ def codes(metric: dict) -> list[str]:
 
 
 def test_the_seed_stores_exactly_what_the_generator_made(runtime):
-    assert seed_demo(runtime.batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004"]
+    assert seed_demo(runtime.batches) == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
     for batch_id, observations in CAMPAIGN.items():
         assert runtime.batches.get(batch_id) == observations.record
     assert runtime.batches.get("BL-9999") is None
@@ -52,7 +52,7 @@ def test_the_seed_stores_exactly_what_the_generator_made(runtime):
 def test_seeding_twice_changes_nothing(seeded):
     before = seeded.batches.get("BL-0002")
     seed_demo(seeded.batches)
-    assert len(seeded.batches.summaries()) == 4
+    assert len(seeded.batches.summaries()) == 5
     assert seeded.batches.get("BL-0002") == before
 
 
@@ -61,15 +61,11 @@ def test_the_command_line_seeds_the_demo(tmp_path, monkeypatch, capsys):
     # The command sets up logging on the captured stderr; give the root logger back afterwards.
     monkeypatch.setattr(logging.root, "handlers", [])
     assert main(["seed-demo"]) == 0
-    assert json.loads(capsys.readouterr().out)["batches"] == [
-        "BL-0001",
-        "BL-0002",
-        "BL-0003",
-        "BL-0004",
-    ]
+    seeded = json.loads(capsys.readouterr().out)["batches"]
+    assert seeded == ["BL-0001", "BL-0002", "BL-0003", "BL-0004", "BL-0005"]
     runtime = make_runtime(tmp_path, make_fake())
     try:
-        assert len(runtime.batches.summaries()) == 4
+        assert len(runtime.batches.summaries()) == 5
     finally:
         runtime.shutdown()
 
@@ -81,8 +77,14 @@ def test_the_list_gives_each_batch_its_reference_flag_window_and_bioreactor(seed
     answer = client.get("/api/batches").json()
     assert answer["time_zone"] == "UTC"
     rows = answer["batches"]
-    assert [row["batch_id"] for row in rows] == ["BL-0001", "BL-0002", "BL-0003", "BL-0004"]
-    assert [row["is_reference"] for row in rows] == [True, False, False, False]
+    assert [row["batch_id"] for row in rows] == [
+        "BL-0001",
+        "BL-0002",
+        "BL-0003",
+        "BL-0004",
+        "BL-0005",
+    ]
+    assert [row["is_reference"] for row in rows] == [True, False, False, False, False]
     first, record = rows[0], CAMPAIGN["BL-0001"].record
     assert first["product"] == "mAb-X (synthetic)"
     assert instant(first["start"]) == record.phases[0].start
@@ -133,8 +135,13 @@ def test_metrics_are_the_calculations_on_what_plantcraft_and_the_store_hold(seed
         volume = calc.Online(BIO_SIGNALS["volume"], VOLUME_UNIT, observations.online["volume"])
         for expected in batch_metrics(observations.record, volume):
             got = answered[expected.metric]
-            assert got["status"] == "usable", (batch_id, got)
-            assert got["value"] == pytest.approx(expected.value)
+            assert got["status"] == expected.status, (batch_id, got)
+            assert (got["status"] == "usable") == (
+                batch_id != "BL-0005"
+            ) or expected.metric.startswith("protein_a")
+            assert got["value"] == (
+                pytest.approx(expected.value) if expected.value is not None else None
+            )
             assert (got["unit"], got["calculation_version"]) == (
                 expected.unit,
                 expected.calculation_version,
@@ -266,7 +273,7 @@ def test_without_the_bioreactor_in_plantcraft_the_app_says_so(tmp_path):
         seed_demo(runtime.batches)
         with client_for(runtime, fake) as client:
             rows = client.get("/api/batches").json()["batches"]
-            assert len(rows) == 4 and rows[0]["asset_name"] is None
+            assert len(rows) == 5 and rows[0]["asset_name"] is None
             found = metrics_of(client, "BL-0001")
             harvest = found["harvest_mass"]
             assert (harvest["status"], harvest["value"]) == ("insufficient", None)
@@ -579,3 +586,44 @@ def test_without_the_bioreactor_the_observation_stands_and_the_consequence_says_
             assert finding["consequence"]["difference"] is None
     finally:
         runtime.shutdown()
+
+
+# A batch whose records are bad ------------------------------------------------------------------
+
+
+def test_the_badly_recorded_batch_is_flagged_everywhere_and_answered_nowhere_it_should_not_be(
+    seeded, client
+):
+    found = metrics_of(client, "BL-0005")
+    assert (found["ivcd"]["status"], found["ivcd"]["value"]) == ("invalid", None)
+    assert codes(found["ivcd"]) == ["times_not_increasing"]
+    assert found["ivcd"]["reasons"][0]["values"]["id"] == "BL-0005-S09-vcd"
+    assert (found["qp"]["status"], found["qp"]["value"]) == ("invalid", None)
+    assert (found["harvest_mass"]["status"], found["harvest_mass"]["value"]) == (
+        "insufficient",
+        None,
+    )
+    assert codes(found["harvest_mass"]) == ["no_volume_near_sample"]
+    assert found["harvest_to_load_yield"]["status"] == "insufficient"
+    assert found["protein_a_recovery"]["status"] == "usable"
+    # No number, so no difference from the reference either.
+    assert found["ivcd"]["difference"] is None and found["harvest_mass"]["difference"] is None
+    titer, step_yield, recovery = findings_of(client, "BL-0005")
+    assert (titer["observation"]["status"], titer["observation"]["value"]) == ("invalid", None)
+    assert codes(titer["observation"]) == ["times_not_increasing"]
+    assert titer["consequence"] is None and titer["evidence"] == []
+    assert step_yield["observation"]["status"] == "insufficient"
+    assert codes(recovery["observation"]) == ["within_reference"]
+
+
+def test_the_hole_in_the_historian_shows_in_the_trends_as_missing_values(seeded, client):
+    answer = client.get("/api/batches/BL-0005/trends").json()
+    culture = CAMPAIGN["BL-0005"].record.phases[0]
+    hole = culture.start + timedelta(days=13.4)
+    for signal in answer["signals"]:
+        assert signal["status"] == "usable"
+        values = dict(zip(map(instant, signal["t"]), signal["v"]))
+        assert any(v is not None for t, v in values.items() if t < hole - timedelta(hours=2))
+        # Nothing is drawn across the hole: no value, or no point at all.
+        assert all(v is None for t, v in values.items() if t >= hole)
+        assert sum(v is None for v in signal["v"]) >= 15  # about 20 h at 69 min a step
