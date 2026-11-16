@@ -16,6 +16,7 @@ from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
 from batchlens.api import plant
 from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, batch_or_404
 from batchlens.batches.drafts import SampleTimeCorrection
+from batchlens.batches.models import BatchRecord
 from batchlens.batches.service import NotFound, RuleBroken
 from batchlens.i18n import t
 
@@ -170,11 +171,13 @@ def batch_samples(
     }
 
 
-@router.get("/batches/{batch_id}/metrics")
-def batch_metrics_route(
-    batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf
+def metrics_answer(
+    rt: Any, user: Any, record: BatchRecord, as_of: datetime | None
 ) -> dict[str, Any]:
-    record = batch_or_404(rt, batch_id)
+    """A batch's metrics, findings and purification train, beside the reference batch's: what
+    the metrics route answers, and what the assistant's tool reads (``routers/tools.py``)."""
+
+    batch_id = record.batch.batch_id
     client = rt.user_client(user)
 
     def metrics_of(item):
@@ -204,6 +207,13 @@ def batch_metrics_route(
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
     }
+
+
+@router.get("/batches/{batch_id}/metrics")
+def batch_metrics_route(
+    batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf
+) -> dict[str, Any]:
+    return metrics_answer(rt, user, batch_or_404(rt, batch_id), as_of)
 
 
 @router.get("/batches/{batch_id}/trends")

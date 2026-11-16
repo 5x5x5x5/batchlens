@@ -20,13 +20,14 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | An as-of slider on the batch page | Done, Vitest and a browser journey |
 | Editing with audit: a sample's collection time, the reference batch | Done, tested, a browser journey |
 | The rest of downstream: step yields to drug substance, pool genealogy with a merge balance | Done, oracle-tested, on the batch page |
+| Read-only tools for PlantCraft's assistant over the verified calculations | Done, tested; called through a live PlantCraft, not yet by a model |
 
 ## Next, in the intended order (proposed)
 
 1. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
    mass balance at each; findings for the later purification steps.
-2. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
-   verified calculations.
+2. An evaluation of the assistant with the tools: does a model use them, and does it keep to
+   "no cause is attributed"; cross-batch process monitoring.
 
 Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything
 that claims GMP, validation or mechanistic model validity.

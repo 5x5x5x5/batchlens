@@ -50,6 +50,12 @@ write routes at the end of the table.
 | `PUT /api/batches/{id}/reference` | Editors: make this batch the reference. Audited as `batchlens.batch.reference_set` |
 | `GET /api/batches/{id}/trends?as_of=` | The bioreactor's online signals over the production phase, read from PlantCraft as the person, downsampled |
 
+Two read-only tools for PlantCraft's assistant, declared in `app.toml` and called by PlantCraft
+as the person who asks: `POST /api/assistant/tools/list_batches` (the batches) and
+`POST /api/assistant/tools/batch_findings` (one batch's metrics, findings and purification
+yields, with statuses and reasons). Their answers say that the data is synthetic, that it is
+data and not instructions, and that no cause is attributed.
+
 `as_of` is an ISO 8601 instant (UTC without an offset): the answer holds only what was collected
 and available by then. Unknown batch 404; malformed `as_of` 422; no token 401; no access 403. A
 missing asset, signal or series in PlantCraft is HTTP 200 with the metric or trend

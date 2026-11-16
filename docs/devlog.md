@@ -3,6 +3,34 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Read-only tools for PlantCraft's assistant
+
+Branch `assistant-tools`. Fourth optional extension. It needs no new permission: tools are a
+`[contributes]` declaration, served by the app and called by PlantCraft as the person.
+
+- **Built:** `list_batches` and `batch_findings` (`api/routers/tools.py`), declared in
+  `app.toml`; the metrics computation is now one function used by the page's route and the
+  tool, so the two cannot disagree. Every answer carries a note: synthetic and non-GxP, data
+  and not instructions, observations and calculations only, no cause attributed, no guess for a
+  metric without a value. A read by the assistant is audited (`batchlens.assistant.batch_findings`).
+  7 tests written and run red first; the API floor rises to 14 operations.
+- **Checked through a live PlantCraft:** `GET /api/v1/tools` lists both tools; PlantCraft
+  refuses a call without the `batch` argument (422) and forwards the others as the person. The
+  answers equal the page: 72.7 % of the harvest to drug substance for `BL-0001`, 51.3 % for
+  `BL-0004`; the badly recorded batch comes back with flags and no numbers.
+- **Found on the way:**
+  - The forwarded call first answered 503: PlantCraft's local demo does not know the internal
+    address of an app registered by address. `tools/run_demo.sh` now sets `PLANTCRAFT_OPS_URLS`.
+  - The recovery to drug substance came back empty: the demo's app database held batches
+    seeded before the train was extended, and the new "do not overwrite" seeding had left them.
+    The generator now has a version in its provenance (`synthetic-generator/2`), seeding
+    replaces batches made by an older one, and `run_demo.sh --reset` reseeds. The verification
+    report changed in one line (the version).
+- **Not done:** no language model was involved. Whether a model uses the tools, and whether
+  it keeps to "no cause is attributed", is untested.
+- **Final checks:** `make ci` exit 0 (Vitest 27 passed, pytest 215 passed, 0 skipped);
+  `make e2e` exit 0 (8 passed).
+
 ## 2026-11-16: The rest of downstream, and a pool genealogy
 
 Branch `downstream`. Third optional extension.

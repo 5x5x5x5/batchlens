@@ -42,7 +42,8 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `api/runtime.py` | `Runtime`: one server's settings, database, services and PlantCraft clients |
 | `api/deps.py` | Who may do what (`CurrentUser`) and shared checks (`batch_or_404`) |
 | `api/plant.py` | What the pages read from PlantCraft as the person: asset names, volume, trends |
-| `api/routers/batches.py` | The five read routes |
+| `api/routers/batches.py` | The read routes and the two things an editor may change |
+| `api/routers/tools.py` | The two read-only tools for PlantCraft's assistant |
 | `api/app.py` | `create_app()`: the suite's standard endpoints plus the routers and the built interface |
 | `cli.py` | `batchlens serve`, `check`, `seed-demo`, `demo-plant` and `benchmark` |
 
@@ -91,6 +92,8 @@ in the interface, a router or a store.
 |---|---|
 | `plant.py`, `conftest.py` | A fake PlantCraft with the suite's test plant plus the synthetic bioprocess plant, and four people; a runtime and a client wired to it |
 | `test_calc.py` | Each formula against a hand-calculated oracle; each failure status |
+| `test_assistant_tools.py` | The assistant's tools: the same numbers as the page, flags not guesses, no ground truth |
+| `test_editing.py` | Corrections and the reference change: rules, audit, who may |
 | `test_downstream.py` | The train: yields that multiply to the recovery, the merge balance, as-of, the API |
 | `test_divergence.py` | The titer divergence rule against hand-worked cases |
 | `test_benchmark.py` | The benchmark's counts and invariants; the published report is what it gives today |

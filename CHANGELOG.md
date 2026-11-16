@@ -27,6 +27,9 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   tolerance below the reference's; the other results of a divergence's samples as evidence
   beside the reference's; the reference batch drawn over the VCD and titer charts at the
   same culture age (`align_to` on the samples route).
+- Two read-only tools for PlantCraft's assistant (`list_batches`, `batch_findings`), declared
+  in `app.toml`. The generator is now `synthetic-generator/2`, and `seed-demo` replaces
+  batches made by an older version.
 - The rest of the purification train: viral inactivation, cation and anion exchange, viral
   filtration and UF/DF with their pools; step yields beside the reference's, recovery from
   harvest to drug substance, and a pool genealogy with the mass balance of a merge.

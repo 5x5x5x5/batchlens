@@ -54,6 +54,14 @@ referência, aquele com que os outros são comparados. Abra um lote pelo seu ide
 Uma métrica sem valor sempre diz por quê. Quando o PlantCraft não tem o ativo ou o sinal, o app
 diz qual não encontrou em vez de desenhar uma tendência que não tem.
 
+## Perguntar ao assistente
+
+O assistente do PlantCraft pode ler o BatchLens: listar os lotes e ler as métricas, as
+constatações e os rendimentos de purificação de um lote, como você (ele vê apenas o que você
+pode abrir). Ele recebe os mesmos números desta página, com estados e motivos, e é avisado de
+que o BatchLens não atribui causa. Se ele oferecer uma, é inferência do próprio assistente,
+não uma constatação do app.
+
 ## Bom saber
 
 - As massas são estimativas de concentração vezes volume; o método de ensaio é indicado.
