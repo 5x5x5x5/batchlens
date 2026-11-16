@@ -63,9 +63,22 @@ const DETAIL: BatchDetail = {
     { measurement_id: "BL-0002-protein_a_load", batch_id: "BL-0002", phase_id: "BL-0002-P3", pool: "protein_a_load", volume: 1915.3, volume_unit: "L", concentration: 5.42, concentration_unit: "g/L", method: "UV absorbance at 280 nm", measured_at: "2026-08-05T21:00:00.000Z", result_available_at: "2026-08-06T00:10:00.000Z", provenance: "p" },
   ],
 };
+const result = (name: string, value: number | null, unit = "g", status = "usable") => ({ metric: name, value, unit, status, reasons: status === "usable" ? [] : [{ code: "measurement_missing", values: {} }], inputs: [], calculation_version: "x/1" });
+const DOWNSTREAM: Metrics["downstream"] = {
+  steps: [
+    { step: "protein_a_capture", mass_in: result("protein_a_load_mass", 10094.86), mass_out: result("protein_a_eluate_mass", 7408.73), step_yield: result("protein_a_capture_yield", 73.3912, "%"), from_harvest: result("protein_a_capture_from_harvest", 65.594, "%"), reference_yield: 93.5479, yield_difference: -20.1567 },
+    { step: "viral_inactivation", mass_in: result("protein_a_eluate_mass", 7408.73), mass_out: result("viral_inactivation_pool_mass", null, "g", "insufficient"), step_yield: result("viral_inactivation_yield", null, "%", "insufficient"), from_harvest: result("viral_inactivation_from_harvest", null, "%", "insufficient"), reference_yield: 98.1, yield_difference: null },
+  ],
+  overall: result("harvest_to_drug_substance_recovery", 51.2345, "%"),
+  overall_reference: 72.9012,
+  genealogy: [
+    { pool: "protein_a_eluate_cycle_1", measurement_id: "BL-0002-protein_a_eluate_cycle_1", mass: result("protein_a_eluate_cycle_1_mass", 3712.4), sources: ["BL-0002-protein_a_load"], merge_balance: null },
+    { pool: "protein_a_eluate", measurement_id: "BL-0002-protein_a_eluate", mass: result("protein_a_eluate_mass", 7408.73), sources: ["BL-0002-protein_a_eluate_cycle_1", "BL-0002-protein_a_eluate_cycle_2"], merge_balance: { ...result("merge_balance", 4.2137, "%", "suspect"), reasons: [{ code: "outside_merge_tolerance", values: { tolerance_percent: 3 } }] } },
+  ],
+};
 const metric = (name: string, more: Partial<Metrics["metrics"][number]>) => ({ metric: name, value: null, unit: "g", status: "usable", reasons: [], inputs: [], calculation_version: `${name}/1`, reference: null, difference: null, ...more });
 const METRICS: Metrics = {
-  batch_id: "BL-0002", as_of: null, reference_batch_id: "BL-0001",
+  batch_id: "BL-0002", as_of: null, reference_batch_id: "BL-0001", downstream: DOWNSTREAM,
   findings: [{
     finding: "titer_divergence",
     observation: {
@@ -280,6 +293,28 @@ describe("one batch", () => {
     answers.metrics = { ...METRICS, findings: [] };
     host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     expect(host.querySelector('[data-section="findings"]')).toBeNull();
+  });
+
+  it("shows the purification train step by step, and where pools were merged", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const train = host.querySelector('[data-section="downstream"]')!;
+    const rows = [...train.querySelectorAll("tbody tr")].map((row) => row.textContent ?? "");
+    expect(rows[0]).toContain("Protein A capture");
+    expect(rows[0]).toContain("10,100 g");
+    expect(rows[0]).toContain("7,410 g");
+    expect(rows[0]).toContain("73.4 %");
+    expect(rows[0]).toContain("93.5");
+    expect(rows[0]).toContain("-20.2");
+    expect(rows[0]).toContain("65.6 %");
+    // A step whose pool has no measurement says so and shows no yield.
+    expect(rows[1]).toContain("Viral inactivation");
+    expect(rows[1]).toContain("No pool measurement recorded.");
+    expect(train.textContent).toContain("From harvest to drug substance: 51.2 % (reference batch: 72.9 %).");
+    // Genealogy: what each pool was made from, and the mass balance of a merge.
+    const text = train.textContent ?? "";
+    expect(text).toContain("BL-0002-protein_a_eluate_cycle_1, BL-0002-protein_a_eluate_cycle_2");
+    expect(text).toContain("+4.2 %");
+    expect(text).toContain("The merged pool differs from the sum of its parts by more than 3 %.");
   });
 
   it("lists every assay result with its collection and availability times", async () => {

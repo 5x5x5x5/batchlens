@@ -100,14 +100,34 @@ def test_one_batch_comes_with_its_phase_executions_and_pool_measurements(seeded,
         "production_culture",
         "harvest",
         "protein_a_capture",
+        "viral_inactivation",
+        "cation_exchange",
+        "anion_exchange",
+        "viral_filtration",
+        "ufdf",
     ]
     assert [phase["asset_name"] for phase in answer["phases"]] == [
         "Production bioreactor 2000 L",
         "Harvest clarification skid",
         "Protein A chromatography skid",
+        "Viral inactivation vessel",
+        "Cation-exchange chromatography skid",
+        "Anion-exchange chromatography skid",
+        "Viral filtration skid",
+        "UF/DF skid",
     ]
     assert all(instant(phase["start"]) < instant(phase["end"]) for phase in answer["phases"])
-    assert [pool["pool"] for pool in answer["pools"]] == ["protein_a_load", "protein_a_eluate"]
+    assert [pool["pool"] for pool in answer["pools"]] == [
+        "protein_a_load",
+        "protein_a_eluate_cycle_1",
+        "protein_a_eluate_cycle_2",
+        "protein_a_eluate",
+        "viral_inactivation_pool",
+        "cation_exchange_pool",
+        "anion_exchange_pool",
+        "viral_filtrate",
+        "drug_substance",
+    ]
     assert {pool["volume_unit"] for pool in answer["pools"]} == {"L"}
     assert "synthetic-generator" in answer["batch"]["provenance"]
 
@@ -676,7 +696,7 @@ def test_an_as_of_view_does_not_know_the_future(seeded, client):
     assert detail["pools"] == []
     # After everything: all three phases with their ends, both pools.
     whole = client.get("/api/batches/BL-0003").json()
-    assert whole["as_of"] is None and len(whole["phases"]) == 3 and len(whole["pools"]) == 2
+    assert whole["as_of"] is None and len(whole["phases"]) == 8 and len(whole["pools"]) == 9
     assert all(phase["end"] for phase in whole["phases"])
     assert client.get("/api/batches/BL-0003", params={"as_of": "soon"}).status_code == 422
     # The list is not an as-of view: it has no as_of.

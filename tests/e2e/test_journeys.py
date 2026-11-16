@@ -44,7 +44,7 @@ def test_open_the_app_open_a_batch_and_see_its_phases_and_metrics(signed_in, app
     expect(page.get_by_text(BANNER)).to_be_visible()
     expect(page.get_by_text("Reference batch: BL-0001")).to_be_visible()
     phases = page.locator('[data-section="phases"]')
-    for phase in ("Production culture", "Harvest", "Protein A capture"):
+    for phase in ("Production culture", "Harvest", "Protein A capture", "UF/DF"):
         expect(phases.get_by_role("cell", name=phase, exact=True)).to_be_visible()
     expect(phases.get_by_text("Production bioreactor 2000 L")).to_be_visible()
     metrics = page.locator('[data-section="metrics"]')
@@ -91,6 +91,18 @@ def test_a_batch_that_lost_product_in_the_capture_step_says_where(signed_in, app
         )
     ).to_be_visible()
     expect(findings).to_contain_text("Calculated: Protein A eluate mass: 7,410 g against 9,230 g")
+    # The loss is in one step of the train, and it carries through to the drug substance.
+    train = page.locator('[data-section="downstream"]')
+    capture = train.get_by_role("row", name=re.compile("^Protein A capture"))
+    expect(capture).to_contain_text("73.4 %")
+    expect(capture).to_contain_text("-20.2")
+    expect(train.get_by_role("row", name=re.compile("^UF.DF"))).to_contain_text("%")
+    expect(train).to_contain_text(
+        re.compile(r"From harvest to drug substance: \d+\.\d % \(reference batch: \d+\.\d %\)")
+    )
+    expect(
+        train.get_by_role("row", name=re.compile("^Protein A eluate BL-0004-protein_a_eluate "))
+    ).to_contain_text("BL-0004-protein_a_eluate_cycle_1, BL-0004-protein_a_eluate_cycle_2")
     # The reference batch is drawn over VCD and titer: two lines in each of those charts.
     expect(page.locator('[data-section="trends"] .js-plotly-plot')).to_have_count(6)
     expect(

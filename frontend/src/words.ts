@@ -27,6 +27,11 @@ export function phaseName(kind: string): string {
     case "production_culture": return t("Production culture");
     case "harvest": return t("Harvest");
     case "protein_a_capture": return t("Protein A capture");
+    case "viral_inactivation": return t("Viral inactivation");
+    case "cation_exchange": return t("Cation exchange");
+    case "anion_exchange": return t("Anion exchange");
+    case "viral_filtration": return t("Viral filtration");
+    case "ufdf": return t("UF/DF");
     default: return kind;
   }
 }
@@ -35,6 +40,13 @@ export function poolName(pool: string): string {
   switch (pool) {
     case "protein_a_load": return t("Protein A load");
     case "protein_a_eluate": return t("Protein A eluate");
+    case "protein_a_eluate_cycle_1": return t("Protein A eluate, cycle 1");
+    case "protein_a_eluate_cycle_2": return t("Protein A eluate, cycle 2");
+    case "viral_inactivation_pool": return t("Viral inactivation pool");
+    case "cation_exchange_pool": return t("Cation-exchange pool");
+    case "anion_exchange_pool": return t("Anion-exchange pool");
+    case "viral_filtrate": return t("Viral filtrate");
+    case "drug_substance": return t("Drug substance");
     default: return pool;
   }
 }
@@ -116,6 +128,8 @@ export function reasonText(reason: Reason): string {
       ? t("{asset} has no {role} signal in PlantCraft.", { asset: text("asset_id"), role: roleWord(text("role")) })
       : t("Signal {signal} was not found in PlantCraft.", { signal: text("signal_id") });
     case "within_reference": return t("{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).", { metric: metricName(text("metric")), tolerance: text("tolerance_points"), value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1) });
+    case "outside_merge_tolerance": return t("The merged pool differs from the sum of its parts by more than {tolerance} %.", { tolerance: text("tolerance_percent") });
+    case "no_sources": return t("No source pools recorded.");
     case "no_divergence": return t("Titer stayed within {tolerance} % of the reference batch at the end of {pairs} compared samples.", { tolerance: text("tolerance_percent"), pairs: text("pairs") });
     case "fewer_than_two_reference_pairs": return t("Fewer than two titer samples could be compared with the reference batch.");
     case "samples_without_reference_pair": return t("Left out, with no reference sample within {hours} h of the same culture age: {ids}.", { hours: text("pairing_window_hours"), ids: (v.ids as string[] | undefined ?? []).join(", ") });

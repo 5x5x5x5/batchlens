@@ -36,7 +36,10 @@ HARVEST_TITER_WINDOW_HOURS = 12.0
 VOLUME_MAX_AGE_SECONDS = 900.0
 # A step recovery or yield above this is shown, flagged suspect.
 RECOVERY_SUSPECT_ABOVE_PERCENT = 105.0
-# All four are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
+# Pools merged into one: the merged mass may differ from the sum of the parts by this much.
+MERGE_TOLERANCE_PERCENT = 3.0
+MERGE_VERSION = "merge_balance/1"
+# All five are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
 
 
 def _estimated(method: str) -> Reason:
@@ -170,3 +173,45 @@ def ratio_percent(
 
 
 __all__ = ["INSUFFICIENT", "INVALID", "harvest_mass", "pool_mass", "ratio_percent"]
+
+
+def merge_balance(
+    parts: Sequence[Result],
+    whole: Result,
+    *,
+    tolerance_percent: float = MERGE_TOLERANCE_PERCENT,
+) -> Result:
+    """Pools merged into one: ``100 * (whole - sum(parts)) / sum(parts)``, the mass the merged
+    pool has beyond (or short of) what went into it. Outside the tolerance it is ``suspect``:
+    mass does not appear, and what disappears should be accounted for. A part without a value
+    makes it ``insufficient``; a partial sum is never used."""
+
+    def missing(reason: Reason) -> Result:
+        return insufficient("merge_balance", "%", MERGE_VERSION, reason)
+
+    if not parts:
+        return missing(Reason("no_sources", {}))
+    for part in (*parts, whole):
+        if part.value is None:
+            return missing(
+                Reason("input_not_usable", {"metric": part.metric, "status": part.status})
+            )
+    total = sum(part.value for part in parts)
+    if total == 0:
+        return missing(Reason("zero_denominator", {"metric": "merged_parts"}))
+    value = 100 * (whole.value - total) / total
+    outside = abs(value) > tolerance_percent
+    reasons = (
+        [Reason("outside_merge_tolerance", {"tolerance_percent": float(tolerance_percent)})]
+        if outside
+        else []
+    )
+    return Result(
+        "merge_balance",
+        value,
+        "%",
+        SUSPECT if outside else USABLE,
+        tuple(reasons),
+        tuple(i for part in parts for i in part.inputs) + whole.inputs,
+        MERGE_VERSION,
+    )

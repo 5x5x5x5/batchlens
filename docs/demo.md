@@ -59,7 +59,10 @@ batchlens benchmark --out docs/verification-report.md
    collected, and available.
 4. **`BL-0004`, a good culture and a poor capture step.** No titer finding. Protein A recovery
    is 20 points below the reference, 7,410 g against 9,230 g in the eluate. The loss is located
-   in a step, not blamed on a cause.
+   in a step, not blamed on a cause. In Downstream recovery, the same loss is one row out of
+   six: every later step is within a point or two of the reference, and the batch ends at
+   51 % of its harvest against the reference's 73 %. Below, the genealogy shows the two capture
+   cycles merged into one eluate, with the mass balance of the merge.
 5. **`BL-0005`, a good process and bad records.** One sample's time was keyed in as the
    previous one's, and the historian has a hole over the harvest sample. The app refuses the
    culture metrics and the harvest mass, names the record each tripped on, stops the trends
@@ -122,6 +125,7 @@ API v1; only `tools/run_demo.sh` calls them, never the app.
 | `BR-2001` | Production bioreactor 2000 L (equipment) | Roles `ph`, `do`, `temperature`, `volume`, from source `batchlens-synthetic` |
 | `HV-2101` | Harvest clarification skid | None |
 | `CH-3001` | Protein A chromatography skid | None |
+| `VI-3101`, `CH-3201`, `CH-3301`, `VF-3401`, `UF-3501` | Viral inactivation vessel, cation- and anion-exchange skids, viral filtration skid, UF/DF skid | None |
 
 The same four signals carry all five batches, so every read is scoped to a phase execution's
 asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files

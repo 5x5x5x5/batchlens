@@ -28,6 +28,10 @@ referência, aquele com que os outros são comparados. Abra um lote pelo seu ide
   amostras aparecem ao lado dos da referência, para leitura; o app nada conclui deles.
 - **Métricas**: cada uma com valor e unidade, estado, os motivos e os identificadores das
   entradas, ao lado do valor do lote de referência e da diferença.
+- **Recuperação no downstream**: cada etapa de purificação com a massa de produto que entrou
+  e saiu, seu rendimento ao lado do lote de referência e o que resta da colheita. Abaixo,
+  cada pool e os pools de que foi formado; onde pools foram combinados, a massa combinada é
+  conferida com a soma das partes.
 - **Medições de pool**: o volume e a concentração por trás de cada massa de pool.
 - **Tendências**: os sinais online do biorreator durante a fase de produção, lidos do
   PlantCraft, e a densidade de células viáveis e o título offline nos instantes de coleta.

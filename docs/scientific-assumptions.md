@@ -49,6 +49,7 @@ found"; its reason then says so (`no_divergence`).
 | `RECOVERY_SUSPECT_ABOVE_PERCENT` | 105 % | `calc/mass.py` | A yield or recovery above this is shown, flagged `suspect` |
 | `DIVERGENCE_TOLERANCE_FRACTION` | 0.15 | `calc/comparison.py` | A titer below the reference's by more than this fraction of the reference's counts as below |
 | `PAIRING_WINDOW_HOURS` | 6 h | `calc/comparison.py` | A sample is compared with the reference sample nearest in culture age, at most this far away |
+| `MERGE_TOLERANCE_PERCENT` | 3 % | `calc/mass.py` | A merged pool's mass may differ from the sum of its parts by this much before it is `suspect` |
 | `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
 
 ## The calculations
@@ -189,6 +190,41 @@ A yield of 89.4 % against 97.0 % is 7.6 points below: within.
   on a single titer result; a tolerance much under 10 points would flag normal batches on yield.
 - Assumption: points below one reference batch, not below a distribution of comparable batches.
 
+### 9. The purification train (`ratio_percent/1`, `pool_mass/1`)
+
+For each step after harvest (Protein A capture, viral inactivation, cation exchange, anion
+exchange, viral filtration, UF/DF), from the pool that goes in and the pool that comes out:
+
+- **Step yield** = `100 * mass out / mass in`.
+- **Left of the harvest** = `100 * mass out / product mass at harvest`.
+- **Harvest to drug substance** = `100 * drug substance mass / product mass at harvest`.
+
+Each mass is a pool measurement's volume times concentration (calculation 4). Because a step's
+mass in is the previous step's mass out, the step yields multiply to the recovery across the
+steps; the product is not computed separately, so there is one number, not two that could
+disagree. A step whose pool has no measurement has no yield, and every later "left of the
+harvest" that needs it is `insufficient`. Without a harvest mass the step yields are still
+answered and the recoveries from harvest are not.
+
+- Assumption: one pool in and one pool out per step, measured once. Sampling losses, holds
+  and side streams are inside the step's yield, not separated from it.
+- Assumption: the same UV method reads every pool, with no correction for the changing
+  impurity content along the train.
+
+### 10. Merge balance (`merge_balance/1`), `%`
+
+Where several pools were merged into one (here the eluates of two Protein A cycles):
+`100 * (merged mass - sum of the parts) / sum of the parts`.
+
+Example: parts of 4,600 g and 4,500 g, merged pool 9,150 g: `100 * 50 / 9100 = +0.55 %`.
+
+- `suspect` beyond `MERGE_TOLERANCE_PERCENT` in either direction: mass does not appear, and
+  what disappears should be accounted for. `insufficient` when a part or the whole has no
+  value; a partial sum is never used.
+- The genealogy is the list of links between pool measurements ("material of this pool went
+  into that one"). Several links into one pool are a merge. Splits can be recorded the same
+  way but the demo has none, and no balance is computed for a split.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -246,7 +282,8 @@ harvest, a 4 h hold and one aggregated 10 h Protein A capture step.
 | Assay noise (1 SD, relative) | VCD 3 %, viability 0.5 %, glucose and lactate 3 %, titer 2 %, pool concentration 1 % | |
 | Result availability | Cell counts and metabolites 0.5 to 3 h after collection; titer 18 to 30 h; pools 2 to 4 h after measurement | |
 | Harvest-to-load yield | 0.93 (x 1 ± 0.5 %) of the true harvest mass | Load volume 1920 ± 10 L |
-| Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass | Eluate at about 18 g/L |
+| Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass | Eluate at about 18 g/L, as two cycle pools (48 to 52 % each) merged into one |
+| Rest of the train | Viral inactivation 0.98, cation exchange 0.90, anion exchange 0.96, viral filtration 0.98, UF/DF 0.95 (each x 1 ± 0.5 %), two hours apart | Drug substance at 50 g/L; its own random stream, so earlier values did not change |
 | Online signals | One value every 10 minutes during the production phase | |
 | Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
 

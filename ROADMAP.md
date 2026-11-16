@@ -19,11 +19,12 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | One-command demo, image and lock built, documents for publication | Done |
 | An as-of slider on the batch page | Done, Vitest and a browser journey |
 | Editing with audit: a sample's collection time, the reference batch | Done, tested, a browser journey |
+| The rest of downstream: step yields to drug substance, pool genealogy with a merge balance | Done, oracle-tested, on the batch page |
 
 ## Next, in the intended order (proposed)
 
-1. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
-   filtration, UF/DF), where pools split and merge.
+1. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
+   mass balance at each; findings for the later purification steps.
 2. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
    verified calculations.
 

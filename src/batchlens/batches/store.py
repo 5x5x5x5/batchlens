@@ -7,6 +7,7 @@
 | ``samples`` | an offline sample and when it was collected |
 | ``assay_results`` | one analyte of one sample, with the time the result became available |
 | ``pool_measurements`` | a pool's volume and concentration |
+| ``pool_links`` | genealogy: material of one pool went into another |
 | ``corrections`` | what a person changed: the record, the value before and after, who, when, why |
 
 Assets, signals and online values stay in PlantCraft: a phase execution keeps only the asset's
@@ -33,6 +34,7 @@ from batchlens.batches.models import (
     BatchRecord,
     Correction,
     PhaseExecution,
+    PoolLink,
     PoolMeasurement,
     Sample,
 )
@@ -45,6 +47,7 @@ TABLES: dict[type, str] = {
     Sample: "samples",
     AssayResult: "assay_results",
     PoolMeasurement: "pool_measurements",
+    PoolLink: "pool_links",
     Correction: "corrections",
 }
 COLUMNS = {"start": "start_at", "end": "end_at"}
@@ -131,6 +134,14 @@ class BatchStore(Store):
         provenance TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS pool_measurements_batch ON pool_measurements (batch_id, measured_at);
+    CREATE TABLE IF NOT EXISTS pool_links (
+        link_id TEXT PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        from_pool_id TEXT NOT NULL,
+        to_pool_id TEXT NOT NULL,
+        provenance TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS pool_links_batch ON pool_links (batch_id);
     CREATE TABLE IF NOT EXISTS corrections (
         correction_id TEXT PRIMARY KEY,
         batch_id TEXT NOT NULL,
@@ -151,13 +162,20 @@ class BatchStore(Store):
 
         batch_id = record.batch.batch_id
         rows = [record.batch, *record.phases, *record.samples, *record.results, *record.pools]
+        rows += record.links
         with self._lock, self._connect() as connection:
             connection.execute(
                 "DELETE FROM assay_results WHERE sample_id IN "
                 "(SELECT sample_id FROM samples WHERE batch_id = ?)",
                 (batch_id,),
             )
-            for table in ("pool_measurements", "samples", "phase_executions", "batches"):
+            for table in (
+                "pool_links",
+                "pool_measurements",
+                "samples",
+                "phase_executions",
+                "batches",
+            ):
                 connection.execute(f"DELETE FROM {table} WHERE batch_id = ?", (batch_id,))
             for row in rows:
                 columns = _columns(type(row))
@@ -202,7 +220,8 @@ class BatchStore(Store):
                     "sample_id IN (SELECT sample_id FROM samples WHERE batch_id = ?)",
                     "result_id",
                 ),
-                rows(PoolMeasurement, "batch_id = ?", "measured_at"),
+                rows(PoolMeasurement, "batch_id = ?", "measured_at, measurement_id"),
+                rows(PoolLink, "batch_id = ?", "link_id"),
             )
 
     def reference_id(self) -> str | None:

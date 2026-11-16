@@ -70,7 +70,17 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     assets = {
         row["asset_id"]: (kind, row) for kind in ("unit", "equipment") for row in plant_map[kind]
     }
-    assert set(assets) == {"U-MAB", "BR-2001", "HV-2101", "CH-3001"}
+    assert set(assets) == {
+        "U-MAB",
+        "BR-2001",
+        "HV-2101",
+        "CH-3001",
+        "VI-3101",
+        "CH-3201",
+        "CH-3301",
+        "VF-3401",
+        "UF-3501",
+    }
     assert assets["U-MAB"][0] == "unit" and assets["U-MAB"][1]["parent_id"] == ""
     assert all(row["parent_id"] == "U-MAB" for kind, row in assets.values() if kind == "equipment")
     assert all("synthetic" in row["description"].lower() for _, row in assets.values())
@@ -98,7 +108,7 @@ def test_the_fake_plantcraft_of_the_tests_serves_the_same_plant(tmp_path):
             served = fake[row["asset_id"]]
             assert (served["name"], served["kind"]) == (row["name"], kind)
             assert served["parent_id"] == (row["parent_id"] or "plant")
-    assert len(ASSETS) == 4
+    assert len(ASSETS) == 9
     roles = fake[BIOREACTOR]["signals"]
     assert roles == BIO_SIGNALS
     assert {row["role"]: row["tag"] for row in plant_map["signals"]} == {

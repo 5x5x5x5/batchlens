@@ -54,7 +54,8 @@ def test_five_batches_run_one_after_another_on_the_same_bioreactor(campaign):
     windows = []
     for observations in batches.values():
         kinds = [phase.kind for phase in observations.record.phases]
-        assert kinds == ["production_culture", "harvest", "protein_a_capture"]
+        assert kinds[:3] == ["production_culture", "harvest", "protein_a_capture"]
+        assert len(kinds) == 8  # then the rest of the train (tests/test_downstream.py)
         culture = observations.record.phases[0]
         assert culture.asset_id == BIOREACTOR
         windows.append((culture.start, culture.end))
@@ -136,7 +137,7 @@ def test_a_batch_has_roughly_daily_samples_with_each_result_available_later(camp
     assert sorted(by_analyte) == ["glucose", "lactate", "titer", "vcd", "viability"]
     assert max(by_analyte["vcd"]) < timedelta(hours=4) < min(by_analyte["titer"])
     assert all(delay > timedelta(0) for delays in by_analyte.values() for delay in delays)
-    assert {pool.pool for pool in record.pools} == {"protein_a_load", "protein_a_eluate"}
+    assert {pool.pool for pool in record.pools} >= {"protein_a_load", "protein_a_eluate"}
 
 
 def test_the_calculations_recover_the_generators_own_parameters(campaign):
