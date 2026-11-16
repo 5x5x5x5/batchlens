@@ -1,4 +1,4 @@
-"""HTTP routes: the batches, read only. Records come from the app's own store through the
+"""HTTP routes: the batches. Reading, and the two things an editor may change. Records come from the app's own store through the
 service; assets, signals and series come from PlantCraft as the signed-in person
 (``api/plant.py``); every number is computed by ``analysis`` and ``calc`` on request."""
 
@@ -13,7 +13,9 @@ from plantcraft_sdk.utc import utc_iso
 
 from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
 from batchlens.api import plant
-from batchlens.api.deps import CurrentUser, RuntimeDep, batch_or_404
+from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, batch_or_404
+from batchlens.batches.drafts import SampleTimeCorrection
+from batchlens.batches.service import NotFound, RuleBroken
 from batchlens.i18n import t
 
 router = APIRouter(prefix="/api", tags=["batches"])
@@ -114,6 +116,8 @@ def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> 
             for pool in record.pools
             if as_of is None or pool.result_available_at <= as_of
         ],
+        # What people changed, with the values they replaced.
+        "corrections": [_plain(item) for item in rt.batches.corrections(batch_id)],
     }
 
 
@@ -135,6 +139,7 @@ def batch_samples(
     record = batch_or_404(rt, batch_id)
     culture = record.phase("production_culture")
     other = batch_or_404(rt, align_to).phase("production_culture") if align_to else None
+    corrected = {item.record_id for item in rt.batches.corrections(batch_id)}
     samples = []
     for sample in record.samples:
         if as_of is not None and sample.collected_at > as_of:
@@ -150,6 +155,7 @@ def batch_samples(
         samples.append(
             {
                 **_plain(sample),
+                "corrected": sample.sample_id in corrected,
                 "culture_day": age.total_seconds() / 86400 if age is not None else None,
                 "aligned_at": _stamp(other.start + age) if other and age is not None else None,
                 "results": sorted(results, key=lambda r: r["analyte"]),
@@ -211,3 +217,57 @@ def batch_trends(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) 
         "step_seconds": step,
         "signals": signals,
     }
+
+
+# What an editor may change -------------------------------------------------------------------
+
+
+@router.patch("/batches/{batch_id}/samples/{sample_id}")
+def correct_sample(
+    batch_id: str, sample_id: str, draft: SampleTimeCorrection, rt: RuntimeDep, user: EditorUser
+) -> dict[str, Any]:
+    """Correct a sample's collection time. The value it replaces is kept (``corrections`` on
+    the batch) and the change is audited in PlantCraft."""
+
+    try:
+        correction = rt.batches.correct_sample_time(
+            batch_id, sample_id, draft.instant, draft.reason, user.username
+        )
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=t("Sample not found.")) from exc
+    except RuleBroken as exc:
+        if exc.code == "outside_phase":
+            detail = t("The collection time must lie inside the sample's phase execution.")
+        else:
+            detail = t("The collection time must be before the sample's results were reported.")
+        raise HTTPException(status_code=422, detail=detail) from exc
+    rt.audit(
+        user,
+        "sample.corrected",
+        sample_id,
+        {
+            "batch": batch_id,
+            "field": correction.field,
+            "old": correction.old_value,
+            "new": correction.new_value,
+            "reason": correction.reason,
+        },
+    )
+    return {
+        "sample_id": sample_id,
+        "collected_at": correction.new_value,
+        "correction": _plain(correction),
+    }
+
+
+@router.put("/batches/{batch_id}/reference")
+def set_reference(batch_id: str, rt: RuntimeDep, user: EditorUser) -> dict[str, Any]:
+    """Make this batch the one the others are compared with."""
+
+    try:
+        previous = rt.batches.set_reference(batch_id)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=t("Batch not found.")) from exc
+    if previous != batch_id:
+        rt.audit(user, "batch.reference_set", batch_id, {"previous": previous})
+    return {"reference_batch_id": batch_id}

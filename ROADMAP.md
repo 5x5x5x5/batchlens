@@ -18,13 +18,13 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Benchmark over 320 seeded batches and the verification report | Done; a test keeps the report current |
 | One-command demo, image and lock built, documents for publication | Done |
 | An as-of slider on the batch page | Done, Vitest and a browser journey |
+| Editing with audit: a sample's collection time, the reference batch | Done, tested, a browser journey |
 
 ## Next, in the intended order (proposed)
 
-1. Editing with audit: a sample's collection time, the reference designation.
-2. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
+1. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
    filtration, UF/DF), where pools split and merge.
-3. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
+2. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
    verified calculations.
 
 Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything

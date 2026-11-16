@@ -11,9 +11,9 @@ import { NAV, tourSteps } from "./pages";
 import type { Me } from "./types";
 import { ErrorBox, Loading } from "./ui";
 
-function Route({ path }: { path: string }) {
+function Route({ path, me }: { path: string; me: Me }) {
   const [, section, id] = path.split("/").map((part) => decodeURIComponent(part));
-  if (section === "batches" && id) return <BatchPage key={id} batchId={id} />;
+  if (section === "batches" && id) return <BatchPage key={id} batchId={id} me={me} />;
   if (section === "help") return <HelpView pageId={id || undefined} />;
   if (!section) return <BatchesPage />;
   return <ErrorBox text={t("Page not found.")} />;
@@ -45,6 +45,6 @@ export function App() {
     tour={tour}
   >
     <DemoBanner />
-    {error ? <ErrorBox text={error} /> : me ? <Route path={path} /> : <Loading />}
+    {error ? <ErrorBox text={error} /> : me ? <Route path={path} me={me} /> : <Loading />}
   </SuiteShell>;
 }

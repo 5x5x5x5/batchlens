@@ -30,6 +30,10 @@ on the reference batch, the one the others are compared with. Open a batch from 
 - **Pool measurements**: the volume and concentration behind each pool mass.
 - **Trends**: the bioreactor's online signals over the production phase, read from PlantCraft,
   and the offline viable cell density and titer at their collection times.
+- **Samples**: when each was collected. If a time was recorded wrongly, an editor can
+  **correct the time**, giving a reason. The recorded value is kept and listed beside the
+  correction, and PlantCraft's audit log has who changed it and why. Editors can also make a
+  batch the reference from the button at the top of its page.
 - **Assay results**: every result with two times, when its sample was collected and when the
   result became available. They are never the same thing.
 

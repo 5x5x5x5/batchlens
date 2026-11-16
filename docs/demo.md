@@ -69,7 +69,12 @@ batchlens benchmark --out docs/verification-report.md
    The finding disappears, the harvest mass says the production phase had not ended, later
    phases and samples are gone, and a titer whose sample was already taken but not yet
    reported is named as pending. This is the view an engineer had on that day.
-7. **How often is it wrong?** [verification-report.md](verification-report.md): the same
+7. **Fixing a record.** On `BL-0005`, in Samples, correct the time of `BL-0005-S09` to a day
+   after sample 8, with a reason. IVCD and qP become usable, the sample is marked corrected,
+   the original time stays in the list of corrections, and PlantCraft's audit log has the
+   change. The hole in the historian is still a hole. (`batchlens seed-demo --reset` puts
+   the demo back.)
+8. **How often is it wrong?** [verification-report.md](verification-report.md): the same
    findings over 320 seeded batches with known faults.
 
 ## Inside a live PlantCraft, by hand

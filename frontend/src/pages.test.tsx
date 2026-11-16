@@ -2,10 +2,10 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BatchDetail, BatchList, Metrics, Samples, Trends } from "./types";
+import type { BatchDetail, BatchList, Me, Metrics, Samples, Trends } from "./types";
 
 const calls = vi.hoisted(() => [] as string[]);
-const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown, reference: null as unknown }));
+const answers = vi.hoisted(() => ({ list: null as unknown, detail: null as unknown, metrics: null as unknown, samples: null as unknown, trends: null as unknown, reference: null as unknown, correction: null as unknown }));
 vi.mock("./api", () => ({
   UNAUTHORIZED_EVENT: "unauthorized",
   api: {
@@ -13,9 +13,13 @@ vi.mock("./api", () => ({
     batch: (_batch: string, asOf?: string) => { calls.push(`batch:${asOf ?? ""}`); return Promise.resolve(answers.detail); },
     metrics: (_batch: string, asOf?: string) => { calls.push(`metrics:${asOf ?? ""}`); return Promise.resolve(answers.metrics); },
     samples: (_batch: string, asOf?: string, alignTo?: string) => { calls.push(`samples:${asOf ?? ""}:${alignTo ?? ""}`); return Promise.resolve(alignTo ? answers.reference : answers.samples); },
+    correctSample: (batch: string, sample: string, body: { collected_at: string; reason: string }) => { calls.push(`correct:${batch}:${sample}:${body.collected_at}:${body.reason}`); return answers.correction ? Promise.reject(new Error(answers.correction as string)) : Promise.resolve({}); },
+    setReference: (batch: string) => { calls.push(`reference:${batch}`); return Promise.resolve({ reference_batch_id: batch }); },
     trends: (_batch: string, asOf?: string) => { calls.push(`trends:${asOf ?? ""}`); return Promise.resolve(answers.trends); },
   },
 }));
+// The suite's confirmation dialog: the person says yes.
+vi.mock("@plantcraft/ui", async (original) => ({ ...(await original<typeof import("@plantcraft/ui")>()), confirmAction: () => Promise.resolve(true) }));
 // The chart needs Plotly and a real layout: the page test only checks what it is given.
 vi.mock("@plantcraft/ui/plot", () => ({
   TimeChart: ({ lines }: { lines: Array<{ name: string; t: string[] }> }) => <div data-chart={lines.map((line) => `${line.name}:${line.t.length}`).join("|")} />,
@@ -36,6 +40,9 @@ async function render(node: React.ReactNode): Promise<HTMLElement> {
   return host;
 }
 
+const EDITOR: Me = { username: "engineer", name: "Process Engineer", level: "editor", access: "editor", role: "editor", can_edit: true, is_admin: false, processcraft_url: "/", version: "0.2.0", service_key: true };
+const VIEWER: Me = { ...EDITOR, username: "operator", can_edit: false };
+
 const LIST: BatchList = {
   time_zone: "UTC",
   batches: [
@@ -47,6 +54,7 @@ const DETAIL: BatchDetail = {
   time_zone: "UTC",
   batch: { batch_id: "BL-0002", product: "mAb-X (synthetic)", is_reference: false, created_at: "2026-07-22T06:00:00.000Z", provenance: "synthetic-generator/1 seed=102" },
   as_of: null, timeline: { start: "2026-07-22T06:00:00.000Z", end: "2026-08-06T10:00:00.000Z" },
+  corrections: [{ correction_id: "c1", batch_id: "BL-0002", record_id: "BL-0002-S02", field: "collected_at", old_value: "2026-07-23T07:00:00.000Z", new_value: "2026-07-24T07:00:00.000Z", reason: "Keyed in with the previous sample's time.", corrected_by: "engineer", corrected_at: "2026-08-10T09:00:00.000Z" }],
   phases: [
     { phase_id: "BL-0002-P1", batch_id: "BL-0002", kind: "production_culture", asset_id: "BR-2001", start: "2026-07-22T06:00:00.000Z", end: "2026-08-05T12:00:00.000Z", provenance: "p", asset_name: null },
     { phase_id: "BL-0002-P3", batch_id: "BL-0002", kind: "protein_a_capture", asset_id: "CH-3001", start: "2026-08-05T22:00:00.000Z", end: "2026-08-06T08:00:00.000Z", provenance: "p", asset_name: "Protein A chromatography skid" },
@@ -98,7 +106,7 @@ const METRICS: Metrics = {
 const SAMPLES: Samples = {
   batch_id: "BL-0002", as_of: null, aligned_to: null,
   samples: [1, 2].map((day) => ({
-    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, culture_day: day, aligned_at: null, provenance: "p",
+    sample_id: `BL-0002-S0${day}`, batch_id: "BL-0002", phase_id: "BL-0002-P1", collected_at: `2026-07-2${day + 2}T07:00:00.000Z`, culture_day: day, aligned_at: null, corrected: day === 2, provenance: "p",
     results: [
       { result_id: `BL-0002-S0${day}-titer`, sample_id: `BL-0002-S0${day}`, analyte: "titer", value: 0.021 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: `2026-07-2${day + 3}T05:00:00.000Z`, validity: "valid", provenance: "p" },
       { result_id: `BL-0002-S0${day}-vcd`, sample_id: `BL-0002-S0${day}`, analyte: "vcd", value: 0.51 * day, unit: "1e6 cells/mL", method: "Automated cell counter", result_available_at: `2026-07-2${day + 2}T08:30:00.000Z`, validity: "valid", provenance: "p" },
@@ -116,14 +124,14 @@ const TRENDS: Trends = {
 const REFERENCE: Samples = {
   batch_id: "BL-0001", as_of: null, aligned_to: "BL-0002",
   samples: [1, 2, 3].map((day) => ({
-    sample_id: `BL-0001-S0${day}`, batch_id: "BL-0001", phase_id: "BL-0001-P1", collected_at: `2026-07-0${day + 1}T07:00:00.000Z`, culture_day: day, aligned_at: `2026-07-2${day + 2}T07:00:00.000Z`, provenance: "p",
+    sample_id: `BL-0001-S0${day}`, batch_id: "BL-0001", phase_id: "BL-0001-P1", collected_at: `2026-07-0${day + 1}T07:00:00.000Z`, culture_day: day, aligned_at: `2026-07-2${day + 2}T07:00:00.000Z`, corrected: false, provenance: "p",
     results: [
       { result_id: `BL-0001-S0${day}-titer`, sample_id: `BL-0001-S0${day}`, analyte: "titer", value: 0.03 * day, unit: "g/L", method: "Protein A HPLC", result_available_at: "2026-07-05T05:00:00.000Z", validity: "valid", provenance: "p" },
     ],
   })),
 };
 
-beforeEach(() => { calls.length = 0; Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS, reference: REFERENCE }); });
+beforeEach(() => { calls.length = 0; answers.correction = null; Object.assign(answers, { list: LIST, detail: DETAIL, metrics: METRICS, samples: SAMPLES, trends: TRENDS, reference: REFERENCE }); });
 
 describe("the frame's pages", () => {
   it("Batches holds the list and each batch's page", () => {
@@ -167,14 +175,14 @@ describe("the batch list", () => {
 describe("one batch", () => {
   it("shows a phase that has not ended as in progress", async () => {
     answers.detail = { ...DETAIL, as_of: "2026-07-28T06:00:00.000Z", phases: [{ ...DETAIL.phases[0], end: null }], pools: [] };
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const phases = host.querySelector('[data-section="phases"]')!;
     expect(phases.querySelectorAll("tbody tr")).toHaveLength(1);
     expect(phases.textContent).toContain("In progress");
   });
 
   it("shows the phase executions on their assets", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const phases = host.querySelector('[data-section="phases"]')!;
     expect(phases.textContent).toContain("Production culture");
     expect(phases.textContent).toContain("Protein A capture");
@@ -183,7 +191,7 @@ describe("one batch", () => {
   });
 
   it("shows each metric with value, unit, status and reasons, beside the reference and the difference", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const rows = [...host.querySelectorAll('[data-section="metrics"] tbody tr')].map((row) => row.textContent ?? "");
     expect(rows).toHaveLength(3);
     // Rounded for display to three significant digits, like the reference and the difference.
@@ -203,7 +211,7 @@ describe("one batch", () => {
   });
 
   it("states a finding as an observation and a calculation, and attributes no cause", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
     // The observation: where, how far below, against which samples.
     expect(findings).toContain("Titer left the reference batch at culture day 7.9");
@@ -219,7 +227,7 @@ describe("one batch", () => {
   });
 
   it("lays the evidence beside the divergence without concluding anything from it", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const findings = host.querySelector('[data-section="findings"]')!;
     expect(findings.textContent).toContain("Other results of the same samples, beside the reference batch's. Nothing is concluded from them.");
     expect(findings.textContent).toContain("At the divergence: BL-0002-S09 against BL-0001-S09 (culture day 7.9)");
@@ -234,7 +242,7 @@ describe("one batch", () => {
   });
 
   it("states a step recovery below the reference, and one within it", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
     expect(findings).toContain("Protein A recovery is 20 points below the reference batch");
     expect(findings).toContain("Observed: 73.4 % against 93.5 % for the reference (the tolerance is 10 points).");
@@ -244,7 +252,7 @@ describe("one batch", () => {
   });
 
   it("draws the reference batch over VCD and titer at the same culture age", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const charts = [...host.querySelectorAll("[data-chart]")].map((chart) => chart.getAttribute("data-chart"));
     // The reference has titer results only in this test, so only the titer chart gets its line.
     expect(charts).toEqual(["pH:2", "Viable cell density:2", "Titer:2|Reference batch BL-0001, same culture age:3"]);
@@ -253,29 +261,29 @@ describe("one batch", () => {
   it("says so when the titer followed the reference, or when it cannot be compared", async () => {
     const quiet = { ...METRICS.findings[0], consequence: null, evidence: [], observation: { ...METRICS.findings[0].observation, value: null, reasons: [{ code: "no_divergence", values: { pairs: 15, tolerance_percent: 15 } }] } };
     answers.metrics = { ...METRICS, findings: [quiet] };
-    let host = await render(<BatchPage batchId="BL-0002" />);
+    let host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Titer stayed within 15 % of the reference batch at the end of 15 compared samples.");
     const short = { ...quiet, observation: { ...quiet.observation, status: "insufficient", reasons: [{ code: "fewer_than_two_reference_pairs", values: { pairs: 1 } }] } };
     answers.metrics = { ...METRICS, findings: [short] };
-    host = await render(<BatchPage batchId="BL-0002" />);
+    host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     expect(host.querySelector('[data-section="findings"]')!.textContent).toContain("Fewer than two titer samples could be compared with the reference batch.");
     // A comparison that could not be made says which one, and why.
     const bad = { ...quiet, observation: { ...quiet.observation, status: "invalid", reasons: [{ code: "times_not_increasing", values: { id: "BL-0002-S09-titer" } }] } };
     const noYield = { ...METRICS.findings[2], observation: { ...METRICS.findings[2].observation, status: "insufficient", reasons: [{ code: "input_not_usable", values: { metric: "harvest_to_load_yield", status: "insufficient" } }] } };
     answers.metrics = { ...METRICS, findings: [bad, noYield] };
-    host = await render(<BatchPage batchId="BL-0002" />);
+    host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const flagged = host.querySelector('[data-section="findings"]')!.textContent ?? "";
     expect(flagged).toContain("The titer could not be compared with the reference batch (Invalid)");
     expect(flagged).toContain("Sample times are duplicated or out of order at BL-0002-S09-titer.");
     expect(flagged).toContain("Harvest-to-load yield could not be compared with the reference batch (Insufficient)");
     // The reference batch has nothing to be compared with: no section at all.
     answers.metrics = { ...METRICS, findings: [] };
-    host = await render(<BatchPage batchId="BL-0002" />);
+    host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     expect(host.querySelector('[data-section="findings"]')).toBeNull();
   });
 
   it("lists every assay result with its collection and availability times", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const rows = [...host.querySelectorAll('[data-section="results"] tbody tr')].map((row) => row.textContent ?? "");
     expect(rows).toHaveLength(4);
     expect(rows.join()).toContain("Viable cell density");
@@ -288,7 +296,7 @@ describe("one batch", () => {
   });
 
   it("draws the online signals and the VCD and titer trends, and says why one is missing", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const charts = [...host.querySelectorAll("[data-chart]")].map((chart) => chart.getAttribute("data-chart"));
     expect(charts.map((chart) => chart?.split("|")[0])).toEqual(["pH:2", "Viable cell density:2", "Titer:2"]);
     const trends = host.querySelector('[data-section="trends"]')!;
@@ -296,7 +304,7 @@ describe("one batch", () => {
   });
 
   it("shows only what was known at a chosen time, and goes back to everything", async () => {
-    const host = await render(<BatchPage batchId="BL-0002" />);
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     expect(calls).toEqual(["batch:", "metrics:", "samples::", "trends:", "samples::BL-0002"]);
     expect(host.textContent).toContain("Showing everything recorded.");
     const slider = host.querySelector('input[type="range"]') as HTMLInputElement;
@@ -319,9 +327,62 @@ describe("one batch", () => {
     expect(host.textContent).toContain("Showing everything recorded.");
   });
 
+  it("lets an editor correct a sample's collection time, with a reason, and shows the history", async () => {
+    const host = await render(<BatchPage batchId="BL-0002" me={EDITOR} />);
+    const samples = host.querySelector('[data-section="samples"]')!;
+    const rows = [...samples.querySelectorAll("tbody tr")];
+    expect(rows[1].textContent).toContain("Corrected");
+    expect(samples.textContent).toContain("Keyed in with the previous sample's time.");
+    expect(samples.textContent).toContain("engineer");
+    await act(async () => { (rows[0].querySelector('[data-action="correct-time"]') as HTMLButtonElement).click(); });
+    const form = samples.querySelector("form")!;
+    const time = form.querySelector('input[type="datetime-local"]') as HTMLInputElement;
+    expect(time.value).toBe("2026-07-23T07:00"); // the recorded time, in the display zone
+    const set = (element: HTMLInputElement | HTMLTextAreaElement, value: string) => {
+      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), "value")!.set!.call(element, value);
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    calls.length = 0;
+    await act(async () => { set(time, "2026-07-23T09:30"); set(form.querySelector("textarea")!, "Read from the sample label."); });
+    await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(calls[0]).toBe("correct:BL-0002:BL-0002-S01:2026-07-23T09:30:00.000Z:Read from the sample label.");
+    expect(calls.slice(1)).toEqual(["batch:", "metrics:", "samples::", "trends:", "samples::BL-0002"]); // reloaded
+    expect(samples.querySelector("form")).toBeNull();
+  });
+
+  it("shows the server's refusal of a correction and keeps the form", async () => {
+    answers.correction = "The collection time must lie inside the sample's phase execution.";
+    const host = await render(<BatchPage batchId="BL-0002" me={EDITOR} />);
+    const samples = host.querySelector('[data-section="samples"]')!;
+    await act(async () => { (samples.querySelector('[data-action="correct-time"]') as HTMLButtonElement).click(); });
+    const form = samples.querySelector("form")!;
+    await act(async () => {
+      const reason = form.querySelector("textarea")!;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(reason, "Because.");
+      reason.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(samples.textContent).toContain("The collection time must lie inside the sample's phase execution.");
+    expect(samples.querySelector("form")).not.toBeNull();
+  });
+
+  it("lets an editor make the batch the reference, and offers a viewer nothing to change", async () => {
+    let host = await render(<BatchPage batchId="BL-0002" me={EDITOR} />);
+    calls.length = 0;
+    await act(async () => { (host.querySelector('[data-action="make-reference"]') as HTMLButtonElement).click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(calls[0]).toBe("reference:BL-0002");
+    host = await render(<BatchPage batchId="BL-0002" me={{ ...EDITOR, can_edit: false }} />);
+    expect(host.querySelector('[data-action="make-reference"]')).toBeNull();
+    expect(host.querySelector('[data-action="correct-time"]')).toBeNull();
+    expect(host.querySelector('[data-section="samples"]')!.textContent).toContain("Corrected");
+  });
+
   it("shows the server's words when the batch does not exist", async () => {
     answers.detail = Promise.reject(new Error("Batch not found."));
-    const host = await render(<BatchPage batchId="BL-9999" />);
+    const host = await render(<BatchPage batchId="BL-9999" me={VIEWER} />);
     expect(host.textContent).toContain("Batch not found.");
   });
 });

@@ -1,7 +1,8 @@
 """Request dependencies: the runtime, the verified user, access checks and safe reads.
 
 Every route needs a PlantCraft token with access to ``batchlens``
-(``plantcraft_sdk.server.access``). This slice only reads: viewers and editors see the same.
+(``plantcraft_sdk.server.access``). Viewers read; editors may also correct a sample's time and
+set the reference batch.
 """
 
 from __future__ import annotations

@@ -3,6 +3,36 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Editing with audit
+
+Branch `editing`. Second optional extension, and the answer to the fifth batch: a person can
+now fix the record the app refused to guess about.
+
+- **Built:** `PATCH /api/batches/{id}/samples/{sample_id}` (a sample's collection time, with a
+  reason) and `PUT /api/batches/{id}/reference`, editors only, each audited in PlantCraft; a
+  `corrections` table that keeps the value replaced, who, when and why; the Samples section on
+  the batch page with the correction form and the list of corrections; a "make this the
+  reference batch" button behind the suite's confirmation dialog. Tests first: 19 API tests,
+  3 Vitest tests, 1 browser journey. The API floor rises from 5 to 12 operations.
+- **Rules of a correction:** the new time must lie inside the phase execution the sample
+  belongs to and before any of the sample's own results was reported (a sample cannot be taken
+  after its result exists); a reason of 5 to 500 characters; nothing else may be sent.
+- **Rulings:**
+  - `seed-demo` now loads only the batches that are not there, so it never silently undoes a
+    correction; `seed-demo --reset` loads all five again as generated. The corrections table
+    is a history and survives a reset.
+  - Setting the reference to the batch that already is the reference changes nothing and is
+    not audited.
+  - The editing controls are hidden while the page shows an as-of view.
+  - A correction is not as-of aware (`docs/gaps.md`).
+- **Failed, and how it was resolved:** the edit script stopped at a mismatch for the fourth
+  time, after writing two of eight files. The scripts now go through a small helper that
+  checks every match of a file before writing any of it and says which file it did not change.
+- **Seen in the browser:** `docs/images/findings/correction.png`: sample 9 marked corrected at
+  culture day 7.96, the original time beside the corrected one, the reason, and who.
+- **Final checks:** `make ci` exit 0 (Vitest 26 passed, pytest 195 passed, 0 skipped);
+  `make e2e` exit 0 (8 passed).
+
 ## 2026-11-16: The as-of slider
 
 Branch `as-of-control`. First of the optional extensions.

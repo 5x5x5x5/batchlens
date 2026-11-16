@@ -27,7 +27,11 @@ export interface BatchDetail {
   time_zone: string; as_of: string | null; batch: Batch; phases: Phase[]; pools: Pool[];
   /** From the batch's start to the last moment anything about it became known. */
   timeline: { start: string | null; end: string | null };
+  /** What people changed, with the values replaced, oldest first. */
+  corrections: Correction[];
 }
+
+export interface Correction { correction_id: string; batch_id: string; record_id: string; field: string; old_value: string; new_value: string; reason: string; corrected_by: string; corrected_at: string }
 
 /** Why a result is as it is: a code and the values involved (words in words.ts). */
 export interface Reason { code: string; values: Record<string, unknown> }
@@ -66,6 +70,8 @@ export interface Sample {
   sample_id: string; batch_id: string; phase_id: string; collected_at: string; provenance: string; results: AssayResult[];
   /** Days since the start of the batch's production phase. */
   culture_day: number | null;
+  /** A person corrected this sample's collection time (the history is on the batch). */
+  corrected: boolean;
   /** With `align_to`: the instant of the same culture age on the other batch's timeline. */
   aligned_at: string | null;
 }

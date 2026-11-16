@@ -13,12 +13,19 @@ from batchlens.demo.generator import demo_campaign
 LOGGER = logging.getLogger(__name__)
 
 
-def seed_demo(batches: BatchService) -> list[str]:
-    """Stores the demo batches under their stable ids; running it again changes nothing."""
+def seed_demo(batches: BatchService, *, reset: bool = False) -> list[str]:
+    """Stores the demo batches that are not there yet, under their stable ids, and answers
+    which it loaded: running it again loads nothing and leaves what people corrected alone.
+    ``reset`` loads all of them again as generated."""
 
     observations, _ground_truth = demo_campaign()
+    seeded = []
     for item in observations:
-        batches.save(item.record)
-    seeded = [item.record.batch.batch_id for item in observations]
-    LOGGER.info("Seeded %d synthetic demo batches: %s", len(seeded), ", ".join(seeded))
+        batch_id = item.record.batch.batch_id
+        if reset or batches.get(batch_id) is None:
+            batches.save(item.record)
+            seeded.append(batch_id)
+    LOGGER.info(
+        "Seeded %d synthetic demo batches: %s", len(seeded), ", ".join(seeded) or "none new"
+    )
     return seeded

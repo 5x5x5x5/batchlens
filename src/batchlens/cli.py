@@ -17,7 +17,14 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--host", default=os.environ.get("BATCHLENS_HOST", "127.0.0.1"))
     serve.add_argument("--port", type=int, default=int(os.environ.get("BATCHLENS_PORT", "9100")))
     commands.add_parser("check", help="Check the app key and that PlantCraft answers.")
-    commands.add_parser("seed-demo", help="Load the four synthetic demo batches into the database.")
+    seed = commands.add_parser(
+        "seed-demo", help="Load the synthetic demo batches that are not in the database yet."
+    )
+    seed.add_argument(
+        "--reset",
+        action="store_true",
+        help="Load all of them again as generated (undoes what people corrected).",
+    )
     bench = commands.add_parser(
         "benchmark",
         help="Score the findings against ground truth over many seeded batches; write the report.",
@@ -116,7 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "seed-demo":
             from batchlens.demo.seed import seed_demo
 
-            print(json.dumps({"status": "ok", "batches": seed_demo(runtime.batches)}))
+            seeded = seed_demo(runtime.batches, reset=args.reset)
+            print(json.dumps({"status": "ok", "batches": seeded}))
             return 0
         if runtime.service_client is None:
             print(json.dumps({"status": "error", "error": "PLANTCRAFT_APP_KEY is not set."}))

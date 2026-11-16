@@ -7,6 +7,7 @@
 | ``samples`` | an offline sample and when it was collected |
 | ``assay_results`` | one analyte of one sample, with the time the result became available |
 | ``pool_measurements`` | a pool's volume and concentration |
+| ``corrections`` | what a person changed: the record, the value before and after, who, when, why |
 
 Assets, signals and online values stay in PlantCraft: a phase execution keeps only the asset's
 id. Every instant is UTC text (``utc_iso``). ``SCHEMA`` is the tables as a new installation
@@ -18,6 +19,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import uuid
 from dataclasses import astuple, fields
 from datetime import datetime
 from typing import Any
@@ -29,6 +31,7 @@ from batchlens.batches.models import (
     AssayResult,
     Batch,
     BatchRecord,
+    Correction,
     PhaseExecution,
     PoolMeasurement,
     Sample,
@@ -42,6 +45,7 @@ TABLES: dict[type, str] = {
     Sample: "samples",
     AssayResult: "assay_results",
     PoolMeasurement: "pool_measurements",
+    Correction: "corrections",
 }
 COLUMNS = {"start": "start_at", "end": "end_at"}
 INSTANTS = {
@@ -51,6 +55,7 @@ INSTANTS = {
     "collected_at",
     "result_available_at",
     "measured_at",
+    "corrected_at",
 }
 
 
@@ -126,10 +131,23 @@ class BatchStore(Store):
         provenance TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS pool_measurements_batch ON pool_measurements (batch_id, measured_at);
+    CREATE TABLE IF NOT EXISTS corrections (
+        correction_id TEXT PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        field TEXT NOT NULL,
+        old_value TEXT NOT NULL,
+        new_value TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        corrected_by TEXT NOT NULL,
+        corrected_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS corrections_batch ON corrections (batch_id, corrected_at);
     """
 
     def save(self, record: BatchRecord) -> None:
-        """The whole aggregate, replacing what was stored under the same batch id."""
+        """The whole aggregate, replacing what was stored under the same batch id. The
+        corrections people made are a history and are kept."""
 
         batch_id = record.batch.batch_id
         rows = [record.batch, *record.phases, *record.samples, *record.results, *record.pools]
@@ -195,3 +213,55 @@ class BatchStore(Store):
                 "SELECT batch_id FROM batches WHERE is_reference = 1 ORDER BY created_at LIMIT 1"
             ).fetchone()
         return row["batch_id"] if row else None
+
+    # What a person changes ----------------------------------------------------------------------
+
+    def correct_sample_time(
+        self, batch_id: str, sample_id: str, collected_at: datetime, reason: str, by: str
+    ) -> Correction:
+        """Set the sample's collection time and record the correction, in one transaction."""
+
+        now = datetime.fromisoformat(self._now())
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                "SELECT collected_at FROM samples WHERE sample_id = ? AND batch_id = ?",
+                (sample_id, batch_id),
+            ).fetchone()
+            correction = Correction(
+                uuid.uuid4().hex[:12],
+                batch_id,
+                sample_id,
+                "collected_at",
+                row["collected_at"],
+                utc_iso(collected_at),
+                reason,
+                by,
+                now,
+            )
+            connection.execute(
+                "UPDATE samples SET collected_at = ? WHERE sample_id = ? AND batch_id = ?",
+                (correction.new_value, sample_id, batch_id),
+            )
+            columns = _columns(Correction)
+            connection.execute(
+                f"INSERT INTO corrections ({', '.join(columns)}) "
+                f"VALUES ({', '.join('?' * len(columns))})",
+                [_stored(value) for value in astuple(correction)],
+            )
+        return correction
+
+    def corrections(self, batch_id: str) -> list[Correction]:
+        """What people changed about the batch, oldest first."""
+
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM corrections WHERE batch_id = ? ORDER BY corrected_at, rowid",
+                (batch_id,),
+            ).fetchall()
+        return [_row(Correction, row) for row in rows]
+
+    def set_reference(self, batch_id: str) -> None:
+        """This batch becomes the reference, and no other batch is."""
+
+        with self._lock, self._connect() as connection:
+            connection.execute("UPDATE batches SET is_reference = (batch_id = ?)", (batch_id,))

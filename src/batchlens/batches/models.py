@@ -76,6 +76,22 @@ class PoolMeasurement:
 
 
 @dataclass(frozen=True)
+class Correction:
+    """A change a person made to a record: the value before, the value after, who, when and
+    why. The original is never lost."""
+
+    correction_id: str
+    batch_id: str
+    record_id: str
+    field: str
+    old_value: str
+    new_value: str
+    reason: str
+    corrected_by: str
+    corrected_at: datetime
+
+
+@dataclass(frozen=True)
 class BatchRecord:
     """The aggregate: one batch and everything recorded about it, oldest first."""
 
