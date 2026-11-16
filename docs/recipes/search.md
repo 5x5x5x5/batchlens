@@ -10,18 +10,18 @@ answers "nothing" for an app without its own route; this adds yours.
 types = ["Note"]
 ```
 
-`src/starter/api/routers/search.py`:
+`src/batchlens/api/routers/search.py`:
 
 ```python
-"""StarterCraft's part of the suite's search (Ctrl+K): its notes, by text or asset."""
+"""BatchlensCraft's part of the suite's search (Ctrl+K): its notes, by text or asset."""
 
 from typing import Any
 
 from fastapi import APIRouter, Query
 from plantcraft_sdk.server.search import SearchItem, matches, search_answer, search_text
 
-from starter.api.deps import CurrentUser, RuntimeDep
-from starter.i18n import t
+from batchlens.api.deps import CurrentUser, RuntimeDep
+from batchlens.i18n import t
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ def search(
 ```
 
 Add `search.router` to `routers=` in `api/app.py` (before the SDK's own fallback, which it
-does by itself), and `"Note"` to `src/starter/locales/pt-BR.json`.
+does by itself), and `"Note"` to `src/batchlens/locales/pt-BR.json`.
 
 Test:
 

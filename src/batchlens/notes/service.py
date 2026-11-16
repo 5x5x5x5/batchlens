@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from starter.notes.models import NoteDraft
-from starter.notes.store import NoteStore
+from batchlens.notes.models import NoteDraft
+from batchlens.notes.store import NoteStore
 
 
 class NoteService:

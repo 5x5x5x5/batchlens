@@ -9,7 +9,7 @@ All notable changes to this app are recorded here ([Keep a Changelog](https://ke
 - Only the basics: the template keeps the notes (list, create, change, delete, audit),
   one page, a help page in English and Brazilian Portuguese, the tests, the image and the
   package. Search, widgets, the `note.written` event, Desk's follow-ups, the summary from a
-  model and `#starter_note` references left the code and became recipes in `docs/recipes/`.
+  model and `#batchlens_note` references left the code and became recipes in `docs/recipes/`.
 - Full documentation in `docs/`: quickstart, concepts, structure, server, data, interface,
   translations, testing, packaging (every `app.toml` key, and the keys PlantCraft PR #179 will
   add) and publishing.
@@ -18,7 +18,7 @@ All notable changes to this app are recorded here ([Keep a Changelog](https://ke
   PlantCraft (events, Desk, a model); `notes/` has `models.py`, `store.py` and `service.py`;
   routers stay thin. A note may ask for a follow-up (a day and a person): it shows on Desk's
   calendar and in that person's to-do. **Summarise** asks the model Setup gives the use
-  `summary` (off until chosen). `#starter_note:<id>` references open the note.
+  `summary` (off until chosen). `#batchlens_note:<id>` references open the note.
 - processcraft-sdk 0.28 (an app without an app key reports its conditions); nothing else changes.
 - An example event, `note.written`, declared in `app.toml` and written by name
   (processcraft-sdk 0.26).

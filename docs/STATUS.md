@@ -1,4 +1,4 @@
-# STATUS: StarterCraft
+# STATUS: BatchlensCraft
 
 Where this module stands, for people and agents picking up work here.
 

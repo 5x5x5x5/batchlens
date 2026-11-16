@@ -9,9 +9,9 @@ from pathlib import Path
 
 from plantcraft_sdk.app_manifest import SUITE
 
-from starter import APP_ID, __version__
-from starter.config import Settings
-from starter.meta import HELP_CATEGORIES, OTHER_CATEGORY, help_page, manifest
+from batchlens import APP_ID, __version__
+from batchlens.config import Settings
+from batchlens.meta import HELP_CATEGORIES, OTHER_CATEGORY, help_page, manifest
 from tests.conftest import client_for
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +78,7 @@ def test_help_pages_come_in_folders_for_the_help_browser(client):
 def test_health_answers_at_the_root_and_under_the_prefix(runtime):
     from fastapi.testclient import TestClient
 
-    from starter.api.app import create_app
+    from batchlens.api.app import create_app
 
     with TestClient(create_app(runtime)) as bare:
         assert bare.get("/healthz").json()["status"] == "ok"

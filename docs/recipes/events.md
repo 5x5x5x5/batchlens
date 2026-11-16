@@ -14,7 +14,7 @@ payload field the manifest lacks fails in your tests.
 write = ["audit", "events"]
 
 [[publishes.events]]
-name = "note.written"             # sent as starter.note.written
+name = "note.written"             # sent as batchlens.note.written
 title = "Note written"
 description = "An editor wrote a note on an asset."
 severity = "info"                 # info, ok, warning, critical
@@ -26,10 +26,10 @@ The SDK sends the catalog to PlantCraft when the app starts. Optional keys (`pha
 condition with a start and an end, `rule` for the rule Alarms suggests) are in PlantCraft's
 `docs/app-standard.md`, section 6.
 
-`src/starter/suite/events.py`:
+`src/batchlens/suite/events.py`:
 
 ```python
-"""The events StarterCraft writes, by the names its app.toml declares."""
+"""The events BatchlensCraft writes, by the names its app.toml declares."""
 
 import logging
 from typing import Any
@@ -37,14 +37,14 @@ from typing import Any
 from plantcraft_sdk.client import PlantCraftError
 from plantcraft_sdk.events import EventCatalog
 
-from starter.i18n import t
-from starter.meta import manifest
+from batchlens.i18n import t
+from batchlens.meta import manifest
 
 LOGGER = logging.getLogger(__name__)
 
 
 def note_written(client: Any, note: dict[str, Any], asset_name: str) -> None:
-    """starter.note.written; never fails the request that wrote the note."""
+    """batchlens.note.written; never fails the request that wrote the note."""
 
     if client is None:
         return
@@ -68,7 +68,7 @@ Test (the fake PlantCraft keeps what was sent and refuses undeclared events):
 ```python
 def test_writing_a_note_writes_its_event(fake, client):
     client.post("/api/notes", json=note())
-    [event] = [item for item in fake.links.events if item["kind"] == "starter.note.written"]
+    [event] = [item for item in fake.links.events if item["kind"] == "batchlens.note.written"]
     assert event["subject"] == "asset:FIC-1001" and event["category"] == "user"
 ```
 

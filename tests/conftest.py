@@ -1,4 +1,4 @@
-"""Shared fixtures: the fake PlantCraft of ``tests/plant.py`` and a StarterCraft wired to it."""
+"""Shared fixtures: the fake PlantCraft of ``tests/plant.py`` and a BatchlensCraft wired to it."""
 
 from __future__ import annotations
 
@@ -6,17 +6,17 @@ import pytest
 from fastapi.testclient import TestClient
 from plantcraft_sdk.testing import BASE_URL
 
-from starter.api.app import create_app
-from starter.api.runtime import Runtime
-from starter.config import Settings
+from batchlens.api.app import create_app
+from batchlens.api.runtime import Runtime
+from batchlens.config import Settings
 from tests.plant import APP_KEY, make_fake
 
 
 def make_runtime(tmp_path, fake, *, app_key: bool = True, **settings) -> Runtime:
     return Runtime(
         Settings(processcraft_url=BASE_URL, data_dir=tmp_path, **settings),
-        verifier=fake.verifier("starter"),
-        service_client=fake.client(None, app="starter", key=APP_KEY) if app_key else None,
+        verifier=fake.verifier("batchlens"),
+        service_client=fake.client(None, app="batchlens", key=APP_KEY) if app_key else None,
         http_client=fake.http_client(),
     )
 
@@ -35,7 +35,7 @@ def runtime(tmp_path, fake):
 
 def client_for(runtime: Runtime, fake, username: str | None = "engineer") -> TestClient:
     client = TestClient(
-        create_app(runtime), base_url="http://testserver/starter/", raise_server_exceptions=False
+        create_app(runtime), base_url="http://testserver/batchlens/", raise_server_exceptions=False
     )
     if username:
         client.headers["Authorization"] = f"Bearer {fake.token(username)}"
@@ -61,7 +61,7 @@ def pytest_sessionfinish(session, exitstatus):
 
     from plantcraft_sdk import apptest
 
-    problems = apptest.permission_problems(Path(__file__).resolve().parents[1], "starter")
+    problems = apptest.permission_problems(Path(__file__).resolve().parents[1], "batchlens")
     if problems and exitstatus == 0:
         print("\n" + "\n".join(problems))
         session.exitstatus = 1

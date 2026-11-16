@@ -20,8 +20,8 @@ the search (Ctrl+K), messages, the profile menu, help and the guided tour. You g
 
 ```tsx
 <SuiteShell
-  app="starter"                 // the app id
-  appName="StarterCraft"        // the name in the frame and the browser tab
+  app="batchlens"                 // the app id
+  appName="BatchlensCraft"        // the name in the frame and the browser tab
   nav={NAV}                     // the sidebar (pages.tsx)
   path={path} href={href} navigate={navigate}
   user={me ? { name: me.name, role: t(me.role) } : null}
@@ -33,7 +33,7 @@ the search (Ctrl+K), messages, the profile menu, help and the guided tour. You g
 ```
 
 The routes are a plain function of the path (`Route` in `App.tsx`): no router library. `nav.ts`
-keeps paths under the prefix: `href("/notes/1")` is `/starter/notes/1`, `navigate()` changes page
+keeps paths under the prefix: `href("/notes/1")` is `/batchlens/notes/1`, `navigate()` changes page
 without a reload, `Link` is an `<a>` that does both.
 
 ## A page
@@ -48,7 +48,7 @@ export function NotesPage({ me }: { me: Me }) {
   if (error) return <ErrorBox text={error} />;
   if (!notes) return <Loading />;
   return <>
-    <Heading eyebrow={t("Starter")} title={t("Notes")} detail={t("Notes on the plant's assets, newest first.")} />
+    <Heading eyebrow={t("Batchlens")} title={t("Notes")} detail={t("Notes on the plant's assets, newest first.")} />
     {me.can_edit && <NoteForm onSaved={...} />}
     <NoteList notes={notes} />
   </>;
@@ -82,7 +82,7 @@ The list of everything is `ui/src/index.ts` in the PlantCraft repository, and th
 `api.ts` creates one client for the app:
 
 ```ts
-const client = createApiClient({ app: "starter", href });
+const client = createApiClient({ app: "batchlens", href });
 export const api = {
   notes: (asset?: string) => request<Note[]>(`/api/notes${query({ asset })}`),
   create: (draft: NoteDraft) => request<Note>("/api/notes", jsonBody("POST", draft)),
@@ -96,7 +96,7 @@ An error carries the server's `detail`; `message(err)` turns it into the line a 
 ## Help and the guided tour
 
 - **Help**: every Markdown file in `docs/help/` is a help page, served by `/api/help` and shown
-  under Help. List each page with its folder in `HELP_CATEGORIES` (`src/starter/meta.py`).
+  under Help. List each page with its folder in `HELP_CATEGORIES` (`src/batchlens/meta.py`).
 - **Tour**: `tourSteps()` in `pages.tsx` opens the first time a person opens the app. Each step
   points at an element of a page; wrap its words in `tt()` so the tour can be translated.
 

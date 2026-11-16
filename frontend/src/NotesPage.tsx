@@ -48,7 +48,7 @@ export function NotesPage({ me, assetId }: { me: Me; assetId?: string }) {
   if (error) return <ErrorBox text={error} />;
   if (!notes) return <Loading />;
   return <>
-    <Heading eyebrow={assetId ? t("Asset") : t("Starter")} title={assetId ?? t("Notes")}
+    <Heading eyebrow={assetId ? t("Asset") : t("Batchlens")} title={assetId ?? t("Notes")}
       detail={assetId ? t("The notes on this asset.") : t("Notes on the plant's assets, newest first.")} />
     {me.can_edit && <NoteForm assetId={assetId} onSaved={() => void load()} />}
     <NoteList notes={notes} />

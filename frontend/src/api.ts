@@ -2,7 +2,7 @@ import { createApiClient, jsonBody, query, type HelpEntry, type HelpPage } from 
 import { href } from "./nav";
 import type { Me, Note, NoteDraft } from "./types";
 
-const client = createApiClient({ app: "starter", href });
+const client = createApiClient({ app: "batchlens", href });
 export const UNAUTHORIZED_EVENT = client.UNAUTHORIZED_EVENT;
 const request = client.request;
 const id = encodeURIComponent;

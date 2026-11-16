@@ -3,12 +3,12 @@ import { appPath, href } from "./nav";
 import { t } from "./i18n";
 
 describe("base path", () => {
-  it("prefixes app paths with /starter and strips it back", () => {
-    expect(href("/d/abc")).toBe("/starter/d/abc");
-    expect(href("share/x")).toBe("/starter/share/x");
-    expect(appPath("/starter/d/abc")).toBe("/d/abc");
-    expect(appPath("/starter/")).toBe("/");
-    expect(appPath("/starter")).toBe("/");
+  it("prefixes app paths with /batchlens and strips it back", () => {
+    expect(href("/d/abc")).toBe("/batchlens/d/abc");
+    expect(href("share/x")).toBe("/batchlens/share/x");
+    expect(appPath("/batchlens/d/abc")).toBe("/d/abc");
+    expect(appPath("/batchlens/")).toBe("/");
+    expect(appPath("/batchlens")).toBe("/");
   });
 });
 

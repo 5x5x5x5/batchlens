@@ -2,7 +2,7 @@
 
 The template has only what every app needs. Each recipe adds one more thing, with the lines for
 `app.toml`, the code and a test. The code is written for the notes; change the names to your
-object. Most of it comes from an earlier, larger version of this template (StarterCraft before
+object. Most of it comes from an earlier, larger version of this template (BatchlensCraft before
 0.2.0), where it ran under the same tests.
 
 | Recipe | Adds |
@@ -24,18 +24,18 @@ Things PlantCraft *asks your app for* (search, widgets, references) are routes i
 calls) go in a `suite/` package, the only code that uses the app key:
 
 ```text
-src/starter/suite/__init__.py    class Suite: one method per thing the app sends
-src/starter/suite/events.py      one module per kind (events, desk, llm, results)
+src/batchlens/suite/__init__.py    class Suite: one method per thing the app sends
+src/batchlens/suite/events.py      one module per kind (events, desk, llm, results)
 ```
 
 ```python
-# src/starter/suite/__init__.py
+# src/batchlens/suite/__init__.py
 """The only place the app talks to PlantCraft on its own behalf (with the app key)."""
 
 from collections.abc import Callable
 from typing import Any
 
-from starter.suite import events
+from batchlens.suite import events
 
 
 class Suite:

@@ -1,7 +1,7 @@
-"""E2E fixtures: FakePlantCraft and StarterCraft served over HTTP, and a headless Chromium
+"""E2E fixtures: FakePlantCraft and BatchlensCraft served over HTTP, and a headless Chromium
 (``plantcraft_sdk.e2e``: the fake in a forked server, the app in a uvicorn thread with the built
-interface, the browser signed in with PlantCraft's cookie). ``STARTER_E2E_REQUIRED=1`` makes a
-missing tool a failure; ``STARTER_E2E_SCREENSHOTS`` names a folder for screenshots.
+interface, the browser signed in with PlantCraft's cookie). ``BATCHLENS_E2E_REQUIRED=1`` makes a
+missing tool a failure; ``BATCHLENS_E2E_SCREENSHOTS`` names a folder for screenshots.
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ from plantcraft_sdk.auth import TokenVerifier
 from plantcraft_sdk.client import PlantCraftClient
 from plantcraft_sdk.contract import TOKEN_COOKIE
 
-from starter import APP_ID
-from starter.api.app import create_app, ui_folder
-from starter.api.runtime import Runtime
-from starter.config import Settings
+from batchlens import APP_ID
+from batchlens.api.app import create_app, ui_folder
+from batchlens.api.runtime import Runtime
+from batchlens.config import Settings
 from tests.plant import APP_KEY, make_fake
 
 
@@ -45,7 +45,7 @@ def app_url(fake, tmp_path_factory):
         )
         runtime.start()
         try:
-            with e2e.serving(create_app(runtime), "StarterCraft") as url:
+            with e2e.serving(create_app(runtime), "BatchlensCraft") as url:
                 yield url
         finally:
             runtime.shutdown()

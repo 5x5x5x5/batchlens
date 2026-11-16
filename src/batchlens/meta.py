@@ -1,6 +1,6 @@
-"""StarterCraft's ``app.toml`` and help pages (``plantcraft_sdk.server.files``).
+"""BatchlensCraft's ``app.toml`` and help pages (``plantcraft_sdk.server.files``).
 
-Found in ``STARTER_APP_DIR`` (``/app`` in the image), else in the source checkout. The help
+Found in ``BATCHLENS_APP_DIR`` (``/app`` in the image), else in the source checkout. The help
 browser files each guide in its folder, in this order.
 """
 
@@ -10,8 +10,8 @@ from pathlib import Path
 
 from plantcraft_sdk.server.files import OTHER_CATEGORY, AppFiles
 
-HELP_CATEGORIES = {"starter": "Getting started"}
-FILES = AppFiles("starter", Path(__file__).resolve().parents[2], help_categories=HELP_CATEGORIES)
+HELP_CATEGORIES = {"batchlens": "Getting started"}
+FILES = AppFiles("batchlens", Path(__file__).resolve().parents[2], help_categories=HELP_CATEGORIES)
 
 app_dir = FILES.app_dir
 manifest = FILES.manifest

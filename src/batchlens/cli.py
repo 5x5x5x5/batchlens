@@ -1,6 +1,6 @@
-"""Command line: ``starter serve`` and ``starter check``.
+"""Command line: ``batchlens serve`` and ``batchlens check``.
 
-Settings come from the environment (``starter.config``).
+Settings come from the environment (``batchlens.config``).
 """
 
 from __future__ import annotations
@@ -11,22 +11,22 @@ import os
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="starter", description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(prog="batchlens", description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Run the web application and the API.")
-    serve.add_argument("--host", default=os.environ.get("STARTER_HOST", "127.0.0.1"))
-    serve.add_argument("--port", type=int, default=int(os.environ.get("STARTER_PORT", "9100")))
+    serve.add_argument("--host", default=os.environ.get("BATCHLENS_HOST", "127.0.0.1"))
+    serve.add_argument("--port", type=int, default=int(os.environ.get("BATCHLENS_PORT", "9100")))
     commands.add_parser("check", help="Check the app key and that PlantCraft answers.")
     args = parser.parse_args(argv)
     from plantcraft_sdk.server.logs import configure_logging
 
-    from starter import __version__
-    from starter.config import Settings
+    from batchlens import __version__
+    from batchlens.config import Settings
 
     # JSON lines to standard error and, for the server, the rotating file in the data folder
-    # (STARTER_LOG_LEVEL sets the level).
+    # (BATCHLENS_LOG_LEVEL sets the level).
     configure_logging(
-        "starter",
+        "batchlens",
         version=__version__,
         data_dir=Settings.from_environment().data_dir if args.command == "serve" else None,
     )
@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "serve":
         import uvicorn
 
-        from starter.api.app import create_app
+        from batchlens.api.app import create_app
 
         uvicorn.run(
             create_app(),
@@ -48,8 +48,8 @@ def main(argv: list[str] | None = None) -> int:
 
     from plantcraft_sdk.client import PlantCraftError
 
-    from starter.api.runtime import Runtime
-    from starter.config import Settings
+    from batchlens.api.runtime import Runtime
+    from batchlens.config import Settings
 
     settings = Settings.from_environment()
     runtime = Runtime(settings)

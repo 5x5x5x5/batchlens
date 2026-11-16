@@ -1,6 +1,6 @@
-# StarterCraft
+# BatchlensCraft
 
-O StarterCraft guarda uma nota sobre qualquer ativo da planta: uma leitura feita em campo, um
+O BatchlensCraft guarda uma nota sobre qualquer ativo da planta: uma leitura feita em campo, um
 lembrete para o próximo turno, o que foi mudado em uma malha e por quê.
 
 ## Notas
@@ -19,5 +19,5 @@ mostra o novo nome. Quando o ativo é removido, a nota continua e mostra o id do
 
 ## Crie o seu próprio app
 
-O StarterCraft é o modelo dos apps da suíte: copie, dê um nome (`make rename NAME=Logbook`) e
+O BatchlensCraft é o modelo dos apps da suíte: copie, dê um nome (`make rename NAME=Logbook`) e
 siga o `docs/quickstart.md` dele.

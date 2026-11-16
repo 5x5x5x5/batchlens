@@ -10,7 +10,7 @@ import pytest
 try:
     from playwright.sync_api import expect
 except ImportError:
-    if os.environ.get("STARTER_E2E_REQUIRED") == "1":
+    if os.environ.get("BATCHLENS_E2E_REQUIRED") == "1":
         raise
     pytest.skip("Playwright is not installed", allow_module_level=True)
 
@@ -22,13 +22,13 @@ def _shot(page, screenshots, name):
 
 
 def test_a_browser_without_a_token_is_sent_to_sign_in(anonymous, app_url):
-    anonymous.goto(f"{app_url}/starter/")
-    assert re.search(r"/login\?next=/starter/", anonymous.url), anonymous.url
+    anonymous.goto(f"{app_url}/batchlens/")
+    assert re.search(r"/login\?next=/batchlens/", anonymous.url), anonymous.url
 
 
 def test_write_a_note_open_it_and_delete_it(signed_in, app_url, screenshots):
     page = signed_in
-    page.goto(f"{app_url}/starter/")
+    page.goto(f"{app_url}/batchlens/")
     expect(page.get_by_text("No notes yet")).to_be_visible()
     _shot(page, screenshots, "1-empty")
 

@@ -28,8 +28,8 @@ export function App() {
   }, []);
   const tour = useMemo(() => (me ? () => tourSteps() : undefined), [me]);
   return <SuiteShell
-    app="starter"
-    appName="StarterCraft"
+    app="batchlens"
+    appName="BatchlensCraft"
     subtitle={t("Example")}
     nav={NAV.map((item) => ({ ...item, label: t(item.label) }))}
     path={path}

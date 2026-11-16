@@ -5,7 +5,7 @@ The SDK gives every app the same skeleton, so your code holds only your object a
 
 ## What the SDK gives you for free
 
-`create_app()` in `src/starter/api/app.py` calls `web.suite_api(...)` and `web.mount(...)`. With
+`create_app()` in `src/batchlens/api/app.py` calls `web.suite_api(...)` and `web.mount(...)`. With
 no code of yours, the app already serves:
 
 | Route | What it is |
@@ -18,12 +18,12 @@ no code of yours, the app already serves:
 | `GET /api/docs` | The OpenAPI page, only when `PLANTCRAFT_OPENAPI=1` |
 | `/<prefix>...` | The built interface, with the sign-in redirect for a browser without a token |
 
-Every route lives under the app's prefix (`/starter/` in the template) behind PlantCraft's
+Every route lives under the app's prefix (`/batchlens/` in the template) behind PlantCraft's
 proxy; `/healthz` also answers at the root.
 
 ## Settings
 
-`src/starter/config.py` reads everything from the environment. Each setting has a safe default,
+`src/batchlens/config.py` reads everything from the environment. Each setting has a safe default,
 and secrets are never logged.
 
 | Variable | Default | Meaning |
@@ -31,17 +31,17 @@ and secrets are never logged.
 | `PLANTCRAFT_URL` | `http://127.0.0.1:8060` | PlantCraft's API, as this server reaches it |
 | `PLANTCRAFT_PUBLIC_URL` | same origin | PlantCraft as the browser reaches it (the sign-in page) |
 | `PLANTCRAFT_APP_KEY` / `PLANTCRAFT_APP_KEY_FILE` | empty | The app key, for what the app does on its own |
-| `STARTER_DATA_DIR` | `var` | The data folder (SQLite database, logs) |
-| `STARTER_ROOT_PATH` | `/starter` | The prefix |
-| `STARTER_LOG_LEVEL` | `INFO` | Log level (JSON lines to standard error and `logs/` in the data folder) |
-| `STARTER_HOST`, `STARTER_PORT` | `127.0.0.1`, `9100` | Where `starter serve` listens |
+| `BATCHLENS_DATA_DIR` | `var` | The data folder (SQLite database, logs) |
+| `BATCHLENS_ROOT_PATH` | `/batchlens` | The prefix |
+| `BATCHLENS_LOG_LEVEL` | `INFO` | Log level (JSON lines to standard error and `logs/` in the data folder) |
+| `BATCHLENS_HOST`, `BATCHLENS_PORT` | `127.0.0.1`, `9100` | Where `batchlens serve` listens |
 
 A setting of your own: add a field to `Settings` and read it in `from_environment()` with the
-`STARTER_` prefix. Document it in the docstring table.
+`BATCHLENS_` prefix. Document it in the docstring table.
 
 ## The runtime
 
-`Runtime` (`src/starter/api/runtime.py`) is one server: its settings, its database, its services
+`Runtime` (`src/batchlens/api/runtime.py`) is one server: its settings, its database, its services
 and its PlantCraft clients. It extends the SDK's `PlatformRuntime`, which gives:
 
 - `rt.user_client(user)`: a PlantCraft client acting **as the person**. Use it for what a page
@@ -49,17 +49,17 @@ and its PlantCraft clients. It extends the SDK's `PlatformRuntime`, which gives:
 - `rt.service_client`: a client acting **as the app**, with the app key, or `None` when there is
   none (a development run). Use it only for what the app does on its own, from `suite/`.
 - `rt.audit(user, action, subject, detail)`: one line in PlantCraft's audit log, as
-  `starter.<action>`. It never blocks the change if PlantCraft is down.
+  `batchlens.<action>`. It never blocks the change if PlantCraft is down.
 
 Add each new service to `Runtime.__init__` beside `self.notes`. Background work starts in
 `start()` and stops in `shutdown()` ([recipes/background.md](recipes/background.md)).
 
 ## Who may do what
 
-`src/starter/api/deps.py` builds the checks once:
+`src/batchlens/api/deps.py` builds the checks once:
 
 ```python
-ACCESS = Access("Starter")  # the app's short name, used in messages
+ACCESS = Access("Batchlens")  # the app's short name, used in messages
 EditorUser = ACCESS.EditorUser  # editors and admins; viewers get 403 with a reason
 CurrentUser  # anyone PlantCraft let into the app; 401 without a token
 ```
@@ -98,7 +98,7 @@ a read the manifest does not declare. More in [recipes/signals.md](recipes/signa
 ## Input, errors and words
 
 - Every body is a pydantic model with `extra="forbid"` and a limit on every field
-  (`src/starter/notes/models.py`). FastAPI answers 422 for anything else.
+  (`src/batchlens/notes/models.py`). FastAPI answers 422 for anything else.
 - A missing object is a 404 (`note_or_404`), a refusal a 403, a conflict a 409, with a `detail`
   a person can act on, through `t()`.
 - Never let an exception escape as a 500. `tests/test_suite_rules.py` sends junk to every route

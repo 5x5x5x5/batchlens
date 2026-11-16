@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/images/logo.svg" width="72" height="72" alt="StarterCraft"></p>
+<p align="center"><img src="docs/images/logo.svg" width="72" height="72" alt="BatchlensCraft"></p>
 
-# StarterCraft: the app template of PlantCraft
+# BatchlensCraft: the app template of PlantCraft
 
 The smallest complete app of the [PlantCraft](https://github.com/PlantCraft/PlantCraft)
 suite, made to be copied. It keeps a note on any asset of the plant, listed, audited and kept in
@@ -46,9 +46,9 @@ production key.
 | Path | What it is |
 |---|---|
 | [`app.toml`](app.toml) | The manifest: id, name, version, prefix, port, uid, permissions. The launcher, the Apps page, the package, the image labels and `/api/meta` read it. |
-| `src/starter/notes/` | The app's object: `NoteDraft` (what a person may send, checked), `NoteStore` (its SQLite table) and `NoteService` (its rules). |
-| `src/starter/api/` | `runtime.py` (settings, database, PlantCraft clients), `deps.py` (who may do what), `routers/` (the routes), `app.py` (the suite's API frame). |
-| `src/starter/meta.py`, `docs/help/` | The manifest and the help pages served at `/api/meta` and `/api/help`. |
+| `src/batchlens/notes/` | The app's object: `NoteDraft` (what a person may send, checked), `NoteStore` (its SQLite table) and `NoteService` (its rules). |
+| `src/batchlens/api/` | `runtime.py` (settings, database, PlantCraft clients), `deps.py` (who may do what), `routers/` (the routes), `app.py` (the suite's API frame). |
+| `src/batchlens/meta.py`, `docs/help/` | The manifest and the help pages served at `/api/meta` and `/api/help`. |
 | `frontend/src/` | `App.tsx` (routes), `pages.tsx` (sidebar), `NotesPage.tsx` (the page), `api.ts` (calls). All on `@plantcraft/ui`. |
 | `tests/` | `conftest.py` and `plant.py` (a fake PlantCraft with a small plant), `test_notes.py` (the object), `test_app_standard.py` and `test_suite_rules.py` (the suite's rules), `e2e/` (browser journeys). |
 | `vendor/` | The SDK wheel and the interface package, with their SHA-256: the image is built offline. |

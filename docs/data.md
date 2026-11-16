@@ -1,7 +1,7 @@
 # The app's data
 
 Each app keeps its own objects in its own SQLite database, in its data folder
-(`STARTER_DATA_DIR`, `/data` in the image). Plant data is never stored here: the app keeps the
+(`BATCHLENS_DATA_DIR`, `/data` in the image). Plant data is never stored here: the app keeps the
 ids of assets and signals and reads the rest from PlantCraft.
 
 ## A store
@@ -71,7 +71,7 @@ table and fails if anything is missing.
 
 ```toml
 [backup]
-sqlite = ["starter.sqlite3"]   # online SQLite backup, then an integrity check
+sqlite = ["batchlens.sqlite3"]   # online SQLite backup, then an integrity check
 files = []                     # copied as they are; a folder ends in "/"
 skip = ["logs/"]               # left out
 ```

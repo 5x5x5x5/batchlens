@@ -1,7 +1,7 @@
-# AGENTS.md: StarterCraft, the starting point for an app of your own
+# AGENTS.md: BatchlensCraft, the starting point for an app of your own
 
-This folder is a working app of the PlantCraft suite, made to be copied: **StarterCraft**
-(`starter`, prefix `/starter/`, port 9100, uid 20100) keeps a note on any asset of the plant.
+This folder is a working app of the PlantCraft suite, made to be copied: **BatchlensCraft**
+(`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) keeps a note on any asset of the plant.
 It has only the parts every suite app needs, so an agent (Claude Code or another) can turn
 it into a new app in one session and try it inside the platform.
 
@@ -33,9 +33,9 @@ fixed.
 
 ```text
 app.toml        the manifest: id, name, version, prefix, port, uid, permissions (single source)
-src/starter/    the app, in layers (below)
+src/batchlens/    the app, in layers (below)
 tests/          pytest against FakePlantCraft (no real PlantCraft); tests/e2e: browser journeys
-frontend/       Vite + React + TypeScript on @plantcraft/ui, served under /starter/
+frontend/       Vite + React + TypeScript on @plantcraft/ui, served under /batchlens/
 docs/           the guides (docs/README.md), recipes (docs/recipes/) and STATUS/devlog/gaps
 docs/help/      help pages served at /api/help and shown under Help
 vendor/         the plantcraft-sdk wheel and the @plantcraft/ui package (never edited here)
@@ -44,13 +44,13 @@ prompts/        prompts for an agent: new app, add an object, add a page, try it
 tools/          rename.py (`make rename`)
 ```
 
-| Layer | Packages (`src/starter/`) | Role |
+| Layer | Packages (`src/batchlens/`) | Role |
 |---|---|---|
 | -1 | `i18n` | `t()`; anything may use it |
 | 0 | `config`, `meta` | settings from the environment; `app.toml` and the help pages |
 | 1 | `suite` | what the app sends to PlantCraft with its app key (none yet; `docs/recipes/`) |
 | 2 | `notes` | the app's object: contract (`NoteDraft`), store (`NoteStore`), rules (`NoteService`) |
-| 3 | `api`, `cli` | FastAPI app under `/starter`, command line |
+| 3 | `api`, `cli` | FastAPI app under `/batchlens`, command line |
 
 A new object goes in layer 2 beside `notes` (its own package: contract and store). Methods that
 compute something (an analysis on plant signals) go in a layer between the objects and the API.
@@ -71,13 +71,13 @@ shipped is a named step in the store's `MIGRATIONS` (`Migration`, `add_columns` 
   of the asset tree or of plant samples.
 - **Sign-in is PlantCraft's.** Every route needs a PlantCraft token that grants this app
   (`api/deps.py`, `Access`); `/healthz` is the only open one. Viewers read, editors change.
-- **Every change a person makes is audited** with `Runtime.audit` (action `starter.<noun>.<verb>`).
+- **Every change a person makes is audited** with `Runtime.audit` (action `batchlens.<noun>.<verb>`).
 - **Bad data never crashes.** Wrong input gets a 422 with words a person can act on, a missing
   object a 404, never a 500. `tests/test_suite_rules.py` sends junk to every route.
 - **No silent wrong answers.** A result the app cannot compute says so, in words.
 - **Offline.** No CDN, web font, telemetry or update check; the interface is built and served by
   the app. `tests/test_suite_rules.py` fails on runtime `http(s)://` fetches.
-- **One language source.** Every user-facing string goes through `t()` (`src/starter/i18n.py`,
+- **One language source.** Every user-facing string goes through `t()` (`src/batchlens/i18n.py`,
   `frontend/src/i18n.ts`), English first.
 - **Clean room.** Use only public information: standards, public manuals, papers. Every outside
   source goes in `SPEC.md`; every third-party asset or library in `ATTRIBUTION.md`. No client or

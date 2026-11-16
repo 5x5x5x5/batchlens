@@ -5,7 +5,7 @@ app.toml              the manifest: id, name, version, prefix, port, permissions
 pyproject.toml        the Python package and its dependencies
 Makefile              every command: ci, dev, serve, rename, image, package
 Dockerfile            the image: three stages, hashed dependencies, non-root, read-only root
-src/starter/          the server (Python, FastAPI on plantcraft-sdk)
+src/batchlens/          the server (Python, FastAPI on plantcraft-sdk)
 frontend/             the interface (Vite, React, TypeScript on @plantcraft/ui)
 tests/                pytest against a fake PlantCraft; tests/e2e: browser journeys
 docs/                 this documentation, the help pages (docs/help) and the app's own notes
@@ -20,7 +20,7 @@ CHANGELOG.md          what changed in each version
 SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-party credits
 ```
 
-## The server: `src/starter/`
+## The server: `src/batchlens/`
 
 | File | What it does |
 |---|---|
@@ -35,7 +35,7 @@ SECURITY.md, LICENSE, ATTRIBUTION.md   how to report a flaw, the licence, third-
 | `api/deps.py` | Who may do what (`CurrentUser`, `EditorUser`) and shared checks (`note_or_404`) |
 | `api/routers/notes.py` | The HTTP routes of the notes |
 | `api/app.py` | `create_app()`: the suite's standard endpoints plus your routers and the built interface |
-| `cli.py` | `starter serve` and `starter check` |
+| `cli.py` | `batchlens serve` and `batchlens check` |
 
 ### Layers
 
@@ -82,6 +82,5 @@ the app (a page that reads plant data as the person stays in its router).
 | `test_notes.py` | The object: create, change, delete, limits, who may do what |
 | `test_app_standard.py` | `app.toml` agrees with the code; the standard endpoints answer |
 | `test_suite_rules.py` | Offline, layers, thin routers, junk never answers 500, no route without a token, the image |
-| `test_rename.py` | `make rename` leaves no trace of the template's name |
 | `floors.toml` | Numbers that only rise (API operations under test) |
 | `e2e/` | Browser journeys with Playwright (`make e2e`) |

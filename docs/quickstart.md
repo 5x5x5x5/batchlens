@@ -25,7 +25,7 @@ make rename NAME=Logbook PORT=9110 UID=20110   # if another app of yours already
 ```
 
 `NAME` is one word with a capital first letter. The command rewrites every file, moves
-`src/starter` to `src/logbook` and `docs/help/starter.md` to `docs/help/logbook.md`. It refuses
+`src/batchlens` to `src/logbook` and `docs/help/batchlens.md` to `docs/help/logbook.md`. It refuses
 to run twice. Pick a port from 9000 and a container user from 20000 that no other app on your
 PlantCraft uses; `make ci` refuses any that one of the suite's own apps holds.
 

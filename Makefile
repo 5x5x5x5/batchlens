@@ -40,10 +40,10 @@ frontend:
 # Browser journeys (needs `pip install -e ".[e2e]"` and Chromium; set
 # PLAYWRIGHT_CHROMIUM_EXECUTABLE to use a Chromium already on the machine).
 e2e: frontend
-	STARTER_E2E_REQUIRED=1 $(PYTHON) -m pytest -q tests/e2e
+	BATCHLENS_E2E_REQUIRED=1 $(PYTHON) -m pytest -q tests/e2e
 
 serve:
-	starter serve --port 9100
+	batchlens serve --port 9100
 
 # PlantCraft's checkout: the repository's root inside PlantCraft (templates/app), else a
 # PlantCraft clone beside this folder. Override with PLANTCRAFT_DIR=/path/to/PlantCraft.
@@ -53,7 +53,7 @@ PLANTCRAFT_DIR ?= $(if $(wildcard ../../deploy/package.sh),../..,../PlantCraft)
 # on :9100, signed in through PlantCraft and listed in its launcher (prompts/04-try-in-platform.md).
 dev: deps frontend
 	cd "$(PLANTCRAFT_DIR)" && $(PYTHON) run_opcua_demo.py --no-linkcraft \
-		--app starter=http://127.0.0.1:9100/starter/ $(DEV_FLAGS)
+		--app batchlens=http://127.0.0.1:9100/batchlens/ $(DEV_FLAGS)
 
 # Give the app its own name, once: make rename NAME=Logbook [PORT=9110] [UID=20110].
 NAME ?=
@@ -74,9 +74,9 @@ image:
 		--build-arg VERSION=$(VERSION) \
 		--build-arg REVISION=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) \
 		--build-arg CREATED=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-		-t starter:$(VERSION) .
+		-t batchlens:$(VERSION) .
 
-# The suite's signed app package, dist/starter-<version>.pcapp (the app standard, section 8;
+# The suite's signed app package, dist/batchlens-<version>.pcapp (the app standard, section 8;
 # PlantCraft docs/app-package.md): PlantCraft's deploy/package.sh signs app.toml, the image and
 # its SBOM with the publisher key. PUBLISHER_KEY is the Ed25519 private key, kept outside every
 # repository. The SBOM is the image's /app/sbom.json (plantcraft-app sbom, written at build)
@@ -90,12 +90,12 @@ package: image
 		exit 1; }
 	@test -n "$(PUBLISHER_KEY)" || { echo "Set PUBLISHER_KEY to the publisher's private key file."; exit 1; }
 	mkdir -p dist
-	$(if $(SBOM),,docker run --rm --network none --entrypoint cat starter:$(VERSION) /app/sbom.json > dist/sbom.spdx.json)
+	$(if $(SBOM),,docker run --rm --network none --entrypoint cat batchlens:$(VERSION) /app/sbom.json > dist/sbom.spdx.json)
 	"$(PLANTCRAFT_DIR)/deploy/package.sh" --app app.toml --key "$(PUBLISHER_KEY)" \
 		--sbom "$(or $(SBOM),dist/sbom.spdx.json)" --out dist
 
 # The same package signed with PlantCraft's development key (`make dev-publisher` there), which
-# a development stack trusts: install dist/starter-<version>.pcapp from Apps > Install.
+# a development stack trusts: install dist/batchlens-<version>.pcapp from Apps > Install.
 dev-package:
 	@test -f "$(PLANTCRAFT_DIR)/keys/dev-publisher.key" || { \
 		echo "Run make dev-publisher in $(PLANTCRAFT_DIR) first."; exit 1; }
@@ -104,6 +104,6 @@ dev-package:
 lock:
 	uv pip compile deploy/requirements.in --python-version 3.13 \
 		--python-platform x86_64-manylinux_2_28 --generate-hashes --no-header --quiet \
-		--find-links vendor --no-emit-package starter --no-emit-package plantcraft-sdk \
+		--find-links vendor --no-emit-package batchlens --no-emit-package plantcraft-sdk \
 		-o deploy/requirements.lock
 	sed -i '1i # Pinned, hashed dependencies of the Docker image (Python 3.13, Linux). Regenerate with\n# `make lock` after changing pyproject.toml; the image build refuses any file whose hash differs.' deploy/requirements.lock

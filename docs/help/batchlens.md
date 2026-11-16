@@ -1,6 +1,6 @@
-# StarterCraft
+# BatchlensCraft
 
-StarterCraft keeps a note on any asset of the plant: a reading taken in the field, a reminder for
+BatchlensCraft keeps a note on any asset of the plant: a reading taken in the field, a reminder for
 the next shift, what was changed on a loop and why.
 
 ## Notes
@@ -18,5 +18,5 @@ shows the new name. When the asset is removed, the note stays and shows the asse
 
 ## Make your own app
 
-StarterCraft is the template of the suite's apps: copy it, give it a name (`make rename
+BatchlensCraft is the template of the suite's apps: copy it, give it a name (`make rename
 NAME=Logbook`) and follow its `docs/quickstart.md`.

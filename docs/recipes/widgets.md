@@ -9,7 +9,7 @@ answers. Each widget has one of the suite's shapes (`number`, `list`, `series`, 
 ```toml
 [[contributes.widgets]]
 id = "count"
-title = "StarterCraft: notes"
+title = "BatchlensCraft: notes"
 description = "How many notes there are."
 size = "s"
 kind = "number"
@@ -17,25 +17,25 @@ default = true                # on a new Overview without anyone adding it
 
 [[contributes.widgets]]
 id = "latest"
-title = "StarterCraft: latest notes"
+title = "BatchlensCraft: latest notes"
 description = "The newest notes, each one click away."
 size = "m"
 kind = "list"
 ```
 
-`src/starter/api/routers/widgets.py`:
+`src/batchlens/api/routers/widgets.py`:
 
 ```python
-"""StarterCraft's widgets, for PlantCraft's Overview and Desk's Today."""
+"""BatchlensCraft's widgets, for PlantCraft's Overview and Desk's Today."""
 
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from plantcraft_sdk import widgets as w
 
-from starter.api.deps import CurrentUser, RuntimeDep
-from starter.i18n import t
-from starter.meta import FILES
+from batchlens.api.deps import CurrentUser, RuntimeDep
+from batchlens.i18n import t
+from batchlens.meta import FILES
 
 router = APIRouter(prefix="/api/widgets")
 

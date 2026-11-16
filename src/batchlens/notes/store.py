@@ -21,7 +21,7 @@ from typing import Any
 
 from plantcraft_sdk.server.store import Store
 
-from starter.notes.models import NoteDraft
+from batchlens.notes.models import NoteDraft
 
 NOTE_ID = re.compile(r"^[a-f0-9]{12}$")
 

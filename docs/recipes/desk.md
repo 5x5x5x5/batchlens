@@ -25,10 +25,10 @@ Add `follow_up` (a day, `^\d{4}-\d{2}-\d{2}$`) and `follow_up_by` (a username) t
 and to the table (a `MIGRATIONS` step if a version was already released, [../data.md](../data.md)),
 and a store method `follow_ups()` that lists the notes with a follow-up by day.
 
-`src/starter/suite/desk.py`:
+`src/batchlens/suite/desk.py`:
 
 ```python
-"""What StarterCraft puts in Desk: follow-ups on the calendar and in a person's to-do."""
+"""What BatchlensCraft puts in Desk: follow-ups on the calendar and in a person's to-do."""
 
 import logging
 from typing import Any
@@ -36,7 +36,7 @@ from typing import Any
 from plantcraft_sdk.client import PlantCraftError
 from plantcraft_sdk.desk import MAX_FEED_ITEMS
 
-from starter.i18n import t
+from batchlens.i18n import t
 
 LOGGER = logging.getLogger(__name__)
 FEED, TODO_KIND = "follow-ups", "follow-up"
@@ -55,7 +55,7 @@ def send_follow_ups(client: Any, notes: list[dict[str, Any]]) -> None:
             "all_day": True,
             "audience": f"user:{note['follow_up_by']}" if note.get("follow_up_by") else "everyone",
             "ref": f"asset:{note['asset_id']}",
-            "url": f"/starter/notes/{note['note_id']}",
+            "url": f"/batchlens/notes/{note['note_id']}",
             "detail": note["text"][:300],
         }
         for note in notes[-MAX_FEED_ITEMS:]
@@ -84,7 +84,7 @@ def follow_up_todo(client: Any, note: dict[str, Any], asset_name: str) -> None:
                 "for": f"user:{note['follow_up_by']}",
                 "due": note.get("follow_up"),
                 "ref": f"asset:{note['asset_id']}",
-                "url": f"/starter/notes/{note['note_id']}",
+                "url": f"/batchlens/notes/{note['note_id']}",
                 "detail": note["text"][:300],
             }
         )
@@ -102,8 +102,8 @@ Test:
 def test_a_follow_up_goes_to_the_calendar_and_to_the_persons_todo(fake, client):
     body = note(follow_up="2026-11-03", follow_up_by="operator")
     note_id = client.post("/api/notes", json=body).json()["note_id"]
-    [item] = fake.links.calendar[("starter", "follow-ups")]
+    [item] = fake.links.calendar[("batchlens", "follow-ups")]
     assert item["start"].startswith("2026-11-03") and item["audience"] == "user:operator"
-    todo = fake.links.todos[("starter", f"note:{note_id}")]
+    todo = fake.links.todos[("batchlens", f"note:{note_id}")]
     assert todo["kind"] == "follow-up" and todo["for"] == "user:operator"
 ```

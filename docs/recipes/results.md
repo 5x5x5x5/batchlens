@@ -12,13 +12,13 @@ other).
 write = ["audit", "results"]
 
 [publishes]
-results = [{ kind = "note_count", subject = "asset" }]   # read by others as starter.note_count
+results = [{ kind = "note_count", subject = "asset" }]   # read by others as batchlens.note_count
 ```
 
-`src/starter/suite/results.py`:
+`src/batchlens/suite/results.py`:
 
 ```python
-"""The results StarterCraft publishes on assets."""
+"""The results BatchlensCraft publishes on assets."""
 
 import logging
 from datetime import UTC, datetime, timedelta
@@ -26,7 +26,7 @@ from typing import Any
 
 from plantcraft_sdk.client import PlantCraftError
 
-from starter.i18n import t
+from batchlens.i18n import t
 
 LOGGER = logging.getLogger(__name__)
 

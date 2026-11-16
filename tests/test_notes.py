@@ -11,7 +11,7 @@ def test_an_editor_writes_a_note_on_an_asset_and_everyone_reads_it(runtime, fake
     body = created.json()
     assert body["asset_id"] == "FIC-1001" and body["created_by"] == "engineer"
     assert body["asset_name"]  # read from PlantCraft as the person
-    [entry] = [item for item in fake.audit_log if item["action"] == "starter.note.created"]
+    [entry] = [item for item in fake.audit_log if item["action"] == "batchlens.note.created"]
     assert entry["subject"] == body["note_id"] and entry["username"] == "engineer"
     with client_for(runtime, fake, "operator") as operator:
         listed = operator.get("/api/notes", params={"asset": "FIC-1001"}).json()

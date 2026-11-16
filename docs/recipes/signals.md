@@ -21,8 +21,8 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 
-from starter.api.deps import CurrentUser, RuntimeDep, guarded
-from starter.i18n import t
+from batchlens.api.deps import CurrentUser, RuntimeDep, guarded
+from batchlens.i18n import t
 
 
 @router.get("/assets/{asset_id}/pv")

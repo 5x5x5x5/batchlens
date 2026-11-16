@@ -1,7 +1,7 @@
 # Third-party assets and libraries
 
 Every third-party asset (font, icon, image, dataset) and every direct dependency
-has a row here (AGENTS.md, "Clean room"). The StarterCraft mark (`docs/images/logo.svg`,
+has a row here (AGENTS.md, "Clean room"). The BatchlensCraft mark (`docs/images/logo.svg`,
 `frontend/public/favicon.svg`), the suite frame `@plantcraft/ui` (vendored package: tokens,
 fonts setup, sidebar, help browser, brand marks, chart colours) is original work of the
 PlantCraft authors (Apache-2.0).

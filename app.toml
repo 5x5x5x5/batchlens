@@ -1,10 +1,10 @@
-# StarterCraft's manifest: the single source of its metadata (the suite's app standard, section 4).
+# BatchlensCraft's manifest: the single source of its metadata (the suite's app standard, section 4).
 # The launcher card, the Apps page, the package manifest, the image labels and /api/meta read it.
 # `make rename NAME=Logbook` makes it LogbookCraft (`logbook`, prefix /logbook/) everywhere.
 
 [app]
-id = "starter"
-name = "StarterCraft"
+id = "batchlens"
+name = "BatchlensCraft"
 version = "0.2.0"
 category = "Example"
 summary = "The smallest app of the PlantCraft suite: a note on any asset of the plant."
@@ -18,16 +18,16 @@ and the signed package."""
 publisher = "Dev Publisher"
 license = "Apache-2.0"
 homepage = ""
-mark = "starter"
+mark = "batchlens"
 
 [runtime]
 # An app outside the suite table takes a prefix, port and container user that no suite app
 # uses (docs/app-standard.md, section 7, of PlantCraft): a port from 9000 and a user from 20000.
-prefix = "/starter/"
+prefix = "/batchlens/"
 port = 9100
 uid = 20100
 health = "/healthz"
-image = "starter"
+image = "batchlens"
 
 [requires]
 processcraft_api = ">=1.0"
@@ -52,7 +52,7 @@ results = []
 # [[publishes.events]]. This template starts without any: docs/recipes/ has one recipe each.
 
 [backup]                            # its data folder in the suite's backup (PlantCraft docs/operations.md)
-sqlite = ["starter.sqlite3"]
+sqlite = ["batchlens.sqlite3"]
 skip = ["logs/"]
 
 [suggests]

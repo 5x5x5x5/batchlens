@@ -16,8 +16,8 @@ export const NAV: Array<Omit<ShellNavItem, "label"> & { label: string }> = [
 export function tourSteps(): TourStep[] {
   return [
     {
-      title: tt("Welcome to Starter"),
-      body: tt("Starter keeps notes on the plant's assets: what a person saw, did or wants the next shift to know."),
+      title: tt("Welcome to Batchlens"),
+      body: tt("Batchlens keeps notes on the plant's assets: what a person saw, did or wants the next shift to know."),
     },
     {
       path: "/",

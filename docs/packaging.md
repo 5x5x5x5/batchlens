@@ -87,7 +87,7 @@ Until that release, the standard and these keys may still change; PlantCraft's
 ## The image
 
 ```sh
-make image                       # starter:<version>
+make image                       # batchlens:<version>
 make image BUILD_CA=/path/ca.pem # behind a proxy that inspects TLS
 ```
 
@@ -107,7 +107,7 @@ its licence must be permissive (MIT, BSD, Apache-2.0, ISC).
 
 ```sh
 cd ../PlantCraft && make dev-publisher && cd -   # once: a development key a dev stack trusts
-make dev-package                                 # dist/starter-<version>.pcapp
+make dev-package                                 # dist/batchlens-<version>.pcapp
 ```
 
 `app.toml` `publisher` must be `"Dev Publisher"` for this key (the template's default). Install it
@@ -128,7 +128,7 @@ release:
 
 ```sh
 make package PUBLISHER_KEY=~/secure/keys/acme-tools.key
-# dist/starter-<version>.pcapp and dist/starter-<version>.pcapp.sha256
+# dist/batchlens-<version>.pcapp and dist/batchlens-<version>.pcapp.sha256
 ```
 
 `make package` builds the image, takes its SBOM and calls PlantCraft's `deploy/package.sh`, which
@@ -139,7 +139,7 @@ needs a PlantCraft checkout (`PLANTCRAFT_DIR`, default `../PlantCraft`).
 On the installation, an administrator:
 
 1. opens PlantCraft > Apps > **Install from file** and picks the `.pcapp` (or runs
-   `./install.sh --add starter-0.1.0.pcapp` on the server);
+   `./install.sh --add batchlens-0.1.0.pcapp` on the server);
 2. reads the publisher, the permissions and the SBOM, and confirms;
 3. gives people access to the app under Users.
 

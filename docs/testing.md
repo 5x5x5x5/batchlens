@@ -88,7 +88,7 @@ Chromium, with Playwright:
 ```sh
 pip install -e ".[e2e]" && python -m playwright install chromium   # once
 make e2e
-STARTER_E2E_SCREENSHOTS=shots make e2e   # also saves a screenshot of each step in shots/
+BATCHLENS_E2E_SCREENSHOTS=shots make e2e   # also saves a screenshot of each step in shots/
 ```
 
 Without Playwright installed, the journeys are skipped (so `make ci` stays quick); `make e2e`

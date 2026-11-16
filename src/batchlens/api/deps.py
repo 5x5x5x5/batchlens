@@ -1,6 +1,6 @@
 """Request dependencies: the runtime, the verified user, access checks and safe reads.
 
-Every route needs a PlantCraft token with access to ``starter``
+Every route needs a PlantCraft token with access to ``batchlens``
 (``plantcraft_sdk.server.access``). Viewers read the notes; editors write, change and delete them.
 """
 
@@ -11,10 +11,10 @@ from typing import Annotated, Any
 from fastapi import Depends, HTTPException
 from plantcraft_sdk.server.access import Access, CurrentUser, runtime
 
-from starter.api.runtime import Runtime
-from starter.i18n import t
+from batchlens.api.runtime import Runtime
+from batchlens.i18n import t
 
-ACCESS = Access("Starter")
+ACCESS = Access("Batchlens")
 RuntimeDep = Annotated[Runtime, Depends(runtime)]
 EditorUser = ACCESS.EditorUser
 guarded = ACCESS.guarded

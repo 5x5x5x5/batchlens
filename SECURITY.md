@@ -19,23 +19,23 @@ An app made from this template: state here how its security fixes are released.
 
 ## Scope and design notes
 
-- **No plant connections, no plant writes.** StarterCraft never talks to a DCS,
+- **No plant connections, no plant writes.** BatchlensCraft never talks to a DCS,
   PLC, historian or OPC UA server. Its only outbound connection is to the
   PlantCraft named by `PLANTCRAFT_URL`, through `plantcraft_sdk.client`
   (`tests/test_suite_rules.py` fails on any other network module). It writes only
   its own notes and audit entries; `app.toml` declares `plant_write = false`.
 
 - **Sign-in is PlantCraft's.** Every API route and page needs a PlantCraft
-  token whose `apps` claim grants `starter`, verified offline with
+  token whose `apps` claim grants `batchlens`, verified offline with
   PlantCraft's published keys. Viewers read notes; editors write them.
 - **Who reads.** Asset names are read with the person's own token, so nobody
   sees through the app an asset PlantCraft does not show them.
 - **App key.** The service token comes from an app key an admin creates in
   PlantCraft. Give it as a file (`PLANTCRAFT_APP_KEY_FILE`, a Docker secret
   in the suite's compose file) or `PLANTCRAFT_APP_KEY`; it is never logged or
-  stored by StarterCraft.
+  stored by BatchlensCraft.
 - **Audit.** Every note created, changed or deleted is recorded in PlantCraft's
-  audit log (action `starter.note.*`).
+  audit log (action `batchlens.note.*`).
 - **Limits.** A note holds up to 4,000 characters; `tests/test_suite_rules.py`
   sends malformed input to every API operation.
 - **Container.** The image runs as uid 20100 with a read-only root filesystem;

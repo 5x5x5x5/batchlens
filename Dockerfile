@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
 #
-# StarterCraft image: built online once, then shipped offline in the PlantCraft suite bundle.
+# BatchlensCraft image: built online once, then shipped offline in the PlantCraft suite bundle.
 # Three stages:
 #   1. frontend: builds the web interface with Node (never shipped), with @plantcraft/ui
 #                from vendor/.
 #   2. wheels:   downloads every Python dependency as a wheel, checked against the hashes in
 #                deploy/requirements.lock (binary wheels only: no compiler anywhere), plus the
-#                StarterCraft wheel. plantcraft-sdk comes from vendor/, never from an index.
+#                BatchlensCraft wheel. plantcraft-sdk comes from vendor/, never from an index.
 #   3. runtime:  Python slim, installs from that wheelhouse with --no-index (no network), runs
 #                as an unprivileged user and holds no build tools, not even pip.
 #
@@ -47,7 +47,7 @@ COPY vendor ./vendor
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 # plantcraft-sdk from vendor/ only, checked against the SHA256 in vendor/README.md; then the
-# StarterCraft wheel (--no-deps: the index only provides its build backend, setuptools).
+# BatchlensCraft wheel (--no-deps: the index only provides its build backend, setuptools).
 RUN --mount=type=secret,id=build_ca,required=false \
     if [ -s /run/secrets/build_ca ]; then export PIP_CERT=/run/secrets/build_ca; fi; \
     grep -o '[0-9a-f]\{64\}  plantcraft_sdk-0.104.0-py3-none-any.whl' vendor/README.md \
@@ -62,28 +62,28 @@ ARG VERSION=0.1.0
 ARG REVISION=unknown
 ARG CREATED=unknown
 
-LABEL org.opencontainers.image.title="starter" \
+LABEL org.opencontainers.image.title="batchlens" \
       org.opencontainers.image.description="The smallest app of the PlantCraft suite: a note on any asset of the plant." \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.created="${CREATED}" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="python:3.13.16-slim-trixie" \
-      org.processcraft.app.id="starter" \
-      org.processcraft.app.prefix="/starter/" \
+      org.processcraft.app.id="batchlens" \
+      org.processcraft.app.prefix="/batchlens/" \
       org.processcraft.app.port="9100"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/tmp \
     PLANTCRAFT_URL=http://processcraft:8060 \
-    STARTER_ROOT_PATH=/starter \
-    STARTER_DATA_DIR=/data \
-    STARTER_UI_DIR=/app/ui \
-    STARTER_APP_DIR=/app \
-    STARTER_REVISION=${REVISION} \
-    STARTER_HOST=0.0.0.0 \
-    STARTER_PORT=9100 \
+    BATCHLENS_ROOT_PATH=/batchlens \
+    BATCHLENS_DATA_DIR=/data \
+    BATCHLENS_UI_DIR=/app/ui \
+    BATCHLENS_APP_DIR=/app \
+    BATCHLENS_REVISION=${REVISION} \
+    BATCHLENS_HOST=0.0.0.0 \
+    BATCHLENS_PORT=9100 \
     FORWARDED_ALLOW_IPS=127.0.0.1
 
 WORKDIR /app
@@ -91,21 +91,21 @@ COPY --from=frontend /build/frontend/dist /app/ui
 COPY LICENSE ATTRIBUTION.md CHANGELOG.md app.toml /app/
 COPY docs/help /app/docs/help
 
-# Dependencies from the hash-checked wheelhouse, without network; then the SDK and StarterCraft.
+# Dependencies from the hash-checked wheelhouse, without network; then the SDK and BatchlensCraft.
 # --no-deps everywhere: the lock is complete.
 RUN --mount=type=bind,from=wheels,source=/wheelhouse,target=/wheelhouse \
     --mount=type=bind,source=deploy/requirements.lock,target=/tmp/requirements.lock \
     python -m pip install --no-cache-dir --root-user-action=ignore --no-index --find-links /wheelhouse \
         --require-hashes --no-deps -r /tmp/requirements.lock \
     && python -m pip install --no-cache-dir --root-user-action=ignore --no-index --no-deps \
-        /wheelhouse/plantcraft_sdk-0.104.0-py3-none-any.whl /wheelhouse/starter-*.whl \
+        /wheelhouse/plantcraft_sdk-0.104.0-py3-none-any.whl /wheelhouse/batchlens-*.whl \
     && python -m pip check \
-    && python -m compileall -q "$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/starter" \
+    && python -m compileall -q "$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/batchlens" \
     && python -m pip uninstall -y --root-user-action=ignore pip \
-    && SBOM_CREATED="${CREATED}" python -m plantcraft_sdk.sbom --here "starter:${VERSION}" > /app/sbom.json \
+    && SBOM_CREATED="${CREATED}" python -m plantcraft_sdk.sbom --here "batchlens:${VERSION}" > /app/sbom.json \
     && rm -rf /root/.cache \
-    && groupadd --gid 20100 starter \
-    && useradd --no-create-home --uid 20100 --gid 20100 --home-dir /tmp --shell /usr/sbin/nologin starter \
+    && groupadd --gid 20100 batchlens \
+    && useradd --no-create-home --uid 20100 --gid 20100 --home-dir /tmp --shell /usr/sbin/nologin batchlens \
     && mkdir -p /data \
     && chown 20100:20100 /data \
     && chmod 0750 /data
@@ -117,4 +117,4 @@ EXPOSE 9100
 HEALTHCHECK --interval=20s --timeout=5s --start-period=60s --retries=5 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9100/healthz', timeout=4)"]
 
-CMD ["starter", "serve"]
+CMD ["batchlens", "serve"]

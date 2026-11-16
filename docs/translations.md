@@ -7,14 +7,14 @@ translation catalogs. Other languages are translations. The suite ships Brazilia
 ## In the server
 
 ```python
-from starter.i18n import t
+from batchlens.i18n import t
 
 raise HTTPException(404, t("Note not found."))
 raise HTTPException(422, t("No asset {asset} in PlantCraft.", asset=asset_id))
 ```
 
 Call `t()` when the text is produced (inside the function), never at import: the language comes
-with each request. The catalog is `src/starter/locales/pt-BR.json`.
+with each request. The catalog is `src/batchlens/locales/pt-BR.json`.
 
 ## In the interface
 

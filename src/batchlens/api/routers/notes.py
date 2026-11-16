@@ -7,10 +7,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from plantcraft_sdk.auth import User
 
-from starter.api.deps import CurrentUser, EditorUser, RuntimeDep, guarded, note_or_404
-from starter.api.runtime import Runtime
-from starter.i18n import t
-from starter.notes.models import NoteDraft
+from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, guarded, note_or_404
+from batchlens.api.runtime import Runtime
+from batchlens.i18n import t
+from batchlens.notes.models import NoteDraft
 
 router = APIRouter(prefix="/api", tags=["notes"])
 

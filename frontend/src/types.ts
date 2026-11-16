@@ -3,7 +3,7 @@ export interface Me {
   processcraft_url: string; version: string; service_key: boolean;
 }
 
-/** What a person sends: the same fields as NoteDraft in src/starter/notes/models.py. */
+/** What a person sends: the same fields as NoteDraft in src/batchlens/notes/models.py. */
 export interface NoteDraft { asset_id: string; text: string }
 
 export interface Note extends NoteDraft {

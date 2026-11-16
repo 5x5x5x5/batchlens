@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "starter"
+name = "batchlens"
 version = "0.2.0"
-description = "StarterCraft: the smallest app of the PlantCraft suite, a note on any asset"
+description = "BatchlensCraft: the smallest app of the PlantCraft suite, a note on any asset"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.11"
@@ -30,15 +30,15 @@ e2e = [
 ]
 
 [project.scripts]
-starter = "starter.cli:main"
+batchlens = "batchlens.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["starter*"]
+include = ["batchlens*"]
 
 [tool.setuptools.package-data]
 # Interface translations (plantcraft_sdk.i18n).
-starter = ["locales/*.json"]
+batchlens = ["locales/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -66,5 +66,5 @@ extend-exclude = ["frontend", "vendor"]
 select = ["F", "I", "DTZ"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["starter"]
+known-first-party = ["batchlens"]
 known-third-party = ["plantcraft_sdk"]

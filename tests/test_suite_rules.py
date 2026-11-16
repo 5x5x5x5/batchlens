@@ -9,7 +9,7 @@ from pathlib import Path
 
 from plantcraft_sdk import apptest
 
-from starter.api.app import create_app
+from batchlens.api.app import create_app
 from tests.conftest import client_for, make_runtime, note
 from tests.plant import make_fake
 
@@ -25,24 +25,24 @@ LAYERS = {"i18n": -1, "config": 0, "meta": 0, "suite": 1, "notes": 2, "api": 3, 
 
 
 def test_offline_by_default():
-    assert not apptest.offline_problems(ROOT, "starter")
+    assert not apptest.offline_problems(ROOT, "batchlens")
 
 
 def test_layers_only_point_down_and_plant_data_comes_from_processcraft():
-    assert not apptest.layer_problems(ROOT, "starter", LAYERS)
+    assert not apptest.layer_problems(ROOT, "batchlens", LAYERS)
 
 
 def test_only_suite_talks_to_plantcraft_for_the_app():
-    assert not apptest.suite_problems(ROOT, "starter")
+    assert not apptest.suite_problems(ROOT, "batchlens")
 
 
 def test_routers_go_through_the_services():
-    assert not apptest.router_problems(ROOT, "starter")
+    assert not apptest.router_problems(ROOT, "batchlens")
 
 
 def test_what_app_toml_contributes_is_wired(runtime):
     routes = apptest.api_routes(create_app(runtime))
-    assert not apptest.contribution_problems(ROOT, "starter", routes)
+    assert not apptest.contribution_problems(ROOT, "batchlens", routes)
 
 
 def test_the_screens_use_the_shared_ui_instead_of_copies():

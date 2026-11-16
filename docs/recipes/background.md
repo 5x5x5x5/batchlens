@@ -4,7 +4,7 @@ Some apps work on their own: compute a result every ten minutes, watch a signal,
 That work starts in `Runtime.start()` and stops in `Runtime.shutdown()`; the SDK calls both when
 the server starts and stops.
 
-`src/starter/worker.py` (a module of its own, between the objects and the API: in `LAYERS` of
+`src/batchlens/worker.py` (a module of its own, between the objects and the API: in `LAYERS` of
 `tests/test_suite_rules.py`, add `"worker": 3` and move `api` and `cli` to 4):
 
 ```python
@@ -14,8 +14,8 @@ import logging
 import threading
 from collections import Counter
 
-from starter.notes.service import NoteService
-from starter.suite import Suite
+from batchlens.notes.service import NoteService
+from batchlens.suite import Suite
 
 LOGGER = logging.getLogger(__name__)
 EVERY = 600  # seconds
@@ -42,7 +42,7 @@ class Worker:
     def start(self) -> None:
         if self._thread is None:
             self._stop.clear()
-            self._thread = threading.Thread(target=self._loop, name="starter-worker", daemon=True)
+            self._thread = threading.Thread(target=self._loop, name="batchlens-worker", daemon=True)
             self._thread.start()
 
     def stop(self) -> None:

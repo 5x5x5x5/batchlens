@@ -1,4 +1,4 @@
-"""Everything one StarterCraft server holds: settings, the notes and the PlantCraft clients.
+"""Everything one BatchlensCraft server holds: settings, the notes and the PlantCraft clients.
 
 Who reads plant data: the pages read with the person's own token, so PlantCraft's permissions
 decide what each person sees. The app key (``PLANTCRAFT_APP_KEY``) is for what the app does on
@@ -16,10 +16,10 @@ from plantcraft_sdk.client import PlantCraftClient
 from plantcraft_sdk.server.platform import PlatformRuntime
 from plantcraft_sdk.server.store import Database
 
-from starter import APP_ID, __version__
-from starter.config import Settings
-from starter.notes.service import NoteService
-from starter.notes.store import NoteStore
+from batchlens import APP_ID, __version__
+from batchlens.config import Settings
+from batchlens.notes.service import NoteService
+from batchlens.notes.store import NoteStore
 
 
 class Runtime(PlatformRuntime):

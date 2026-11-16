@@ -1,4 +1,4 @@
-/** Client-side navigation under the base path the app is served from (`/starter/`): the suite's
+/** Client-side navigation under the base path the app is served from (`/batchlens/`): the suite's
  * own (@plantcraft/ui `createNav`), set to this app's base path. */
 import { createNav } from "@plantcraft/ui";
 

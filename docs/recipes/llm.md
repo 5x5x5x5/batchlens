@@ -18,10 +18,10 @@ reads = "The text of one note."     # what the model gets to see, shown to the a
 default = "off"
 ```
 
-`src/starter/suite/llm.py`:
+`src/batchlens/suite/llm.py`:
 
 ```python
-"""StarterCraft's one use of a language model, summary."""
+"""BatchlensCraft's one use of a language model, summary."""
 
 from typing import Any
 
@@ -37,7 +37,7 @@ class NoModel(Exception):
 
 def summary(client: Any, text: str) -> str:
     if client is None:
-        raise NoModel("This installation gave StarterCraft no app key.")
+        raise NoModel("This installation gave BatchlensCraft no app key.")
     try:
         return str(client.llm(USE, text, system=SYSTEM)["text"])
     except PlantCraftError as exc:

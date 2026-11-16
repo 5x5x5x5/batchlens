@@ -1,9 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// StarterCraft is served under /starter/ behind the suite's proxy (PlantCraft owns /).
+// BatchlensCraft is served under /batchlens/ behind the suite's proxy (PlantCraft owns /).
 export default defineConfig({
-  base: "/starter/",
+  base: "/batchlens/",
   plugins: [react()],
   build: {
     outDir: "dist",
@@ -14,8 +14,8 @@ export default defineConfig({
   },
   server: {
     port: 5177,
-    proxy: { "/starter/api": "http://127.0.0.1:9100", "/starter/healthz": "http://127.0.0.1:9100" },
+    proxy: { "/batchlens/api": "http://127.0.0.1:9100", "/batchlens/healthz": "http://127.0.0.1:9100" },
   },
   // Vitest 5 no longer derives import.meta.env.BASE_URL from `base` in tests.
-  test: { environment: "jsdom", env: { BASE_URL: "/starter/" } },
+  test: { environment: "jsdom", env: { BASE_URL: "/batchlens/" } },
 });
