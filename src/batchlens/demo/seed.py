@@ -48,7 +48,7 @@ def seed_demo(
     observations, _ground_truth = demo_campaign(anchor)
     chosen = None if reset else getattr(batches.reference(), "batch", None)
     # The set of comparable batches is a person's too: marked as the demo has it the first
-    # time and on ``reset``, left as people made it otherwise.
+    # time, on ``reset`` and whenever no batch is marked; left as people made it otherwise.
     mark = reset or not batches.comparable_ids()
     seeded = []
     for item in observations:
@@ -73,9 +73,13 @@ def seed_demo(
                     ", ".join(undone),
                 )
         batches.save(record)
-        if mark:
-            batches.set_comparable(batch_id, batch_id in COMPARABLE)
         seeded.append(batch_id)
+    if mark:
+        # Every demo batch, not only those loaded now: a database seeded before the set
+        # existed already holds most of them.
+        for item in observations:
+            batch_id = item.record.batch.batch_id
+            batches.set_comparable(batch_id, batch_id in COMPARABLE)
     LOGGER.info(
         "Seeded %d synthetic demo batches: %s", len(seeded), ", ".join(seeded) or "none new"
     )

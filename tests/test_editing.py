@@ -272,3 +272,17 @@ def test_an_editor_chooses_which_batches_are_comparable(seeded, fake, client):
     assert among("BL-0003")[-1] == "BL-0004"
     seed_demo(seeded.batches, reset=True)
     assert among("BL-0003") == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002"]
+
+
+def test_a_database_seeded_before_the_set_existed_gets_the_demos_set(seeded):
+    for batch_id in seeded.batches.comparable_ids():
+        seeded.batches.set_comparable(batch_id, False)
+    # Nothing is stale, so nothing is loaded; the set is still put in place, whole.
+    assert seed_demo(seeded.batches) == []
+    assert seeded.batches.comparable_ids() == [
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        "BL-0001",
+        "BL-0002",
+    ]
