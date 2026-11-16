@@ -27,7 +27,9 @@ from batchlens.batches.models import (
     Sample,
 )
 
-VERSION = "synthetic-generator/1"
+# Raised when what the generator makes changes, so a database seeded by an older one is
+# recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
+VERSION = "synthetic-generator/2"
 PRODUCT = "mAb-X (synthetic)"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"

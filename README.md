@@ -53,6 +53,9 @@ generator's separate output, the tests, the benchmark and the documents.
 - **The mass balance runs to drug substance.** Each purification step has its yield beside the
   reference's and what is left of the harvest; pools that were merged are checked against
   the sum of their parts.
+- **An assistant can read it, on the same terms.** Two read-only tools give PlantCraft's
+  assistant the same numbers as the page, with statuses and reasons, and tell it that no cause
+  is attributed.
 - **It is measured.** [docs/verification-report.md](docs/verification-report.md) scores the
   findings against ground truth over 320 seeded batches: at the default tolerances, no false
   alarms in 400 comparisons, every strong fall in productivity found within about two days,

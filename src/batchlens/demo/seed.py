@@ -14,15 +14,18 @@ LOGGER = logging.getLogger(__name__)
 
 
 def seed_demo(batches: BatchService, *, reset: bool = False) -> list[str]:
-    """Stores the demo batches that are not there yet, under their stable ids, and answers
-    which it loaded: running it again loads nothing and leaves what people corrected alone.
-    ``reset`` loads all of them again as generated."""
+    """Stores the demo batches that are not there yet, or were made by an older version of the
+    generator, under their stable ids, and answers which it loaded: running it again loads
+    nothing and leaves what people corrected alone. ``reset`` loads all of them again as
+    generated."""
 
     observations, _ground_truth = demo_campaign()
     seeded = []
     for item in observations:
         batch_id = item.record.batch.batch_id
-        if reset or batches.get(batch_id) is None:
+        stored = batches.get(batch_id)
+        current = stored is not None and stored.batch.provenance == item.record.batch.provenance
+        if reset or not current:
             batches.save(item.record)
             seeded.append(batch_id)
     LOGGER.info(

@@ -154,3 +154,18 @@ def test_seeding_again_leaves_a_corrected_batch_alone_unless_asked_to_reset(seed
     assert seeded.batches.reference().batch.batch_id == "BL-0001"
     # The history of what people changed is not erased with the data.
     assert len(client.get("/api/batches/BL-0005").json()["corrections"]) == 1
+
+
+def test_seeding_replaces_batches_made_by_an_older_generator(seeded, client):
+    import dataclasses
+
+    # A database seeded before the generator changed: the same batch, an older provenance.
+    stale = dataclasses.replace(
+        BAD,
+        batch=dataclasses.replace(BAD.batch, provenance="synthetic-generator/1 seed=105"),
+        pools=(),
+    )
+    seeded.batches.save(stale)
+    assert seeded.batches.get("BL-0005").pools == ()
+    assert seed_demo(seeded.batches) == ["BL-0005"]
+    assert seeded.batches.get("BL-0005") == BAD

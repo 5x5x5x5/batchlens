@@ -10,14 +10,14 @@ Where the app stands, for people and agents picking up work here. Updated 2026-1
   answered; the benchmark and `docs/verification-report.md`; `make lock` and `make image`; the
   documents cleaned up for publication, with a tour and two case studies; an as-of slider on the batch page; editing with audit (a sample's
   collection time, the reference batch); the rest of the purification train with a pool
-  genealogy. Counts in
+  genealogy; two read-only tools for PlantCraft's assistant. Counts in
   `docs/devlog.md`.
 - **Waiting for the owner:** making the repository public. It exposes the commit author's
   email address in the history, so that step is the owner's.
-- **Next tasks, in order** (the optional extensions of `ROADMAP.md`): (1) read-only assistant
-  tools over the verified calculations (read PlantCraft's `docs/api-v1.md`, "Apps' assistant
-  tools", first: it may need a manifest permission, which is the owner's call); (2) findings
-  for the later purification steps; (3) a fuller genealogy (splits, repeated cycles).
+- **Next tasks, in order:** (1) findings for the later purification steps (a yield more than a
+  tolerance below the reference's, as for the capture step), with benchmark variants that
+  vary those steps; (2) a fuller genealogy (splits, repeated cycles); (3) an evaluation of the
+  assistant with the tools, which needs a language model set up in PlantCraft.
 - **Blockers:** none. Known gaps: `docs/gaps.md`.
 - **Careful:** `var/` at the root is the app's default data folder and also holds the owner's
   private file. Never write there; set `BATCHLENS_DATA_DIR`.

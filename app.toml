@@ -50,6 +50,30 @@ results = []
 # to-do, language model uses, references) and the events it writes go in [contributes] and
 # [[publishes.events]]. BatchLens contributes none; the template's recipes show each one.
 
+# Two read-only tools for PlantCraft's assistant, called as the person who asks and served at
+# <prefix>api/assistant/tools/<id> (src/batchlens/api/routers/tools.py).
+[[contributes.assistant.tools]]
+id = "list_batches"
+title = "List the BatchLens batches"
+description = """\
+The synthetic antibody batches BatchLens follows: id, product, start and end, bioreactor, and \
+which one is the reference. Use it to find a batch's id before asking about that batch."""
+reads = "The batches in the app's own database."
+
+[[contributes.assistant.tools]]
+id = "batch_findings"
+title = "Read a batch's metrics and findings"
+description = """\
+For one synthetic batch: each calculated metric (cell growth, productivity, product mass, yield, \
+recovery) with its status and reasons, the findings against the reference batch, and the yield \
+of each purification step. Use it for questions about a batch's yield, productivity or recovery. \
+It reports observations and calculations, never a cause."""
+reads = "The batch's records in the app, and the bioreactor's volume signal in PlantCraft, as the person."
+[[contributes.assistant.tools.args]]
+key = "batch"
+title = "Batch id"
+required = true
+
 [backup]                            # its data folder in the suite's backup (PlantCraft docs/operations.md)
 sqlite = ["batchlens.sqlite3"]
 skip = ["logs/"]

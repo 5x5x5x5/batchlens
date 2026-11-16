@@ -33,6 +33,10 @@ print(json.load(open(sys.argv[1]))["source"].get("timezone", "America/Sao_Paulo"
 PY
 )
 
+# PlantCraft forwards an assistant tool call to the app at the address it has for it inside the
+# suite's network. In a packaged stack that is known; here it has to be told.
+export PLANTCRAFT_OPS_URLS="${PLANTCRAFT_OPS_URLS:+$PLANTCRAFT_OPS_URLS,}batchlens=${APP_URL%/}"
+
 echo "Starting PlantCraft and BatchLens (the first start builds interfaces and can take minutes)..."
 make dev DEV_FLAGS="$FLAGS" > /tmp/batchlens-demo.log 2>&1 &
 SERVERS=$!
@@ -46,7 +50,8 @@ done
 curl -fs -o /dev/null "$PLANTCRAFT_URL/" || { echo "PlantCraft did not answer; see /tmp/batchlens-demo.log"; exit 1; }
 
 echo "Loading the five synthetic batches..."
-BATCHLENS_DATA_DIR="$DATA_DIR" batchlens seed-demo 2>/dev/null | tail -1
+# With --reset the batches are loaded again as generated, undoing corrections made in the app.
+BATCHLENS_DATA_DIR="$DATA_DIR" batchlens seed-demo $FLAGS 2>/dev/null | tail -1
 
 echo "Writing the synthetic plant for time zone $ZONE and importing it into PlantCraft..."
 batchlens demo-plant --out "$PLANT_DIR" --time-zone "$ZONE" 2>/dev/null | tail -1

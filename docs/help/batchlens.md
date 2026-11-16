@@ -53,6 +53,14 @@ on the reference batch, the one the others are compared with. Open a batch from 
 A metric with no value always says why. When PlantCraft has no such asset or signal, the app
 says which one it did not find instead of drawing a trend it does not have.
 
+## Asking the assistant
+
+PlantCraft's assistant can read BatchLens: it can list the batches and read one batch's
+metrics, findings and purification yields, as you (it sees only what you may open). It is
+given the same numbers as this page, with their statuses and reasons, and is told that
+BatchLens attributes no cause. If it offers one, that is the assistant's own inference, not
+a finding of the app.
+
 ## Good to know
 
 - Masses are estimates from a concentration times a volume; the assay method is named.
