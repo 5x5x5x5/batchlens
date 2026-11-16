@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Gives the suite's modules something of the synthetic mAb plant to show.
 
-    python tools/seed_suite.py http://127.0.0.1:8088
+    python tools/seed_suite.py http://127.0.0.1:8088 [bioreactor.csv TIME_ZONE]
 
+- Historian (with the bioreactor's file and the zone its times are in): the file as a CSV
+  source checked every minute, and its four signals archived, history first.
+- Analytics: the expected range of each bioreactor signal, for its Signal quality monitor.
 - View: a dashboard of the bioreactor's four signals, and a process display of the train.
 - Alarms: four rules on the bioreactor's signals, with illustrative limits.
 - Documents: this repository's verification report, assumptions and tour, linked to the unit.
@@ -46,6 +49,13 @@ TRAIN = (
     ("VF-3401", "Viral filtration", "filter.cartridge"),
     ("UF-3501", "UF/DF", "filter.cartridge"),
 )
+# role -> (low, high): the range Analytics' Signal quality monitor expects. Illustrative.
+RANGES = {
+    "ph": (6.8, 7.3),
+    "do": (30.0, 60.0),
+    "temperature": (32.0, 37.5),
+    "volume": (1400.0, 2000.0),
+}
 # name, role, kind, limit, deadband. Limits are illustrative, like the app's tolerances.
 RULES = (
     ("BR-2001 dissolved oxygen low", "do", "low", 30.0, 1.0),
@@ -199,8 +209,59 @@ def diagram() -> dict[str, Any]:
     }
 
 
-def seed(suite: Suite) -> dict[str, int]:
-    made = {"dashboards": 0, "diagrams": 0, "rules": 0, "documents": 0}
+def signal_id(role: str) -> str:
+    return f"{SOURCE}:BIO.{BIOREACTOR}.{role.upper()}"
+
+
+def seed(suite: Suite, csv_path: str | None = None, time_zone: str = "UTC") -> dict[str, int]:
+    made = {"sources": 0, "points": 0, "ranges": 0, "dashboards": 0, "diagrams": 0}
+    made |= {"rules": 0, "documents": 0}
+    if suite.has("hist") and csv_path:
+        if SOURCE not in {source["id"] for source in suite.call("GET", "/hist/api/sources")}:
+            source = {
+                "id": SOURCE,
+                "name": "BatchLens synthetic bioreactor",
+                "kind": "csv",
+                "endpoint": csv_path,
+                "options": {"timezone": time_zone, "check_minutes": 1},
+            }
+            suite.call("POST", "/hist/api/sources", source)
+            made["sources"] += 1
+        listed = suite.call("GET", f"/hist/api/points?source={SOURCE}")
+        rows = listed["items"] if isinstance(listed, dict) else listed
+        have = {point.get("tag") for point in rows}
+        points = [
+            {
+                "tag": f"BIO.{BIOREACTOR}.{role.upper()}",
+                "source_id": SOURCE,
+                "name": f"{BIOREACTOR} {label}",
+                "unit": unit,
+            }
+            for role, (label, unit) in SIGNALS.items()
+            if f"BIO.{BIOREACTOR}.{role.upper()}" not in have
+        ]
+        if points:
+            suite.call("POST", "/hist/api/points", {"points": points})
+            made["points"] += len(points)
+    if suite.has("link"):
+        try:  # Analytics lists a new plant's signals on its own schedule: ask now
+            suite.call("POST", "/link/api/signals/sync")
+        except urllib.error.HTTPError as error:
+            LOGGER.info("Analytics did not sync its signals now (%s)", error.code)
+        for role, (low, high) in RANGES.items():
+            path = "/link/api/signals/" + urllib.parse.quote(signal_id(role), safe=":")
+            try:
+                current = suite.call("GET", path).get("settings") or {}
+            except urllib.error.HTTPError:
+                continue  # Analytics has not listed the signal yet; the next start sets it
+            if (current.get("low"), current.get("high")) != (low, high):
+                suite.call("PATCH", path, {"low": low, "high": high})
+                made["ranges"] += 1
+        if made["ranges"]:
+            try:
+                suite.call("POST", "/link/api/signal-quality/run")
+            except urllib.error.HTTPError as error:  # 409: a run is already waiting
+                LOGGER.info("Analytics did not start a Signal quality run now (%s)", error.code)
     if suite.has("dash"):
         if dashboard()["name"] not in {
             d["name"] for d in suite.call("GET", "/dash/api/dashboards")
@@ -217,7 +278,7 @@ def seed(suite: Suite) -> dict[str, int]:
                 continue
             rule = {
                 "name": name,
-                "signal_id": f"{SOURCE}:BIO.{BIOREACTOR}.{role.upper()}",
+                "signal_id": signal_id(role),
                 "kind": kind,
                 "limit": limit,
                 "unit": SIGNALS[role][1],
@@ -243,12 +304,12 @@ def seed(suite: Suite) -> dict[str, int]:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1:
+    if len(argv) not in (1, 3):
         sys.stderr.write(__doc__ or "")
         return 2
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
-        made = seed(Suite(argv[0]))
+        made = seed(Suite(argv[0]), *argv[1:])
     except urllib.error.HTTPError as error:
         LOGGER.error("%s %s: %s", error.code, error.url, error.read().decode("utf-8")[:300])
         return 1

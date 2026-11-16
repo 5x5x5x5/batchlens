@@ -120,8 +120,8 @@ def plant_map(csv_path: Path) -> dict[str, object]:
                 "unit": ONLINE_UNITS[role],
                 "asset_id": BIOREACTOR,
                 "role": role,
-                # Recorded history, not a live feed: nothing for data quality to follow.
-                "monitor": False,
+                # Followed by PlantCraft Analytics' Signal quality monitor.
+                "monitor": True,
             }
             for role, tag in TAGS.items()
         ],
