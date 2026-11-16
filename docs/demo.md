@@ -52,7 +52,9 @@ batchlens benchmark --out docs/verification-report.md
    samples stayed below. Then what that amounts to: 7,317 g at harvest against 10,170 g. Then
    the other results of the same samples beside the reference's, and the sentence that no
    cause is attributed. Scroll to the titer chart: this batch and the reference, at equal
-   culture age.
+   culture age. At the top of every batch page the process train is drawn step by step,
+   from the bioreactor to UF/DF, with the asset each step ran on; a step not reached yet is
+   drawn faded.
 3. **Every number has a pedigree.** In the metrics table each row has a status, its reasons
    and the ids of its inputs. The masses say they are estimates from concentration x volume
    and name the assay. The assay results table at the bottom shows two times for each result:
