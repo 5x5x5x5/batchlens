@@ -30,6 +30,8 @@ export function BatchesPage() {
             { key: "end", label: t("End"), sort: (batch) => batch.end, phone: "hide", render: (batch) => (batch.running ? <Pill status="good" label={t("Running now")} /> : when(batch.end)) },
             { key: "reference", label: t("Reference"), sort: (batch) => (batch.is_reference ? 0 : 1),
               render: (batch) => (batch.is_reference ? <Pill status="info" label={t("Reference")} /> : "") },
+            { key: "comparable", label: t("Comparable"), sort: (batch) => (batch.is_comparable ? 0 : 1), phone: "hide",
+              render: (batch) => (batch.is_comparable ? <Pill status="inactive" label={t("Comparable")} /> : "") },
           ]} />}
     <ZoneNote />
   </>;

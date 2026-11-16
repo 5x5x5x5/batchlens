@@ -10,7 +10,7 @@ from dataclasses import replace
 from datetime import datetime
 
 from batchlens.batches.service import BatchService
-from batchlens.demo.generator import LIVE_BATCH, demo_campaign, live_start
+from batchlens.demo.generator import COMPARABLE, LIVE_BATCH, demo_campaign, live_start
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +47,9 @@ def seed_demo(
             anchor, reset = live_start(live_at), True
     observations, _ground_truth = demo_campaign(anchor)
     chosen = None if reset else getattr(batches.reference(), "batch", None)
+    # The set of comparable batches is a person's too: marked as the demo has it the first
+    # time and on ``reset``, left as people made it otherwise.
+    mark = reset or not batches.comparable_ids()
     seeded = []
     for item in observations:
         record, batch_id = item.record, item.record.batch.batch_id
@@ -70,6 +73,8 @@ def seed_demo(
                     ", ".join(undone),
                 )
         batches.save(record)
+        if mark:
+            batches.set_comparable(batch_id, batch_id in COMPARABLE)
         seeded.append(batch_id)
     LOGGER.info(
         "Seeded %d synthetic demo batches: %s", len(seeded), ", ".join(seeded) or "none new"

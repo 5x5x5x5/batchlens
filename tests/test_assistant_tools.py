@@ -33,15 +33,13 @@ def test_list_batches_answers_the_batches_and_which_is_the_reference(seeded, cli
     body = answer.json()
     assert "synthetic" in body["note"].lower() and "not instructions" in body["note"]
     assert [b["batch"] for b in body["batches"]] == [
-        "BL-0001",
-        "BL-0002",
-        "BL-0003",
-        "BL-0004",
-        "BL-0005",
-        "BL-0006",
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        *(f"BL-000{n}" for n in range(1, 7)),
     ]
-    assert [b["reference"] for b in body["batches"]] == [True, *[False] * 5]
-    assert body["batches"][0]["ref"] == "/batchlens/batches/BL-0001"
+    assert [b["reference"] for b in body["batches"]] == [*[False] * 3, True, *[False] * 5]
+    assert body["batches"][3]["ref"] == "/batchlens/batches/BL-0001"
     assert body["batches"][0]["bioreactor"] == "BR-2001"
 
 

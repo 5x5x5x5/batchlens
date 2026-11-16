@@ -2,13 +2,15 @@
 
 Seven batches of `mAb-X`, run one after another on the same 2,000 L bioreactor. Six
 are finished, each followed by harvest and the purification train; the seventh is running when
-the demo starts. Everything is made by `src/batchlens/demo/generator.py` from fixed seeds: the
+the demo starts. Before them come the last three batches of an earlier campaign, `BK-0007` to
+`BK-0009`, all normal: with `BL-0001` and `BL-0002` they are the comparable batches every
+metric is read against. Everything is made by `src/batchlens/demo/generator.py` from fixed seeds: the
 same values on every run and machine. **All of it is illustrative**
 ([scientific-assumptions.md](scientific-assumptions.md)).
 
 **Two campaigns, one set of values.** The tests, the benchmark and the tables below use the
-fixed campaign: six batches from 2026-07-01, three weeks apart. `tools/run_demo.sh` uses the
-live campaign: the same six moved in time by whole days so they end before a seventh,
+fixed campaign: six batches from 2026-07-01, three weeks apart, after the three earlier ones. `tools/run_demo.sh` uses the
+live campaign: the same nine moved in time by whole days so they end before a seventh,
 `BL-0007`, whose culture began nine days before the day the demo first starts. Moving a batch
 changes none of its values, so every number below holds in the demo; only the dates differ.
 The dates are set on the first start and kept, so a demo left running moves on through the
@@ -94,7 +96,7 @@ batchlens benchmark --out docs/verification-report.md
 
 ## A five-minute tour
 
-1. **The list.** Seven batches, one bioreactor, one after another. `BL-0001` carries the
+1. **The list.** Ten batches, one bioreactor, one after another. `BL-0001` carries the
    reference mark: the batch the others are compared with. `BL-0007` is marked as running. The
    banner on every page says what this data is.
 2. **`BL-0003`, a culture that fell behind.** Findings: the titer left the reference at
@@ -139,7 +141,13 @@ batchlens benchmark --out docs/verification-report.md
    volume signal. On `BL-0005` one feed reads 6 L recorded against 60 L arrived: flagged,
    and neither number is changed. The passage and the inoculation say why they were not
    checked.
-10. **A batch that is running.** `BL-0007` is in its production culture. The process train
+10. **Comparable batches.** In Metrics, the last column gives the median and the range of
+    the five comparable batches for each metric. On `BL-0004` the Protein A recovery reads
+    73.4 % against a median of 93.5 % (91.1 to 93.6); on `BL-0002`, a normal batch, the
+    harvest-to-load yield of 91.9 % sits just under a range that starts at 92.0 %, which is
+    what a range of four batches is worth. An editor can add a batch to the set or take it
+    out, and the change is audited.
+11. **A batch that is running.** `BL-0007` is in its production culture. The process train
    shows the two seed passages done, one step under way and seven not started. The titer finding is already there (it left
    the reference at culture day 8.0), with the latest sample named as not yet reported, and
    the consequence at harvest says it cannot be compared yet. Nothing dated later than now is
@@ -230,8 +238,9 @@ nothing about it.
 
 | Batch | Seed | Starts (UTC) | Scenario | What differs |
 |---|---|---|---|---|
-| `BL-0001` | 101 | 2026-07-01 06:00 | Normal, designated reference | Nothing |
-| `BL-0002` | 102 | 2026-07-22 06:00 | Normal | Ordinary variability only |
+| `BK-0007` to `BK-0009` | 97 to 99 | 2026-04-29, 05-20 and 06-10, 06:00 | Normal, an earlier campaign | Ordinary variability only; marked comparable |
+| `BL-0001` | 101 | 2026-07-01 06:00 | Normal, designated reference | Nothing; marked comparable |
+| `BL-0002` | 102 | 2026-07-22 06:00 | Normal | Ordinary variability only; marked comparable |
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
 | `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
 | `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and feed 7 was recorded as 6 L instead of 60 L, and the historian kept nothing from culture day 13.4 to the end of the phase |

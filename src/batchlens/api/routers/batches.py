@@ -66,6 +66,7 @@ def _stamp(moment: datetime | None) -> str | None:
 def list_batches(rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
     client = rt.user_client(user)
     summaries = rt.batches.summaries()
+    comparable = set(rt.batches.comparable_ids())
     cultures = {
         batch.batch_id: next((p for p in phases if p.kind == "production_culture"), None)
         for batch, phases in summaries
@@ -85,6 +86,7 @@ def list_batches(rt: RuntimeDep, user: CurrentUser) -> dict[str, Any]:
                 # A batch still running has no end yet.
                 "end": None if running else _stamp(end),
                 "running": running,
+                "is_comparable": batch.batch_id in comparable,
                 "asset_id": culture.asset_id if culture else None,
                 "asset_name": names.get(culture.asset_id) if culture else None,
             }
@@ -121,6 +123,7 @@ def get_batch(batch_id: str, rt: RuntimeDep, user: CurrentUser, as_of: AsOf) -> 
             "end": _stamp(min(max(known), deps.now()) if known else None),
         },
         "batch": _plain(record.batch),
+        "is_comparable": batch_id in rt.batches.comparable_ids(),
         "phases": phases,
         "pools": [
             _plain(pool)
@@ -215,6 +218,11 @@ def metrics_answer(
         reference = None  # the reference batch is not compared with itself
     results = metrics_of(record)
     reference_results = metrics_of(reference) if reference else None
+    # The comparable batches, without this one: a batch is not read against itself.
+    comparable_ids = [item for item in rt.batches.comparable_ids() if item != batch_id]
+    comparable = [
+        metrics_of(item) for item in map(rt.batches.get, comparable_ids) if item is not None
+    ]
 
     def harvest_of(found):
         return next(item for item in found if item.metric == "harvest_mass")
@@ -232,7 +240,8 @@ def metrics_answer(
         "batch_id": batch_id,
         "as_of": _stamp(asked),
         "reference_batch_id": reference.batch.batch_id if reference else None,
-        "metrics": beside_reference(results, reference_results),
+        "comparable_batch_ids": comparable_ids,
+        "metrics": beside_reference(results, reference_results, comparable),
         "findings": found,
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
@@ -329,3 +338,28 @@ def set_reference(batch_id: str, rt: RuntimeDep, user: EditorUser) -> dict[str, 
     if previous != batch_id:
         rt.audit(user, "batch.reference_set", batch_id, {"previous": previous})
     return {"reference_batch_id": batch_id}
+
+
+@router.put("/batches/{batch_id}/comparable")
+def set_comparable(batch_id: str, rt: RuntimeDep, user: EditorUser) -> dict[str, Any]:
+    """Put this batch in the set the others are read against."""
+
+    return _comparable(batch_id, rt, user, True)
+
+
+@router.delete("/batches/{batch_id}/comparable")
+def unset_comparable(batch_id: str, rt: RuntimeDep, user: EditorUser) -> dict[str, Any]:
+    """Take this batch out of the set the others are read against."""
+
+    return _comparable(batch_id, rt, user, False)
+
+
+def _comparable(batch_id: str, rt: Any, user: Any, comparable: bool) -> dict[str, Any]:
+    try:
+        changed = rt.batches.set_comparable(batch_id, comparable)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=t("Batch not found.")) from exc
+    if changed:
+        action = "batch.comparable_set" if comparable else "batch.comparable_unset"
+        rt.audit(user, action, batch_id, {})
+    return {"batch_id": batch_id, "is_comparable": comparable}

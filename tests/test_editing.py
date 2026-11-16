@@ -77,11 +77,14 @@ def test_viewers_and_strangers_cannot_correct(seeded, fake):
     with client_for(seeded, fake, "operator") as viewer:
         assert viewer.patch(URL, json=correction()).status_code == 403
         assert viewer.put("/api/batches/BL-0002/reference").status_code == 403
+        assert viewer.put("/api/batches/BL-0003/comparable").status_code == 403
+        assert viewer.delete("/api/batches/BL-0002/comparable").status_code == 403
     with client_for(seeded, fake, "outsider") as outsider:
         assert outsider.patch(URL, json=correction()).status_code == 403
     with client_for(seeded, fake, None) as anonymous:
         assert anonymous.patch(URL, json=correction()).status_code == 401
         assert anonymous.put("/api/batches/BL-0002/reference").status_code == 401
+        assert anonymous.put("/api/batches/BL-0003/comparable").status_code == 401
     assert fake.audit_log == []
     assert seeded.batches.get("BL-0005") == BAD
 
@@ -153,7 +156,7 @@ def test_seeding_again_leaves_a_corrected_batch_alone_unless_asked_to_reset(seed
     assert seed_demo(seeded.batches) == []  # nothing new to load
     assert seeded.batches.get("BL-0005") == corrected
     assert seeded.batches.reference().batch.batch_id == "BL-0002"
-    assert len(seed_demo(seeded.batches, reset=True)) == 6
+    assert len(seed_demo(seeded.batches, reset=True)) == 9
     assert seeded.batches.get("BL-0005") == BAD
     assert seeded.batches.reference().batch.batch_id == "BL-0001"
     # The history of what people changed is not erased with the data.
@@ -239,3 +242,33 @@ def metric_as_of(client, batch_id: str, name: str, as_of: str) -> dict:
         "metrics"
     ]
     return next(item for item in found if item["metric"] == name)
+
+
+def test_an_editor_chooses_which_batches_are_comparable(seeded, fake, client):
+    def among(batch_id: str) -> list[str]:
+        return client.get(f"/api/batches/{batch_id}/metrics").json()["comparable_batch_ids"]
+
+    assert among("BL-0003") == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002"]
+    assert client.get("/api/batches/BL-0002").json()["is_comparable"] is True
+    answer = client.delete("/api/batches/BL-0002/comparable")
+    assert answer.status_code == 200 and answer.json() == {
+        "batch_id": "BL-0002",
+        "is_comparable": False,
+    }
+    assert client.put("/api/batches/BL-0004/comparable").json()["is_comparable"] is True
+    assert among("BL-0003") == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0004"]
+    assert client.get("/api/batches/BL-0002").json()["is_comparable"] is False
+    actions = [(item["action"], item["subject"]) for item in fake.audit_log]
+    assert actions == [
+        ("batchlens.batch.comparable_unset", "BL-0002"),
+        ("batchlens.batch.comparable_set", "BL-0004"),
+    ]
+    # Asking for what already is changes nothing and audits nothing.
+    assert client.put("/api/batches/BL-0004/comparable").status_code == 200
+    assert len(fake.audit_log) == 2
+    assert client.put("/api/batches/BL-9999/comparable").status_code == 404
+    # Seeding again leaves a person's set alone; a reset puts the demo's back.
+    assert seed_demo(seeded.batches) == []
+    assert among("BL-0003")[-1] == "BL-0004"
+    seed_demo(seeded.batches, reset=True)
+    assert among("BL-0003") == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002"]

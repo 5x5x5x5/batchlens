@@ -30,14 +30,14 @@ def test_the_live_batch_began_nine_days_ago_at_six_and_the_others_end_before_it(
     observations, truth = demo_campaign(START)
     assert [o.record.batch.batch_id for o in observations][-1] == LIVE_BATCH
     assert truth[LIVE_BATCH].scenario == "reduced_culture_productivity"
-    ends = [max(p.end for p in o.record.phases) for o in observations[:5]]
+    ends = [max(p.end for p in o.record.phases) for o in observations[:-1]]
     assert max(ends) < START
 
 
 def test_moving_a_batch_in_time_changes_none_of_its_values():
     fixed, _ = demo_campaign()
     moved, _ = demo_campaign(START)
-    for a, b in zip(fixed, moved[:5]):
+    for a, b in zip(fixed, moved[:-1], strict=True):
         shift = (
             b.record.phase("production_culture").start - a.record.phase("production_culture").start
         )
@@ -50,7 +50,12 @@ def test_moving_a_batch_in_time_changes_none_of_its_values():
 
 
 def test_the_dates_are_fixed_the_first_time_and_kept_afterwards(runtime):
-    assert seed_demo(runtime.batches, live_at=NOW) == [f"BL-000{n}" for n in range(1, 8)]
+    assert seed_demo(runtime.batches, live_at=NOW) == [
+        "BK-0007",
+        "BK-0008",
+        "BK-0009",
+        *(f"BL-000{n}" for n in range(1, 8)),
+    ]
     assert live_from(runtime.batches) == START
     assert seed_demo(runtime.batches, live_at=NOW + timedelta(days=2)) == []
     assert live_from(runtime.batches) == START

@@ -155,6 +155,7 @@ export function reasonText(reason: Reason): string {
       ? t("No volume value within {seconds} s before the transfer.", { seconds: text("max_age_seconds") })
       : t("No volume value within {seconds} s after the transfer.", { seconds: text("max_age_seconds") });
     case "transfer_not_ended": return t("The transfer had not ended.");
+    case "too_few_comparable_batches": return t("Only {count} comparable batches have a value; {minimum} are needed.", { count: text("count"), minimum: text("minimum") });
     case "outside_merge_tolerance": return t("The merged pool differs from the sum of its parts by more than {tolerance} %.", { tolerance: text("tolerance_percent") });
     case "no_sources": return t("No source pools recorded.");
     case "no_divergence": return t("Titer stayed within {tolerance} % of the reference batch at the end of {pairs} compared samples.", { tolerance: text("tolerance_percent"), pairs: text("pairs") });

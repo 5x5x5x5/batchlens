@@ -127,7 +127,7 @@ for _ in $(seq 1 60); do
 done
 curl -fs -o /dev/null "$DEMO_URL/batchlens/healthz" || { echo "BatchLens did not answer; see /tmp/batchlens-demo.log"; exit 1; }
 
-echo "Loading the synthetic batches: six finished, one running now..."
+echo "Loading the synthetic batches: nine finished, one running now..."
 # With --reset the batches are loaded again as generated, undoing corrections made in the app,
 # and the campaign's dates are set again from today.
 LIVE_FROM=$(BATCHLENS_DATA_DIR="$DATA_DIR" batchlens seed-demo --live $FLAGS 2>/dev/null \

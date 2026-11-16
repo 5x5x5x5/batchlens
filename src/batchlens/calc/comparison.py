@@ -33,6 +33,9 @@ PAIRING_WINDOW_HOURS = 6.0
 SHORTFALL_VERSION = "recovery_shortfall/1"
 # A yield or recovery lower than the reference's by more than this many percentage points.
 RECOVERY_TOLERANCE_POINTS = 10.0
+POSITION_VERSION = "set_position/1"
+# Fewer comparable batches than this with a value, and a metric is not placed among them.
+MINIMUM_COMPARABLE = 3
 INOCULATION_SHORTFALL_VERSION = "inoculation_shortfall/1"
 # An inoculation density below the reference's by more than this fraction of the reference's
 # counts as below. Each rests on one cell count. Illustrative default.
@@ -215,4 +218,48 @@ def inoculation_shortfall(
         (Reason(code, compared),),
         value.inputs + reference.inputs,
         INOCULATION_SHORTFALL_VERSION,
+    )
+
+
+def set_position(
+    value: Result, others: Sequence[Result], *, minimum: int = MINIMUM_COMPARABLE
+) -> Result:
+    """Where a metric sits among the same metric of the comparable batches: its difference
+    from their median, with their count, median, lowest and highest, and whether it lies
+    below, within or above their range. Comparable batches without a value are left out and
+    counted; with fewer than ``minimum`` left there is no answer. A range of a few batches
+    is what those batches happened to give, not a limit."""
+
+    metric = f"{value.metric}_among_comparable"
+    usable = sorted(other.value for other in others if other.value is not None)
+    left_out = len(others) - len(usable)
+    if value.value is None:
+        reason = Reason("input_not_usable", {"metric": value.metric, "status": value.status})
+        return insufficient(metric, value.unit, POSITION_VERSION, reason)
+    if len(usable) < minimum:
+        counted = {"count": len(usable), "minimum": minimum, "without_value": left_out}
+        return insufficient(
+            metric, value.unit, POSITION_VERSION, Reason("too_few_comparable_batches", counted)
+        )
+    middle = len(usable) // 2
+    median = usable[middle] if len(usable) % 2 else 0.5 * (usable[middle - 1] + usable[middle])
+    where = (
+        "below" if value.value < usable[0] else "above" if value.value > usable[-1] else "within"
+    )
+    seen = {
+        "count": len(usable),
+        "median": median,
+        "lowest": usable[0],
+        "highest": usable[-1],
+        "without_value": left_out,
+    }
+    return Result(
+        metric,
+        value.value - median,
+        value.unit,
+        USABLE,
+        (Reason(f"{where}_comparable_range", seen),),
+        value.inputs
+        + tuple(i for other in others if other.value is not None for i in other.inputs),
+        POSITION_VERSION,
     )

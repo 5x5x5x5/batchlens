@@ -213,5 +213,16 @@
   "No volume value within {seconds} s before the transfer.": "Nenhum valor de volume em até {seconds} s antes da transferência.",
   "No volume value within {seconds} s after the transfer.": "Nenhum valor de volume em até {seconds} s depois da transferência.",
   "The transfer had not ended.": "A transferência não havia terminado.",
-  "Collected {hours} h after a feed; the reference sample {reference} h after one. Glucose and lactate move with every feed.": "Coletada {hours} h após uma alimentação; a amostra de referência, {reference} h após uma. Glicose e lactato variam a cada alimentação."
+  "Collected {hours} h after a feed; the reference sample {reference} h after one. Glucose and lactate move with every feed.": "Coletada {hours} h após uma alimentação; a amostra de referência, {reference} h após uma. Glicose e lactato variam a cada alimentação.",
+  "Comparable batches": "Lotes comparáveis",
+  "Comparable": "Comparável",
+  "{lowest} to {highest}, {count} batches": "{lowest} a {highest}, {count} lotes",
+  "Take {batch} out of the comparable batches? The change is written to PlantCraft's audit log.": "Retirar {batch} dos lotes comparáveis? A alteração é gravada no log de auditoria do PlantCraft.",
+  "Add {batch} to the comparable batches the others are read against? The change is written to PlantCraft's audit log.": "Adicionar {batch} aos lotes comparáveis com os quais os outros são lidos? A alteração é gravada no log de auditoria do PlantCraft.",
+  "Take out of the comparable batches": "Retirar dos lotes comparáveis",
+  "Add to the comparable batches": "Adicionar aos lotes comparáveis",
+  "Comparable batches: {batches}.": "Lotes comparáveis: {batches}.",
+  "No other batch is marked as comparable.": "Nenhum outro lote está marcado como comparável.",
+  "This batch is one of the comparable batches.": "Este lote é um dos lotes comparáveis.",
+  "Only {count} comparable batches have a value; {minimum} are needed.": "Apenas {count} lotes comparáveis têm valor; são necessários {minimum}."
 }
