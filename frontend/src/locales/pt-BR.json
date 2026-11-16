@@ -20,6 +20,7 @@
   "Cancel": "Cancelar",
   "Cation exchange": "Troca catiônica",
   "Cation-exchange pool": "Pool da troca catiônica",
+  "Checked and within tolerance": "Verificado e dentro da tolerância",
   "Collected": "Coletada",
   "Compare every other batch with {batch} from now on? The change is written to PlantCraft's audit log.": "Comparar todos os outros lotes com {batch} a partir de agora? A alteração é gravada no log de auditoria do PlantCraft.",
   "Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.": "Calculadas a cada consulta a partir dos registros abaixo e dos sinais do PlantCraft. As massas são estimativas de concentração × volume.",
@@ -174,5 +175,7 @@
   "{metric} has no value ({status}).": "{metric} não tem valor ({status}).",
   "{metric} is suspect.": "{metric} é suspeito.",
   "{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).": "{metric} está a até {tolerance} pontos do lote de referência ({value} % contra {reference} %).",
-  "{metric} is {points} points below the reference batch": "{metric} está {points} pontos abaixo do lote de referência"
+  "{metric} is {points} points below the reference batch": "{metric} está {points} pontos abaixo do lote de referência",
+  "{pool} mass": "Massa de {pool}",
+  "{step} yield": "Rendimento de {step}"
 }

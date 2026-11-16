@@ -147,11 +147,12 @@ distrust analytics, which is why they are written down here and not only fixed.
 - **A generator whose ground truth the app cannot see.** The scenario label and fault
   parameters are a separate object; tests check that no stored record and no API response
   contains them.
-- **A benchmark** ([verification-report.md](verification-report.md)): 320 seeded batches, each
-  against five references. At the default tolerances: no false alarms in 400 comparisons; a
-  fall of specific productivity to 55 % found 300 times out of 300, with a median delay of 1.9
-  days; a fall to 85 % found 59 times out of 300; no number returned for any badly recorded
-  batch. A test fails when the published report is not what the command gives.
+- **A benchmark** ([verification-report.md](verification-report.md)): 380 seeded batches, each
+  against five references. At the default tolerances: no false alarms in 700 comparisons of
+  the titer; a fall of specific productivity to 55 % found 297 times out of 300, with a median
+  delay of 1.9 days; a fall to 85 % found 52 times out of 300; a later purification step at
+  85 % of its nominal yield found 99 times out of 100, with no false alarm in 7,700 and never
+  the wrong step named; no number returned for any badly recorded batch. A test fails when the published report is not what the command gives.
 - **A live run** inside PlantCraft 0.6.0, where every checked value equals the fake's.
 - **Two independent reviews.** The first, of the first slice, found one path to a server
   error (an `as_of` at the edge of representable time) and four smaller issues. The second,
@@ -159,7 +160,7 @@ distrust analytics, which is why they are written down here and not only fixed.
   ones; all eight were fixed with a failing test first. Both are recorded in
   [gaps.md](gaps.md) and [devlog.md](devlog.md).
 
-At the time of writing: 222 Python tests, 27 interface tests and 8 browser journeys, all
+At the time of writing: 225 Python tests, 28 interface tests and 8 browser journeys, all
 passing locally and in the repository's CI; the exact counts of each step are in [devlog.md](devlog.md).
 
 ## Tradeoffs and limits

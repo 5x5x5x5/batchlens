@@ -262,6 +262,11 @@ describe("one batch", () => {
     expect(findings).toContain("Calculated: Protein A eluate mass: 7,410 g against 9,230 g for the reference (-1,830 g).");
     expect(findings).toContain("Harvest-to-load yield is within 10 points of the reference batch (89.4 % against 97.0 %).");
     expect((findings.match(/No cause is attributed/g) ?? []).length).toBe(2);
+    // What was checked and found within tolerance is listed together, after what was found.
+    const quiet = host.querySelector('[data-findings="within"]')!.textContent ?? "";
+    expect(quiet).toContain("Checked and within tolerance");
+    expect(quiet).toContain("Harvest-to-load yield is within 10 points");
+    expect(findings.indexOf("Protein A recovery is 20 points below")).toBeLessThan(findings.indexOf("Checked and within tolerance"));
   });
 
   it("draws the reference batch over VCD and titer at the same culture age", async () => {

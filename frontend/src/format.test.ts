@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { signedBetween, significant } from "./format";
-import { metricDigits, reasonText } from "./words";
+import { metricDigits, metricName, reasonText } from "./words";
 
 describe("display rounding", () => {
   it("shows a value at the significant digits its inputs carry, never more", () => {
@@ -25,6 +25,17 @@ describe("display rounding", () => {
     for (const metric of ["ivcd", "qp", "harvest_mass", "protein_a_load_mass", "protein_a_eluate_mass", "harvest_to_load_yield", "protein_a_recovery"]) {
       expect(metricDigits(metric)).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("names", () => {
+  it("names a step's yield and a pool's mass from the step and the pool", () => {
+    expect(metricName("cation_exchange_yield")).toBe("Cation exchange yield");
+    expect(metricName("ufdf_yield")).toBe("UF/DF yield");
+    expect(metricName("cation_exchange_pool_mass")).toBe("Cation-exchange pool mass");
+    expect(metricName("drug_substance_mass")).toBe("Drug substance mass");
+    expect(metricName("protein_a_recovery")).toBe("Protein A recovery");
+    expect(metricName("something_else")).toBe("something_else");
   });
 });
 

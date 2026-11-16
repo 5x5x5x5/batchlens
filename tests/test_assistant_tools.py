@@ -67,7 +67,7 @@ def test_batch_findings_answers_what_the_page_shows_and_attributes_no_cause(seed
     assert titer["culture_day"] == pytest.approx(page["findings"][0]["observation"]["value"])
     assert titer["consequence"]["difference"] == page["findings"][0]["consequence"]["difference"]
     assert titer["cause"] == "not attributed"
-    assert [f["found"] for f in body["findings"]] == [True, False, False]
+    assert [f["found"] for f in body["findings"]] == [True, *[False] * 7]
     assert [s["step"] for s in body["purification"]][:2] == [
         "protein_a_capture",
         "viral_inactivation",

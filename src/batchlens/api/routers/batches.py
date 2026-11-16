@@ -204,17 +204,17 @@ def metrics_answer(
     def harvest_of(found):
         return next(item for item in found if item.metric == "harvest_mass")
 
-    beside = (
-        downstream(reference, harvest_of(reference_results), as_of=as_of) if reference else None
-    )
+    beside = (reference, harvest_of(reference_results)) if reference else None
     train = downstream(record, harvest_of(results), as_of=as_of, reference=beside)
-    train["overall_reference"] = beside["overall"]["value"] if beside else None
+    # One list of findings: the culture's and the capture step's, then the later steps'.
+    found = findings(record, reference, results, reference_results, as_of=as_of)
+    found += train.pop("findings")
     return {
         "batch_id": batch_id,
         "as_of": _stamp(as_of),
         "reference_batch_id": reference.batch.batch_id if reference else None,
         "metrics": beside_reference(results, reference_results),
-        "findings": findings(record, reference, results, reference_results, as_of=as_of),
+        "findings": found,
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
     }

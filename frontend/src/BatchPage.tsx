@@ -89,6 +89,9 @@ function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
   </>;
 }
 
+/** Compared, and nothing beyond the tolerance: listed together, after what was found. */
+const isQuiet = (finding: Finding) => finding.observation.status === "usable" && finding.observation.value === null;
+
 /** One finding: the observation, then the calculation, then the line that no cause is given. */
 function FindingPanel({ finding }: { finding: Finding }) {
   const { observation, consequence } = finding;
@@ -312,7 +315,11 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
     <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><Phases detail={detail} /></Section>
     {metrics.findings.length > 0 && <Section id="findings" title={t("Findings")} detail={t("This batch against the reference batch. Tolerances are illustrative settings, not limits.")}>
-      {metrics.findings.map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
+      {metrics.findings.filter((finding) => !isQuiet(finding)).map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
+      {metrics.findings.some(isQuiet) && <div className="panel" data-findings="within">
+        <h3>{t("Checked and within tolerance")}</h3>
+        <ul>{metrics.findings.filter(isQuiet).flatMap((finding) => finding.observation.reasons.map((reason, index) => <li key={`${finding.finding}-${index}`}>{reasonText(reason)}</li>))}</ul>
+      </div>}
     </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="downstream" title={t("Downstream recovery")} detail={t("Each purification step: the product mass that went in and came out, and what is left of the harvest. Where pools were merged, the merged mass is checked against the sum of its parts.")}><DownstreamSection train={metrics.downstream} /></Section>

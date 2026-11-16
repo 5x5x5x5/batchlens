@@ -29,14 +29,16 @@ def test_the_same_run_gives_the_same_numbers(small):
 def test_it_counts_what_it_ran(small):
     counts = small["counts"]
     # Per seed: 1 normal, 9 reduced productivity (3 onset days x 3 factors), 3 reduced recovery,
-    # 3 badly recorded; times 2 seeds, each compared with 2 reference batches.
+    # 3 with a poor later step, 3 badly recorded; times 2 seeds, each compared with 2
+    # reference batches.
     assert counts == {
         "references": 2,
         "normal": 2,
         "reduced_productivity": 18,
         "reduced_recovery": 6,
+        "reduced_step_yield": 6,
         "bad_records": 6,
-        "comparisons": 64,
+        "comparisons": 76,
     }
 
 
@@ -56,7 +58,9 @@ def test_the_titer_finding_is_scored_by_tolerance(small):
     rows = {row["tolerance_percent"]: row for row in small["titer_divergence"]}
     assert sorted(rows) == [5.0, 10.0, 15.0, 20.0]
     for row in rows.values():
-        assert row["without_culture_change"]["comparisons"] == 16  # normal + reduced recovery
+        assert (
+            row["without_culture_change"]["comparisons"] == 28
+        )  # every batch with a normal culture
         assert 0 <= row["without_culture_change"]["found"] <= 16
         assert row["with_culture_change"]["comparisons"] == 36
         assert 0 <= row["with_culture_change"]["found"] <= 36
@@ -79,10 +83,26 @@ def test_the_recovery_findings_are_scored_by_tolerance(small):
     by_level = {item["recovery"]: item for item in default["protein_a_by_true_recovery"]}
     assert sorted(by_level) == [0.74, 0.8, 0.86]
     assert by_level[0.74]["found"] == by_level[0.74]["comparisons"] == 4
-    assert default["protein_a_without_loss"]["comparisons"] == 40
+    assert default["protein_a_without_loss"]["comparisons"] == 52
     # The yield never truly changes in the generator: everything found there is a false alarm.
-    assert default["yield_false_alarms"]["comparisons"] == 52  # every batch whose records are good
+    assert default["yield_false_alarms"]["comparisons"] == 64  # every batch whose records are good
     assert rows[5.0]["yield_false_alarms"]["found"] >= rows[15.0]["yield_false_alarms"]["found"]
+
+
+def test_the_later_steps_are_scored_too(small):
+    rows = {row["tolerance_points"]: row for row in small["later_step_shortfall"]}
+    assert sorted(rows) == [5.0, 10.0, 15.0]
+    default = rows[10.0]
+    # 6 batches with one poor step (three sizes of loss), each against 2 references.
+    by_loss = {item["yield_multiplier"]: item for item in default["by_yield_multiplier"]}
+    assert sorted(by_loss) == [0.75, 0.85, 0.92]
+    assert sum(item["comparisons"] for item in by_loss.values()) == 12
+    assert by_loss[0.75]["found"] == by_loss[0.75]["comparisons"]
+    # A finding must name the step that lost, never another one.
+    assert default["wrong_step_named"] == 0
+    # Every other step of every good-record batch is a chance for a false alarm.
+    assert default["false_alarms"]["comparisons"] > 300
+    assert rows[5.0]["false_alarms"]["found"] >= rows[15.0]["false_alarms"]["found"]
 
 
 def test_calculation_errors_against_the_true_values_are_reported(small):
@@ -95,7 +115,7 @@ def test_calculation_errors_against_the_true_values_are_reported(small):
         "qp",
     ]
     for item in errors.values():
-        assert item["batches"] == 26  # every batch whose records are good
+        assert item["batches"] == 32  # every batch whose records are good
         assert 0 <= item["mean_abs"] <= item["max_abs"] < 15
 
 
@@ -108,6 +128,7 @@ def test_the_report_states_its_limits_and_every_table(small):
         "## Badly recorded batches",
         "## Titer divergence",
         "## Step recovery shortfall",
+        "## Later purification steps",
         "## Calculation error",
         "## Known limitations",
         "batchlens benchmark",
@@ -120,7 +141,7 @@ def test_the_command_line_writes_the_report(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(logging.root, "handlers", [])
     out = tmp_path / "report.md"
     assert main(["benchmark", "--batches", "1", "--references", "1", "--out", str(out)]) == 0
-    assert json.loads(capsys.readouterr().out)["comparisons"] == 16
+    assert json.loads(capsys.readouterr().out)["comparisons"] == 19
     assert out.read_text(encoding="utf-8").startswith("# Verification report")
 
 

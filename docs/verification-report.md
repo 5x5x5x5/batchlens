@@ -17,9 +17,11 @@ validation of anything.
   productivity (from culture day 5, 7, 9; to
   55 %, 70 %, 85 % of nominal), 60 with
   reduced Protein A recovery (74 %, 80 %, 86 % against a
-  nominal 92 %), 60 badly recorded.
+  nominal 92 %), 60 with one later purification step at
+  75 %, 85 %, 92 % of its nominal yield,
+  60 badly recorded.
 - Each is compared with 5 normal batches taken in turn as the reference:
-  1600 comparisons.
+  1900 comparisons.
 - Defaults in the app: titer tolerance 15 %, recovery
   tolerance 10 points, pairing window
   6 h.
@@ -44,27 +46,27 @@ a detection. The delay is the culture day found minus the day the change truly b
 
 | Tolerance | False alarms (no culture change) | Detections (productivity fell) |
 |---|---|---|
-| 5 % | 54 of 400 (13.5 %) | 840 of 900 (93.3 %) |
-| 10 % | 2 of 400 (0.5 %) | 728 of 900 (80.9 %) |
-| 15 % | 0 of 400 (0.0 %) | 611 of 900 (67.9 %) |
-| 20 % | 0 of 400 (0.0 %) | 479 of 900 (53.2 %) |
+| 5 % | 94 of 700 (13.4 %) | 863 of 900 (95.9 %) |
+| 10 % | 5 of 700 (0.7 %) | 764 of 900 (84.9 %) |
+| 15 % | 0 of 700 (0.0 %) | 604 of 900 (67.1 %) |
+| 20 % | 0 of 700 (0.0 %) | 462 of 900 (51.3 %) |
 
 Detections by how far productivity fell:
 
 | Tolerance | qP falls to | Detected | Delay in days: median (range) | Found before it began |
 |---|---|---|---|---|
-| 5 % | 55 % | 300 of 300 (100.0 %) | 1.0 (from -5.1 to 2.9) | 47 |
-| 5 % | 70 % | 299 of 300 (99.7 %) | 1.0 (from -5.0 to 4.9) | 46 |
-| 5 % | 85 % | 241 of 300 (80.3 %) | 2.0 (from -5.0 to 7.1) | 36 |
-| 10 % | 55 % | 300 of 300 (100.0 %) | 1.0 (from -0.1 to 4.0) | 8 |
-| 10 % | 70 % | 287 of 300 (95.7 %) | 1.1 (from -3.1 to 5.0) | 10 |
-| 10 % | 85 % | 141 of 300 (47.0 %) | 4.0 (from -1.1 to 9.0) | 4 |
-| 15 % | 55 % | 300 of 300 (100.0 %) | 1.9 (from 0.9 to 5.0) | 0 |
-| 15 % | 70 % | 252 of 300 (84.0 %) | 2.9 (from 0.9 to 6.1) | 0 |
-| 15 % | 85 % | 59 of 300 (19.7 %) | 6.9 (from 2.9 to 9.0) | 0 |
-| 20 % | 55 % | 284 of 300 (94.7 %) | 2.9 (from 0.9 to 5.1) | 0 |
-| 20 % | 70 % | 187 of 300 (62.3 %) | 3.1 (from 0.9 to 9.0) | 0 |
-| 20 % | 85 % | 8 of 300 (2.7 %) | 8.9 (from 3.0 to 9.0) | 0 |
+| 5 % | 55 % | 300 of 300 (100.0 %) | 1.0 (from -4.1 to 3.1) | 32 |
+| 5 % | 70 % | 300 of 300 (100.0 %) | 1.0 (from -6.1 to 4.1) | 48 |
+| 5 % | 85 % | 263 of 300 (87.7 %) | 2.0 (from -6.9 to 7.0) | 37 |
+| 10 % | 55 % | 300 of 300 (100.0 %) | 1.0 (from -1.1 to 3.1) | 8 |
+| 10 % | 70 % | 295 of 300 (98.3 %) | 1.1 (from -1.0 to 6.0) | 11 |
+| 10 % | 85 % | 169 of 300 (56.3 %) | 3.1 (from -1.0 to 8.1) | 9 |
+| 15 % | 55 % | 297 of 300 (99.0 %) | 1.9 (from -0.1 to 5.0) | 2 |
+| 15 % | 70 % | 255 of 300 (85.0 %) | 2.9 (from -0.1 to 6.1) | 1 |
+| 15 % | 85 % | 52 of 300 (17.3 %) | 5.1 (from 1.9 to 9.0) | 0 |
+| 20 % | 55 % | 277 of 300 (92.3 %) | 2.9 (from 0.9 to 5.1) | 0 |
+| 20 % | 70 % | 181 of 300 (60.3 %) | 3.1 (from 0.9 to 9.0) | 0 |
+| 20 % | 85 % | 4 of 300 (1.3 %) | 8.9 (from 6.9 to 9.0) | 0 |
 
 ## Step recovery shortfall
 
@@ -75,9 +77,22 @@ measures how much one titer result's assay noise moves the computed yield.
 
 | Tolerance | Protein A: false alarms | Recovery 74 % | Recovery 80 % | Recovery 86 % | Yield: false alarms |
 |---|---|---|---|---|---|
-| 5 points | 0 of 1000 (0.0 %) | 100 of 100 (100.0 %) | 100 of 100 (100.0 %) | 86 of 100 (86.0 %) | 37 of 1300 (2.8 %) |
-| 10 points | 0 of 1000 (0.0 %) | 100 of 100 (100.0 %) | 88 of 100 (88.0 %) | 0 of 100 (0.0 %) | 0 of 1300 (0.0 %) |
-| 15 points | 0 of 1000 (0.0 %) | 100 of 100 (100.0 %) | 0 of 100 (0.0 %) | 0 of 100 (0.0 %) | 0 of 1300 (0.0 %) |
+| 5 points | 0 of 1300 (0.0 %) | 100 of 100 (100.0 %) | 100 of 100 (100.0 %) | 78 of 100 (78.0 %) | 46 of 1600 (2.9 %) |
+| 10 points | 0 of 1300 (0.0 %) | 100 of 100 (100.0 %) | 91 of 100 (91.0 %) | 0 of 100 (0.0 %) | 0 of 1600 (0.0 %) |
+| 15 points | 0 of 1300 (0.0 %) | 98 of 100 (98.0 %) | 2 of 100 (2.0 %) | 0 of 100 (0.0 %) | 0 of 1600 (0.0 %) |
+
+## Later purification steps
+
+The findings for viral inactivation, cation exchange, anion exchange, viral filtration
+and UF/DF, in batches where one of those steps yields less than nominal (the step moves
+along the train from seed to seed). A false alarm is a finding on a step where nothing
+was changed; "wrong step" counts those raised in a batch whose loss was in another step.
+
+| Tolerance | Step at 75 % of nominal | Step at 85 % of nominal | Step at 92 % of nominal | False alarms | Wrong step named |
+|---|---|---|---|---|---|
+| 5 points | 100 of 100 (100.0 %) | 100 of 100 (100.0 %) | 91 of 100 (91.0 %) | 32 of 7700 (0.4 %) | 4 |
+| 10 points | 100 of 100 (100.0 %) | 99 of 100 (99.0 %) | 12 of 100 (12.0 %) | 0 of 7700 (0.0 %) | 0 |
+| 15 points | 100 of 100 (100.0 %) | 37 of 100 (37.0 %) | 0 of 100 (0.0 %) | 0 of 7700 (0.0 %) | 0 |
 
 ## Calculation error
 
@@ -87,11 +102,11 @@ noise passing through the formula; it is not a statement about any real assay.
 
 | Metric | Batches | Mean absolute error | Largest error |
 |---|---|---|---|
-| `ivcd` | 260 | 0.73 % | 2.56 % |
-| `qp` | 260 | 1.72 % | 6.89 % |
-| `harvest_mass` | 260 | 1.48 % | 6.61 % |
-| `harvest_to_load_yield` | 260 | 1.77 % | 7.05 % |
-| `protein_a_recovery` | 260 | 1.16 % | 3.60 % |
+| `ivcd` | 320 | 0.76 % | 3.12 % |
+| `qp` | 320 | 1.75 % | 6.89 % |
+| `harvest_mass` | 320 | 1.51 % | 6.62 % |
+| `harvest_to_load_yield` | 320 | 1.79 % | 6.86 % |
+| `protein_a_recovery` | 320 | 1.14 % | 3.62 % |
 
 ## Known limitations
 

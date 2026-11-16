@@ -112,11 +112,11 @@ evidence of anything.
 
 | | |
 |---|---|
-| Python tests | 222 passing |
-| Interface tests | 27 passing |
+| Python tests | 225 passing |
+| Interface tests | 28 passing |
 | Browser journeys | 8 passing |
-| Benchmark | 320 seeded batches, 1,600 comparisons, under 3 seconds |
-| Pull requests | 11 merged, each with its devlog entry |
+| Benchmark | 380 seeded batches, 1,900 comparisons, a few seconds |
+| Pull requests | 13 merged, each with its devlog entry |
 | Independent reviews | Two. First slice: 1 important finding and 4 minor (important fixed, 1 minor fixed since, 3 open). The night's work: 1 important and 7 minor, all fixed, each with a failing test first |
 | Decisions taken to the owner | 5, and 1 left for the owner (publication) |
 | Known gaps written down | 30, each with a state ([gaps.md](gaps.md)) |
