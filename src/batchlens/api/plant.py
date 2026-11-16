@@ -122,6 +122,8 @@ def _step_means(
     for stamp, value in zip(stamps, values):
         if not isinstance(value, int | float) or isinstance(value, bool):
             continue
+        if not math.isfinite(value):
+            continue  # never averaged in, never sent on
         index = int((_instant(stamp) - start).total_seconds() // step)
         if 0 <= index < count:
             sums[index] += value

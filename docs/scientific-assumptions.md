@@ -181,7 +181,9 @@ batch is above the reference.
 Example: recovery 73.4 % against 93.6 % is 20.2 points below, a shortfall at the default of 10.
 A yield of 89.4 % against 97.0 % is 7.6 points below: within.
 
-- `insufficient`: either value is missing. `suspect`: either value is `suspect`.
+- `insufficient`: either value is missing. `suspect`: a shortfall is found and either value is
+  `suspect`. Without a shortfall there is no value to flag, so the result is `usable` and a
+  reason says an input was suspect.
 - Measured ([verification-report.md](verification-report.md)): at the default 10 points, no
   false alarms on either step; a true recovery of 74 % is always found, 80 % in 88 % of
   comparisons, 86 % never.

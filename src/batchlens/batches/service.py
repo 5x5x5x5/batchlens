@@ -56,13 +56,20 @@ class BatchService:
         sample = next((item for item in samples if item.sample_id == sample_id), None)
         if record is None or sample is None:
             raise NotFound(sample_id)
-        phase = next(item for item in record.phases if item.phase_id == sample.phase_id)
+        phase = next((item for item in record.phases if item.phase_id == sample.phase_id), None)
+        if phase is None:
+            raise NotFound(sample_id)
+        if collected_at == sample.collected_at:
+            raise RuleBroken("unchanged")
         if not phase.start <= collected_at <= phase.end:
             raise RuleBroken("outside_phase")
         reported = [r.result_available_at for r in record.results if r.sample_id == sample_id]
         if reported and collected_at >= min(reported):
             raise RuleBroken("after_result")
-        return self.store.correct_sample_time(batch_id, sample_id, collected_at, reason, by)
+        try:
+            return self.store.correct_sample_time(batch_id, sample_id, collected_at, reason, by)
+        except LookupError as exc:  # the sample went away between the check and the write
+            raise NotFound(sample_id) from exc
 
     def set_reference(self, batch_id: str) -> str | None:
         """Make the batch the reference; answers the previous reference's id (the batch's own

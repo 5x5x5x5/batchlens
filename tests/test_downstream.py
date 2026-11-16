@@ -215,3 +215,32 @@ def test_the_train_without_the_bioreactor_still_has_its_step_yields(tmp_path):
             assert answer["overall"]["reasons"][0]["code"] == "input_not_usable"
     finally:
         runtime.shutdown()
+
+
+def test_a_pool_measured_twice_under_one_name_keeps_each_measurements_own_mass():
+    import dataclasses
+
+    from batchlens.batches.models import PoolLink
+
+    observations, _ = demo_campaign()
+    record = observations[0].record
+    eluate = next(pool for pool in record.pools if pool.pool == "protein_a_eluate")
+    again = dataclasses.replace(
+        eluate,
+        measurement_id="BL-0001-protein_a_eluate-again",
+        volume=eluate.volume / 2,
+        measured_at=eluate.measured_at + timedelta(minutes=5),
+    )
+    twice = dataclasses.replace(record, pools=(*record.pools, again))
+    harvest = mass("harvest_mass", 10174.4736)
+    by_id = {node["measurement_id"]: node for node in downstream(twice, harvest)["genealogy"]}
+    first, second = by_id[eluate.measurement_id]["mass"], by_id[again.measurement_id]["mass"]
+    assert second["value"] == pytest.approx(first["value"] / 2)
+    assert second["inputs"] == [again.measurement_id]
+    # A link to a pool that is not there is ignored, not an error.
+    stray = PoolLink("x", "BL-0001", "no-such-pool", eluate.measurement_id, "p")
+    answer = downstream(dataclasses.replace(record, links=(*record.links, stray)), harvest)
+    assert (
+        "no-such-pool"
+        not in next(n for n in answer["genealogy"] if n["pool"] == "protein_a_eluate")["sources"]
+    )

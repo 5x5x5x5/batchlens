@@ -76,6 +76,33 @@ A missing asset or signal is an answer, not an error. A PlantCraft that has neve
 bioreactor gets HTTP 200 with the harvest mass `insufficient` and the reason "asset BR-2001
 was not found", and the metrics that rest only on the app's own records are still computed.
 
+## Seeing what was known, and fixing what was wrong
+
+Two controls came out of taking the rules seriously in the interface.
+
+- **An as-of slider.** No look-ahead was a property of the API that nobody could see. The
+  batch page can now be moved back through the batch's history, and everything on it shows
+  only what had been collected and reported by then. Building it showed that "as of" has to
+  mean more than filtering results: a sample not yet taken, a pool not yet measured and a
+  phase not yet begun must not exist in that view at all, and a phase in progress has no end.
+- **Corrections, not edits.** The app refuses to guess which of two samples with one timestamp
+  is wrong, so a person has to be able to say. An editor can correct a sample's collection
+  time with a reason; the value it replaces is kept, the change is written to PlantCraft's
+  audit log, and the metrics follow. That and the choice of reference batch are the only
+  things that can be changed.
+
+## To drug substance
+
+The mass balance runs the whole purification train: capture, viral inactivation, two polishing
+steps, viral filtration and UF/DF. Each step shows the product mass in and out, its yield
+beside the reference batch's and what is left of the harvest. Because a step's mass in is the
+previous step's mass out, the yields multiply to the recovery by construction; there is no
+second number that could disagree. Pools record what they were made from, and where two
+capture cycles were merged into one eluate, the merged mass is checked against the sum of the
+parts. For the batch with the poor capture step this turns "the yield was low" into one row
+out of six: 20 points lost in capture, every later step within a point or two of the
+reference, 51 % of the harvest reaching drug substance against 73 %.
+
 ## Findings without diagnosis
 
 A finding has four parts that stay apart: an observation (a calculation with the ids it rests
@@ -86,6 +113,9 @@ same samples), and a cause, which is always empty.
   same culture age by more than a tolerance, and after which every later sample is below too.
   Samples are paired by nearest culture age within a window; nothing is interpolated.
 - **Step recovery shortfall**: a yield or recovery more than a tolerance below the reference's.
+
+PlantCraft's assistant can read the same numbers through two read-only tools, computed by the
+same function as the page, each answer stating that no cause is attributed.
 
 The app does not say why. One screenshot shows the reason: at the divergence of the
 reduced-productivity batch, glucose reads 1.63 g/L below the reference although the generator
@@ -123,15 +153,19 @@ distrust analytics, which is why they are written down here and not only fixed.
   days; a fall to 85 % found 59 times out of 300; no number returned for any badly recorded
   batch. A test fails when the published report is not what the command gives.
 - **A live run** inside PlantCraft 0.6.0, where every checked value equals the fake's.
-- **An independent review** of the first slice, which found one path to a server error (an
-  `as_of` at the edge of representable time) and four smaller issues, listed in
-  [gaps.md](gaps.md).
+- **Two independent reviews.** The first, of the first slice, found one path to a server
+  error (an `as_of` at the edge of representable time) and four smaller issues. The second,
+  of everything built afterwards, found one important defect in reseeding and seven smaller
+  ones; all eight were fixed with a failing test first. Both are recorded in
+  [gaps.md](gaps.md) and [devlog.md](devlog.md).
 
-At the time of writing: 172 Python tests, 21 interface tests and 6 browser journeys, all
-passing locally; the exact counts of each step are in [devlog.md](devlog.md).
+At the time of writing: 222 Python tests, 27 interface tests and 8 browser journeys, all
+passing locally and in the repository's CI; the exact counts of each step are in [devlog.md](devlog.md).
 
 ## Tradeoffs and limits
 
+- **Corrections are not part of the as-of view.** A view of a moment before a correction still
+  uses the corrected time.
 - **One reference batch stands for "comparable batches".** Its assay noise is in every
   comparison. A set of comparable batches with a distribution is the obvious next step.
 - **Harvest mass rests on one titer result.** In the demo the true harvest-to-load yield is

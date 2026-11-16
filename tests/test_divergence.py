@@ -220,3 +220,11 @@ def test_a_suspect_recovery_makes_the_comparison_suspect():
     result = calc.recovery_shortfall(percent("r", 73.4), percent("r", 106.4, "suspect"))
     assert result.status == "suspect" and result.value == pytest.approx(33.0)
     assert codes(result) == ["below_reference", "input_suspect"]
+
+
+def test_a_suspect_recovery_that_is_within_the_reference_has_no_value_and_is_not_called_suspect():
+    # 106 % is itself suspect (above 105), and above the reference: nothing is short. A result
+    # without a value is never "suspect": that status means a value is shown, flagged.
+    result = calc.recovery_shortfall(percent("r", 106.0, "suspect"), percent("r", 93.6))
+    assert (result.status, result.value) == ("usable", None)
+    assert codes(result) == ["within_reference", "input_suspect"]

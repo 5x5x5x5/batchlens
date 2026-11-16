@@ -67,7 +67,8 @@ def harvest_mass(
 
     if as_of is not None and as_of < phase_end:
         return missing(
-            Reason("phase_not_ended", {"phase_end": iso(phase_end), "as_of": iso(as_of)})
+            # The end itself is not given: as of then, it had not happened.
+            Reason("phase_not_ended", {"as_of": iso(as_of)})
         )
     in_phase = sorted((m for m in titer if phase_start <= m.at <= phase_end), key=lambda m: m.at)
     if not in_phase:

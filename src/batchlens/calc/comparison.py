@@ -163,7 +163,8 @@ def recovery_shortfall(
         metric,
         short if below else None,
         unit,
-        SUSPECT if len(reasons) > 1 else USABLE,
+        # Suspect means a value is shown, flagged: without a shortfall there is no value to flag.
+        SUSPECT if below and len(reasons) > 1 else USABLE,
         tuple(reasons),
         value.inputs + reference.inputs,
         SHORTFALL_VERSION,
