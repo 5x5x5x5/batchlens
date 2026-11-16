@@ -20,6 +20,9 @@ BatchLens, first vertical slice (2026-11-15), built from the PlantCraft app temp
   `plotly.js-cartesian-dist-min` (added with the owner's approval).
 - `app.toml` reads `assets`, `signals` and `series`.
 - Removed: the notes object, its routes, page and tests; the template's rename test.
+- `batchlens demo-plant --out DIR [--time-zone ZONE]` writes the synthetic plant as a CSV and a
+  PlantCraft plant map, so an administrator can import it into a live PlantCraft and the
+  demo runs end to end there (`docs/demo.md`).
 
 ## [0.2.0] - 2026-11-01
 

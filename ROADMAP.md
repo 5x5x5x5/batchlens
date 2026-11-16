@@ -11,18 +11,19 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Batches in the app's store, `batchlens seed-demo` | Done, tested |
 | Read API with `as_of` (no look-ahead) | Done, tested against the fake PlantCraft |
 | Batch list and batch detail pages, English and Brazilian Portuguese | Done, Vitest and browser journeys |
+| The synthetic plant as files a live PlantCraft imports (`batchlens demo-plant`) | Done, verified on PlantCraft 0.6.0 under `make dev` |
 
 ## Next, in the intended order (proposed)
 
-1. Load the synthetic plant into a live PlantCraft, so the demo runs end to end there.
-2. Evidence-linked findings: where a batch's trajectory left the reference, and what that cost
+1. Evidence-linked findings: where a batch's trajectory left the reference, and what that cost
    in product mass, with observations, calculations and hypotheses kept apart.
-3. A benchmark over many seeded normal and faulty batches, including missing windows and
-   misaligned sample times, publishing false positives, misses and incomplete-data behaviour.
-4. An as-of control in the interface, then editing (samples, reference designation) with audit.
-5. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
+2. A benchmark over many seeded normal and faulty batches, including missing windows and
+   misaligned sample times (the fourth scenario of the original proposal: a data problem
+   the analysis must flag rather than answer), publishing false positives, misses and incomplete-data behaviour.
+3. An as-of control in the interface, then editing (samples, reference designation) with audit.
+4. Batch genealogy and cumulative recovery across the rest of downstream (polishing, viral
    filtration, UF/DF), where pools split and merge.
-6. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
+5. Possibly later: cross-batch process monitoring, and read-only assistant tools over the
    verified calculations.
 
 Out of scope until decided otherwise: real PI, LIMS, MES or QMS links; drug product; anything

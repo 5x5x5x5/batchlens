@@ -3,8 +3,9 @@
 
 Two parts: the suite's test plant (``plantcraft_sdk.testplant``: the Simulator's loops and 12
 hours of their signals ending at ``NOW``), and the synthetic bioprocess plant of
-``batchlens.demo.generator``: a unit with a bioreactor, a harvest skid and a Protein A skid,
-and the bioreactor's online signals for the four demo batches. The app reads them through the
+``batchlens.demo.plant``: a unit with a bioreactor, a harvest skid and a Protein A skid, and
+the bioreactor's online signals for the four demo batches, as a PlantCraft answers them once
+``batchlens demo-plant``'s map is imported. The app reads them through the
 real client calls, exactly as it would read a live PlantCraft.
 """
 
@@ -15,7 +16,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from plantcraft_sdk.assets import STARTER_TYPES, role
 from plantcraft_sdk.contributes import contributions
 from plantcraft_sdk.testing import FakePlantCraft
 from plantcraft_sdk.testplant import (
@@ -30,13 +30,8 @@ from plantcraft_sdk.testplant import (
 from plantcraft_sdk.testplant import plant_assets as assets
 from plantcraft_sdk.testplant import plant_signals as signals
 
-from batchlens.demo.generator import (
-    BIOREACTOR,
-    HARVEST_SKID,
-    ONLINE_UNITS,
-    PROTEIN_A_SKID,
-    demo_campaign,
-)
+from batchlens.demo.generator import BIOREACTOR, ONLINE_UNITS, demo_campaign
+from batchlens.demo.plant import ASSETS, DESCRIPTION, SIGNAL_NAMES, SOURCE_ID, TAGS
 
 __all__ = ["APP_KEY", "HOURS", "NOW", "SOURCE", "START", "assets", "make_fake", "signals"]
 __all__ += ["BIO_SIGNALS", "plant_series"]
@@ -44,48 +39,23 @@ __all__ += ["BIO_SIGNALS", "plant_series"]
 
 MANIFEST = tomllib.loads((Path(__file__).parents[1] / "app.toml").read_text(encoding="utf-8"))
 
-# The bioreactor's signals as PlantCraft would name them: role -> signal id.
-BIO_SIGNALS = {
-    role_key: f"{SOURCE}:BIO.{BIOREACTOR}.{role_key.upper()}" for role_key in ONLINE_UNITS
-}
-NAMES = {"ph": "pH", "do": "Dissolved oxygen", "temperature": "Temperature", "volume": "Volume"}
-# An admin's own asset type: a bioreactor is equipment with these signal roles.
-BIOREACTOR_TYPE = {
-    "id": "bioreactor",
-    "name": "Bioreactor",
-    "description": "A stirred-tank bioreactor (synthetic demo).",
-    "icon": "box",
-    "parent": "equipment",
-    "attributes": [],
-    "roles": [role(key, NAMES[key], unit=unit) for key, unit in ONLINE_UNITS.items()],
-    "children": [],
-}
+# The bioreactor's signals as PlantCraft names them once the map is imported: role -> signal id.
+BIO_SIGNALS = {role_key: f"{SOURCE_ID}:{tag}" for role_key, tag in TAGS.items()}
 
 
 def bio_assets() -> list[dict[str, Any]]:
-    def equipment(asset_id: str, name: str, kind: str = "equipment", **more: Any) -> dict[str, Any]:
-        return {
-            "id": asset_id,
-            "name": name,
-            "kind": kind,
-            "parent_id": "U-MAB",
-            "attributes": {},
-            **more,
-        }
+    """The plant of ``batchlens.demo.plant``, as API v1 answers it after the map import."""
 
     return [
         {
-            "id": "U-MAB",
-            "name": "mAb drug substance (synthetic)",
-            "kind": "unit",
-            "parent_id": "plant",
-            "attributes": {},
-        },
-        equipment(
-            BIOREACTOR, "Production bioreactor 2000 L", "bioreactor", signals=dict(BIO_SIGNALS)
-        ),
-        equipment(HARVEST_SKID, "Harvest clarification skid"),
-        equipment(PROTEIN_A_SKID, "Protein A chromatography skid"),
+            "id": asset_id,
+            "name": name,
+            "kind": kind,
+            "parent_id": parent or "plant",
+            "attributes": {"description": DESCRIPTION},
+            **({"signals": dict(BIO_SIGNALS)} if asset_id == BIOREACTOR else {}),
+        }
+        for asset_id, (kind, name, parent) in ASSETS.items()
     ]
 
 
@@ -93,10 +63,10 @@ def bio_signals() -> list[dict[str, Any]]:
     return [
         {
             "id": signal_id,
-            "name": f"{BIOREACTOR} {NAMES[role_key]}",
-            "source": SOURCE,
+            "name": f"{BIOREACTOR} {SIGNAL_NAMES[role_key]}",
+            "source": SOURCE_ID,
             "unit": ONLINE_UNITS[role_key],
-            "description": f"{NAMES[role_key]} of {BIOREACTOR} (synthetic)",
+            "description": "",
             "low": None,
             "high": None,
         }
@@ -129,7 +99,6 @@ def make_fake(*, bioprocess: bool = True, **options) -> FakePlantCraft:
         ],
         app_keys={"batchlens": APP_KEY},
         assets=assets() + (bio_assets() if bioprocess else []),
-        asset_types=[*STARTER_TYPES, BIOREACTOR_TYPE],
         signals=signals() + (bio_signals() if bioprocess else []),
         series={
             **{key: value.copy() for key, value in plant_series().items()},

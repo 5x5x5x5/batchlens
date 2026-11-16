@@ -1,4 +1,4 @@
-"""Command line: ``batchlens serve``, ``batchlens check`` and ``batchlens seed-demo``.
+"""Command line: ``batchlens serve``, ``check``, ``seed-demo`` and ``demo-plant``.
 
 Settings come from the environment (``batchlens.config``).
 """
@@ -18,6 +18,17 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int, default=int(os.environ.get("BATCHLENS_PORT", "9100")))
     commands.add_parser("check", help="Check the app key and that PlantCraft answers.")
     commands.add_parser("seed-demo", help="Load the four synthetic demo batches into the database.")
+    plant = commands.add_parser(
+        "demo-plant",
+        help="Write the synthetic plant as files PlantCraft imports (a CSV and a plant map).",
+    )
+    plant.add_argument("--out", required=True, help="Folder PlantCraft's server can read.")
+    plant.add_argument(
+        "--time-zone",
+        default="UTC",
+        help="The zone PlantCraft reads CSV files in: its scenario's source time zone "
+        "(America/Sao_Paulo in PlantCraft's local demo). Default: UTC.",
+    )
     args = parser.parse_args(argv)
     from plantcraft_sdk.server.logs import configure_logging
 
@@ -44,6 +55,31 @@ def main(argv: list[str] | None = None) -> int:
             proxy_headers=True,
             log_config=None,
             access_log=False,
+        )
+        return 0
+
+    if args.command == "demo-plant":
+        from pathlib import Path
+
+        from batchlens.demo.plant import recorded, write_plant_files
+
+        try:
+            files = write_plant_files(Path(args.out), args.time_zone)
+        except ValueError as exc:
+            print(json.dumps({"status": "error", "error": str(exc)}))
+            return 1
+        moments = sorted(recorded())
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "csv": str(files.csv),
+                    "map": str(files.map),
+                    "time_zone": args.time_zone,
+                    "first": moments[0].isoformat(),
+                    "last": moments[-1].isoformat(),
+                }
+            )
         )
         return 0
 

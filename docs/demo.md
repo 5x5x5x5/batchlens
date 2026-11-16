@@ -27,23 +27,55 @@ BATCHLENS_DATA_DIR=/some/folder batchlens seed-demo
 
 It stores the four batches under stable ids and can be run again without changing anything.
 
-**Inside a live PlantCraft** (`make dev`) the app-owned data works, but the synthetic plant is
-not there: PlantCraft has no bioreactor asset, so the trends and the product mass at harvest
-answer `insufficient` and name the missing asset. Loading the synthetic plant into a live
-PlantCraft is the next slice ([../ROADMAP.md](../ROADMAP.md)); this has not been tried yet
-([gaps.md](gaps.md)).
+## Inside a live PlantCraft
+
+Without the synthetic plant, a live PlantCraft has no bioreactor: the app-owned data works,
+and the trends and the product mass at harvest answer `insufficient` and name the missing
+asset. To give PlantCraft the plant, the app writes two files and an administrator imports one
+of them. BatchLens writes nothing to PlantCraft itself.
+
+```sh
+batchlens demo-plant --out /a/folder/plantcraft/can/read --time-zone America/Sao_Paulo
+```
+
+| File | What it is |
+|---|---|
+| `bioreactor.csv` | The bioreactor's recorded values: one row per instant, one column per tag |
+| `plant-map.json` | PlantCraft's plant map: the CSV as a data source, the four assets, and each signal with its unit and its role on the bioreactor |
+
+Then, in PlantCraft, an administrator imports `plant-map.json` with the plant map import
+(preview first, then apply). Importing it again changes nothing.
+
+**The time zone matters, and a wrong one is silent.** A CSV has no offsets. PlantCraft 0.6.0
+reads a CSV source's times on the wall clock of its scenario's source time zone
+(`scenario.source.timezone`), and the source's own time zone setting does not change that.
+`--time-zone` must name that zone: `America/Sao_Paulo` for PlantCraft's local demo
+(`scenarios/opcua_demo.json`), which is not the zone `GET /api/v1/installation` answers. With
+the wrong zone every value lands hours off and the numbers still look plausible. Check after
+importing: batch BL-0001's trends must start at 2026-07-01 06:00 UTC with no gap at either end
+of the production phase, and its product mass at harvest must read 10,170 g.
+
+Tried on 2026-11-15 with PlantCraft `v0.6.0` under `make dev` (a fresh workspace,
+`DEV_FLAGS=--reset`): the import created 1 source, 4 assets and 4 signals with no issues, a
+second import changed nothing, and all four batches then show seven usable metrics equal to
+the values in the table below, four online trends and no gaps
+(`images/live-plantcraft/3-batch-with-synthetic-plant.png`). The import was driven through
+PlantCraft's own interface routes (`POST /api/map/preview` and `/api/map/apply`, as its
+pages call them) by the local demo's administrator; those routes are PlantCraft's, not part
+of API v1, and nothing in this repository calls them.
 
 ## The synthetic plant
 
 | Asset id | What | Signals |
 |---|---|---|
 | `U-MAB` | Unit: mAb drug substance (synthetic) | |
-| `BR-2001` | Production bioreactor 2000 L (type `bioreactor`) | Roles `ph`, `do`, `temperature`, `volume` |
+| `BR-2001` | Production bioreactor 2000 L (equipment) | Roles `ph`, `do`, `temperature`, `volume`, from source `batchlens-synthetic` |
 | `HV-2101` | Harvest clarification skid | None |
 | `CH-3001` | Protein A chromatography skid | None |
 
 The same four signals carry all four batches, so every read is scoped to a phase execution's
-asset and time window.
+asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files
+above and the tests' fake PlantCraft are both made from it.
 
 ## Which batch carries which scenario (ground truth)
 

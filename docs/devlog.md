@@ -3,6 +3,46 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-15: The synthetic plant inside a live PlantCraft (roadmap item 1)
+
+Branch `live-plant`, on top of `first-slice` (pull request 1, whose GitHub CI passed on
+Python 3.11 and Node 22 after a manual dispatch; the pull request alone started no run).
+
+- **Planned:** give a live PlantCraft the bioreactor and its four signals through its own
+  import, without editing PlantCraft and without writing the signals as the app's own series.
+  Acceptance: under `make dev`, BL-0001 shows a usable harvest mass and four online trends.
+- **Built:** `src/batchlens/demo/plant.py` (the plant defined once; `write_plant_files`),
+  `batchlens demo-plant --out DIR [--time-zone ZONE]`, `tests/test_demo_plant.py` (7 tests).
+  `tests/plant.py` now builds its fake from the same definition, so the bioreactor is plain
+  `equipment` there too and its signal ids are `batchlens-synthetic:BIO.BR-2001.<ROLE>`.
+- **How the route was found:** a throwaway script against a local PlantCraft, first through
+  its single routes (asset type, assets, source, bindings), then through the plant map import,
+  which carries the source, the assets and each signal's unit and role in one file. Roles are
+  free text in the map, so no asset type has to be made first.
+- **Failed, and how it was resolved:**
+  - CSV times with a `Z` made every read fail (`Cannot compare tz-naive and tz-aware`): the
+    CSV source wants times without an offset.
+  - **Times without an offset were read three hours off, silently.** The first live harvest
+    mass was 10,177 g against the fake's 10,174 g, and the trends began with two empty steps.
+    PlantCraft's local data layer reads every source's naive times in the scenario's source
+    time zone (`America/Sao_Paulo` in the local demo). Setting the source's own time zone to
+    UTC, at creation or afterwards, changed nothing, and a map import resets that setting
+    anyway. The CSV is therefore written on the wall clock of a zone the caller names
+    (`--time-zone`), and `docs/demo.md` says how to check the result. The fake could never
+    have shown this; the 3 g difference in one metric did.
+  - An intermediate design kept the source out of the map (a separate `source.json`) to
+    protect its time zone setting. Dropped once that setting proved to have no effect.
+- **Process note:** the first version of these tests was rewritten together with the code when
+  the design changed; the time-zone tests were run red first (5 failing), then green.
+- **Verified live** (fresh workspace): import creates 1 source, 4 assets, 4 signals, no
+  issues; a second import changes nothing; all four batches show seven usable metrics equal
+  to the fake's values; four online trends, no gaps; six charts on the page
+  (`docs/images/live-plantcraft/3-batch-with-synthetic-plant.png`).
+- **Not done:** the import through PlantCraft's pages by hand (it was driven through the
+  routes those pages call); any PlantCraft other than `v0.6.0`; a packaged install.
+- **Final checks:** `make ci` exit 0 (standard and strict translations, ruff 83 files, Vitest 16
+  passed, pytest 125 passed, 0 skipped); `make e2e` exit 0 (4 passed).
+
 ## 2026-11-15: Phase 4 (best effort) and the branch review
 
 **Inside a live PlantCraft.** PlantCraft `v0.6.0` and its Simulator were installed into the
