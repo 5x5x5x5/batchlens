@@ -117,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
                     "status": "ok",
                     "csv": str(files.csv),
                     "map": str(files.map),
+                    "loops": str(files.loops),
                     "time_zone": args.time_zone,
                     "first": moments[0].isoformat(),
                     "last": moments[-1].isoformat(),

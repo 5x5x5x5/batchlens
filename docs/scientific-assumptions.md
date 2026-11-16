@@ -282,6 +282,25 @@ days before the day the demo first starts. Moving a batch changes none of its va
 - Assumption: this imitates a running batch for a demonstration. Real records arrive as they
   are made, late, corrected and out of order; none of that is modelled.
 
+## The control loops
+
+For the suite's loop monitoring the bioreactor has three control loops: temperature, pH and
+dissolved oxygen (`generator.loop_series`). BatchLens computes nothing from them.
+
+- Each has a fast value, a setpoint and an output every 30 seconds. The fast value passes
+  through every recorded 10-minute value of the same signal, with straight lines between and a
+  little noise that is zero at the recorded instants.
+- Setpoints: 7.0 pH, 40 % air saturation, and 36.5 °C falling to 33.0 °C at the planned shift.
+- The output is a load that moves over the culture (an S-curve between two hand-chosen
+  values) plus a gain times the error, plus noise, clipped to 0 to 100 %.
+- Assumption: this is the shape of a loop that is working, not a controller model. There are
+  no dynamics, no integral action, no valve, no disturbance. A loop monitor's verdict on these
+  signals describes the generator's noise, not a process: PlantCraft Analytics rates the
+  dissolved oxygen loop poorly because the recorded value was generated with a standard
+  deviation of 1.5 % around its setpoint.
+- Only the last 48 hours are written to the loops' file; nothing is made across a hole in the
+  recorded values.
+
 ## The generator's model
 
 `src/batchlens/demo/generator.py`, a deterministic function of (scenario parameters, seed) on

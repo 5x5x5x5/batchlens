@@ -12,7 +12,15 @@ import pytest
 
 from batchlens.cli import main
 from batchlens.demo.generator import BIOREACTOR, ONLINE_UNITS, demo_campaign
-from batchlens.demo.plant import ASSETS, SOURCE_ID, TAGS, write_plant_files
+from batchlens.demo.plant import (
+    ASSETS,
+    LOOP_SOURCE_ID,
+    LOOP_TAGS,
+    LOOPS,
+    SOURCE_ID,
+    TAGS,
+    write_plant_files,
+)
 from tests.plant import BIO_SIGNALS, make_fake
 
 
@@ -59,14 +67,12 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     files = write_plant_files(tmp_path)
     plant_map = json.loads(files.map.read_text(encoding="utf-8"))
     assert plant_map["format"] == "processcraft-map"
-    assert plant_map["sources"] == [
-        {
-            "source_id": SOURCE_ID,
-            "name": "BatchLens synthetic",
-            "type": "csv",
-            "path": str(files.csv.resolve()),
-        }
-    ]
+    assert plant_map["sources"][0] == {
+        "source_id": SOURCE_ID,
+        "name": "BatchLens synthetic",
+        "type": "csv",
+        "path": str(files.csv.resolve()),
+    }
     assets = {
         row["asset_id"]: (kind, row) for kind in ("unit", "equipment") for row in plant_map[kind]
     }
@@ -84,19 +90,49 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     assert assets["U-MAB"][0] == "unit" and assets["U-MAB"][1]["parent_id"] == ""
     assert all(row["parent_id"] == "U-MAB" for kind, row in assets.values() if kind == "equipment")
     assert all("synthetic" in row["description"].lower() for _, row in assets.values())
-    signals = {row["role"]: row for row in plant_map["signals"]}
+    signals = {row["role"]: row for row in plant_map["signals"] if row["role"]}
     assert set(signals) == set(ONLINE_UNITS)
     for role, row in signals.items():
         assert row["tag"] == TAGS[role] and row["source_id"] == SOURCE_ID
         assert row["asset_id"] == BIOREACTOR and row["unit"] == ONLINE_UNITS[role]
         assert row["name"] and row["monitor"] is True
     assert signals["volume"]["unit"] == "L"  # the exact unit the harvest mass requires
+    # The control loops: each on the bioreactor, with a value, a setpoint and an output of its
+    # own from the loops' source, bound to nothing else.
+    loops = {row["loop_id"]: row for row in plant_map["loops"]}
+    assert set(loops) == set(LOOPS) == {"TIC-2001", "AIC-2001", "AIC-2002"}
+    tags = {row["tag"]: row for row in plant_map["signals"]}
+    for row in loops.values():
+        assert row["asset_id"] == BIOREACTOR and row["service"]
+        for part in ("pv", "sp", "op"):
+            assert tags[row[part]]["source_id"] == LOOP_SOURCE_ID
+            assert tags[row[part]]["asset_id"] == "" and tags[row[part]]["role"] == ""
+        assert tags[row["op"]]["unit"] == "%" and tags[row["sp"]]["unit"] == tags[row["pv"]]["unit"]
+    assert loops["TIC-2001"]["loop_type"] == "temperature"
+    assert tags[loops["TIC-2001"]["pv"]]["unit"] == "°C"
+    assert {source["source_id"] for source in plant_map["sources"]} == {SOURCE_ID, LOOP_SOURCE_ID}
+
+
+def test_the_loops_file_holds_the_last_two_days_of_fast_values(tmp_path):
+    files = write_plant_files(tmp_path)
+    with files.loops.open(newline="", encoding="utf-8") as file:
+        rows = list(csv.DictReader(file))
+    assert list(rows[0]) == ["time", *LOOP_TAGS.values()]
+    stamps = [
+        datetime.strptime(row["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC) for row in rows
+    ]
+    assert stamps == sorted(stamps) and len(set(stamps)) == len(stamps)
+    assert {(b - a).total_seconds() for a, b in zip(stamps, stamps[1:])} == {30.0}
+    # The fixed campaign ends with the batch whose record has a hole: the file stops there.
+    assert stamps[0] == datetime(2026, 10, 5, 12, 0, tzinfo=UTC)
+    assert stamps[-1] < datetime(2026, 10, 6, 15, 36, tzinfo=UTC)
+    assert all(row[tag] != "" for row in rows for tag in LOOP_TAGS.values())
 
 
 def test_writing_the_files_twice_gives_the_same_bytes(tmp_path):
     first = [path.read_bytes() for path in write_plant_files(tmp_path / "a")]
     again = [path.read_bytes() for path in write_plant_files(tmp_path / "a")]
-    assert len(first) == 2
+    assert len(first) == 3
     assert first == again
 
 
@@ -111,7 +147,8 @@ def test_the_fake_plantcraft_of_the_tests_serves_the_same_plant(tmp_path):
     assert len(ASSETS) == 9
     roles = fake[BIOREACTOR]["signals"]
     assert roles == BIO_SIGNALS
-    assert {row["role"]: row["tag"] for row in plant_map["signals"]} == {
+    # The bioreactor's own signals; the loops' signals have no role on it.
+    assert {row["role"]: row["tag"] for row in plant_map["signals"] if row["role"]} == {
         role: signal_id.split(":", 1)[1] for role, signal_id in roles.items()
     }
 

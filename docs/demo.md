@@ -123,8 +123,10 @@ batchlens benchmark --out docs/verification-report.md
    report, the assumptions and this page, linked to the unit; in **Historian**, the
    bioreactor's file as a source checked every minute, its four signals archived from the
    first batch on; in **Analytics**, the same four signals under the Signal quality monitor,
-   each with an illustrative expected range (Results, then a signal). Models runs and holds
-   nothing of this plant ([gaps.md](gaps.md)).
+   each with an illustrative expected range, and the bioreactor's three control loops
+   (`TIC-2001`, `AIC-2001`, `AIC-2002`) under the Control loop performance monitor, each with
+   a health and what limits it (Results). Models runs and holds nothing of this plant
+   ([gaps.md](gaps.md)).
 10. **How often is it wrong?** [verification-report.md](verification-report.md): the same
     findings over 380 seeded batches with known faults.
 
@@ -133,6 +135,8 @@ batchlens benchmark --out docs/verification-report.md
 ![The bioreactor's signals collected in PlantCraft Historian](images/suite/historian.png)
 
 ![A bioreactor signal under PlantCraft Analytics' Signal quality monitor](images/suite/analytics-signal.png)
+
+![The dissolved oxygen loop as PlantCraft Analytics judges it](images/suite/analytics-loop.png)
 
 ## Inside a live PlantCraft, by hand
 
@@ -150,6 +154,7 @@ batchlens demo-plant --out /a/folder/plantcraft/can/read --time-zone America/Sao
 | File | What it is |
 |---|---|
 | `bioreactor.csv` | The bioreactor's recorded values: one row per instant, one column per tag |
+| `bioreactor-loops.csv` | The three control loops' value, setpoint and output every 30 seconds, for the last 48 hours only |
 | `plant-map.json` | PlantCraft's plant map: the CSV as a data source, the four assets, and each signal with its unit and its role on the bioreactor |
 
 Then, in PlantCraft, an administrator imports `plant-map.json` with the plant map import
@@ -180,6 +185,10 @@ API v1; only `tools/run_demo.sh` calls them, never the app.
 | `HV-2101` | Harvest clarification skid | None |
 | `CH-3001` | Protein A chromatography skid | None |
 | `VI-3101`, `CH-3201`, `CH-3301`, `VF-3401`, `UF-3501` | Viral inactivation vessel, cation- and anion-exchange skids, viral filtration skid, UF/DF skid | None |
+
+Under `BR-2001` there are three control loops, each with a value, a setpoint and an output
+from the source `batchlens-synthetic-loops`: `TIC-2001` (temperature), `AIC-2001` (pH) and
+`AIC-2002` (dissolved oxygen). They are for the suite's modules; BatchLens does not read them.
 
 The same four signals carry every batch, so every read is scoped to a phase execution's
 asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files

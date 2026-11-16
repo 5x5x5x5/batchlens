@@ -15,10 +15,12 @@ from batchlens import calc
 from batchlens.analysis.metrics import batch_metrics
 from batchlens.demo.generator import (
     BIOREACTOR,
+    LOOP_ROLES,
     VOLUME_UNIT,
     Scenario,
     demo_campaign,
     generate,
+    loop_series,
 )
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "batchlens"
@@ -245,3 +247,55 @@ def test_calc_and_the_generator_use_the_standard_library_only(package):
                         file.name,
                         name,
                     )
+
+
+def loops_of(index: int, first_day: float, last_day: float):
+    batch = demo_campaign()[0][index]
+    start = batch.record.phases[0].start
+    since, until = start + timedelta(days=first_day), start + timedelta(days=last_day)
+    return batch, start, loop_series(batch, since, until)
+
+
+def test_a_loops_fast_value_passes_through_every_recorded_value():
+    batch, start, loops = loops_of(0, 3.0, 4.0)
+    assert set(loops) == {f"{role}.{part}" for role in LOOP_ROLES for part in ("pv", "sp", "op")}
+    for role in LOOP_ROLES:
+        fast = dict(loops[f"{role}.pv"])
+        recorded = [(m, v) for m, v in batch.online[role] if m in fast]
+        assert len(recorded) == 145  # a day of 10-minute values, both ends
+        assert all(fast[moment] == value for moment, value in recorded)
+        assert len(fast) == 144 * 20 + 1  # one every 30 seconds
+        assert all(0 <= value <= 100 for _, value in loops[f"{role}.op"])
+
+
+def test_any_window_gives_the_same_loop_values():
+    _, _, whole = loops_of(0, 3.0, 4.0)
+    _, _, part = loops_of(0, 3.5, 3.6)
+    for key, points in part.items():
+        assert points and set(points) <= set(whole[key])
+
+
+def test_the_temperature_setpoint_makes_the_planned_shift_and_the_others_hold():
+    _, _, before = loops_of(0, 5.0, 5.1)
+    _, _, after = loops_of(0, 7.0, 7.1)
+    assert {value for _, value in before["temperature.sp"]} == {36.5}
+    assert {value for _, value in after["temperature.sp"]} == {33.0}
+    assert {value for _, value in after["ph.sp"]} == {7.0}
+    assert {value for _, value in after["do.sp"]} == {40.0}
+
+
+def test_a_loops_output_answers_the_error_between_setpoint_and_value():
+    # More oxygen when dissolved oxygen is below its setpoint than when it is above.
+    _, _, loops = loops_of(0, 10.0, 12.0)
+    pairs = list(zip(loops["do.pv"], loops["do.op"]))
+    below = [op for (_, pv), (_, op) in pairs if pv < 39.0]
+    above = [op for (_, pv), (_, op) in pairs if pv > 41.0]
+    assert below and above and sum(below) / len(below) > sum(above) / len(above)
+
+
+def test_no_loop_value_is_made_across_a_hole_in_the_record():
+    # The fifth batch's historian kept nothing from culture day 13.4 on.
+    batch, start, loops = loops_of(4, 13.0, 14.25)
+    last = max(moment for moment, _ in loops["ph.pv"])
+    assert last < start + timedelta(days=13.4)
+    assert last >= batch.online["ph"][-1][0] - timedelta(minutes=10)

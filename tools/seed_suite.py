@@ -3,9 +3,12 @@
 
     python tools/seed_suite.py http://127.0.0.1:8088 [bioreactor.csv TIME_ZONE]
 
-- Historian (with the bioreactor's file and the zone its times are in): the file as a CSV
-  source checked every minute, and its four signals archived, history first.
-- Analytics: the expected range of each bioreactor signal, for its Signal quality monitor.
+- Historian (with the bioreactor's file and the zone its times are in): that file and the
+  loops' file beside it as CSV sources checked every minute, their signals archived.
+- Analytics: the expected range of each bioreactor signal, for its Signal quality monitor;
+  the bioreactor's three control loops listed and a first round of loop performance asked for.
+- View and Alarms: their own first steps for a new plant (a unit overview of the loops, two
+  draft rules switched off), which need the loops to exist.
 - View: a dashboard of the bioreactor's four signals, and a process display of the train.
 - Alarms: four rules on the bioreactor's signals, with illustrative limits.
 - Documents: this repository's verification report, assumptions and tour, linked to the unit.
@@ -32,6 +35,9 @@ LOGGER = logging.getLogger("batchlens.seed_suite")
 DOCS = Path(__file__).resolve().parents[1] / "docs"
 UNIT, BIOREACTOR = "U-MAB", "BR-2001"
 SOURCE = "batchlens-synthetic"
+LOOP_SOURCE = "batchlens-synthetic-loops"
+LOOP_UNITS = {"TIC-2001": "°C", "AIC-2001": "pH", "AIC-2002": "% air sat."}  # loop -> unit
+START = {"units": [UNIT], "assets": [{"id": UNIT, "name": "mAb drug substance"}]}
 SIGNALS = {  # role -> (label, unit)
     "ph": ("pH", "pH"),
     "do": ("Dissolved oxygen", "% air sat."),
@@ -217,32 +223,43 @@ def seed(suite: Suite, csv_path: str | None = None, time_zone: str = "UTC") -> d
     made = {"sources": 0, "points": 0, "ranges": 0, "dashboards": 0, "diagrams": 0}
     made |= {"rules": 0, "documents": 0}
     if suite.has("hist") and csv_path:
-        if SOURCE not in {source["id"] for source in suite.call("GET", "/hist/api/sources")}:
-            source = {
-                "id": SOURCE,
-                "name": "BatchLens synthetic bioreactor",
-                "kind": "csv",
-                "endpoint": csv_path,
-                "options": {"timezone": time_zone, "check_minutes": 1},
-            }
-            suite.call("POST", "/hist/api/sources", source)
-            made["sources"] += 1
-        listed = suite.call("GET", f"/hist/api/points?source={SOURCE}")
-        rows = listed["items"] if isinstance(listed, dict) else listed
-        have = {point.get("tag") for point in rows}
-        points = [
-            {
-                "tag": f"BIO.{BIOREACTOR}.{role.upper()}",
-                "source_id": SOURCE,
-                "name": f"{BIOREACTOR} {label}",
-                "unit": unit,
-            }
+        loops_path = str(Path(csv_path).with_name("bioreactor-loops.csv"))
+        recorded = [
+            (f"BIO.{BIOREACTOR}.{role.upper()}", f"{BIOREACTOR} {label}", unit)
             for role, (label, unit) in SIGNALS.items()
-            if f"BIO.{BIOREACTOR}.{role.upper()}" not in have
         ]
-        if points:
-            suite.call("POST", "/hist/api/points", {"points": points})
-            made["points"] += len(points)
+        fast = [
+            (f"LOOP.{loop_id}.{part.upper()}", f"{loop_id} {label}", "%" if part == "op" else unit)
+            for loop_id, unit in LOOP_UNITS.items()
+            for part, label in (("pv", "value"), ("sp", "setpoint"), ("op", "output"))
+        ]
+        files = (
+            (SOURCE, "BatchLens synthetic bioreactor", csv_path, recorded),
+            (LOOP_SOURCE, "BatchLens synthetic loops", loops_path, fast),
+        )
+        known = {source["id"] for source in suite.call("GET", "/hist/api/sources")}
+        for source_id, name, path, tags in files:
+            if source_id not in known:
+                source = {
+                    "id": source_id,
+                    "name": name,
+                    "kind": "csv",
+                    "endpoint": path,
+                    "options": {"timezone": time_zone, "check_minutes": 1},
+                }
+                suite.call("POST", "/hist/api/sources", source)
+                made["sources"] += 1
+            listed = suite.call("GET", f"/hist/api/points?source={source_id}")
+            rows = listed["items"] if isinstance(listed, dict) else listed
+            have = {point.get("tag") for point in rows}
+            points = [
+                {"tag": tag, "source_id": source_id, "name": label, "unit": unit}
+                for tag, label, unit in tags
+                if tag not in have
+            ]
+            if points:
+                suite.call("POST", "/hist/api/points", {"points": points})
+                made["points"] += len(points)
     if suite.has("link"):
         try:  # Analytics lists a new plant's signals on its own schedule: ask now
             suite.call("POST", "/link/api/signals/sync")
@@ -257,11 +274,15 @@ def seed(suite: Suite, csv_path: str | None = None, time_zone: str = "UTC") -> d
             if (current.get("low"), current.get("high")) != (low, high):
                 suite.call("PATCH", path, {"low": low, "high": high})
                 made["ranges"] += 1
-        if made["ranges"]:
+        for path, body in (
+            ("/link/api/signal-quality/run", None),
+            ("/link/api/loops/sync", None),
+            ("/link/api/round", {}),
+        ):
             try:
-                suite.call("POST", "/link/api/signal-quality/run")
-            except urllib.error.HTTPError as error:  # 409: a run is already waiting
-                LOGGER.info("Analytics did not start a Signal quality run now (%s)", error.code)
+                suite.call("POST", path, body)
+            except urllib.error.HTTPError as error:  # 409: one is already waiting
+                LOGGER.info("Analytics did not take %s now (%s)", path, error.code)
     if suite.has("dash"):
         if dashboard()["name"] not in {
             d["name"] for d in suite.call("GET", "/dash/api/dashboards")
@@ -271,6 +292,10 @@ def seed(suite: Suite, csv_path: str | None = None, time_zone: str = "UTC") -> d
         if diagram()["name"] not in {d["name"] for d in suite.call("GET", "/dash/api/diagrams")}:
             suite.call("POST", "/dash/api/diagrams", diagram())
             made["diagrams"] += 1
+        # View's own first step for a new plant: an overview of the unit's loops.
+        made["dashboards"] += suite.call("POST", "/dash/api/start/unit-overviews", START)["counts"][
+            "created"
+        ]
     if suite.has("alarm"):
         taken = {rule["name"] for rule in suite.call("GET", "/alarm/api/rules")}
         for name, role, kind, limit, deadband in RULES:
@@ -289,6 +314,10 @@ def seed(suite: Suite, csv_path: str | None = None, time_zone: str = "UTC") -> d
             }
             suite.call("POST", "/alarm/api/rules/from-signal", rule)
             made["rules"] += 1
+        # Alarms' own first step: a loop in poor shape, a signal without data; switched off.
+        made["rules"] += suite.call("POST", "/alarm/api/start/draft-rules", START)["counts"][
+            "created"
+        ]
     if suite.has("doc"):
         taken = {doc["title"] for doc in suite.call("GET", "/doc/api/documents")}
         for filename, title in DOCUMENTS:

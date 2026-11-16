@@ -25,13 +25,12 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A drawing of the process train on the batch page | Done, Vitest; seen in a browser |
 | A live campaign: a sixth batch running now, the bioreactor's file written up to now, nothing later than now shown | Done, tested; seen in PlantCraft 0.6.0 |
 | The suite's modules in the demo at one address; the bioreactor's history in Historian, signal ranges for Analytics' Signal quality monitor, a dashboard and a process display in View, rules in Alarms, documents in Documents | Done by script; seen in a browser, no automated test |
+| Three control loops on the bioreactor (value, setpoint, output every 30 s), judged by Analytics' loop monitor, with View's and Alarms' own first steps | Done, tested (generator and files); the modules' side by script, seen in a browser |
 
 ## Next, in the intended order (proposed)
 
-1. Control loops on the synthetic bioreactor (setpoint and controller output for pH, dissolved
-   oxygen and temperature): PlantCraft Analytics' loop monitors, and View's and Alarms' own
-   starters, work on loops and have none here. Links from a batch into the modules (its
-   trend window in View, its alarms).
+1. Links from a batch into the suite's modules: its trend window in View, its alarms, its
+   loops in Analytics.
 2. A tolerance per purification step in place of one for all.
 3. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
    mass balance at each.

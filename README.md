@@ -49,7 +49,7 @@ BatchLens is an app for [PlantCraft](https://github.com/PlantCraft/PlantCraft), 
 industrial data suite, and the demo runs it beside the suite's own modules on one synthetic
 plant. The bioreactor's signals are live: the same values BatchLens reads for the running
 batch are archived in PlantCraft Historian, checked by PlantCraft Analytics' Signal quality
-monitor, on a dashboard and a process display in PlantCraft View and under alarm rules in
+monitor (which also judges the bioreactor's three control loops), on a dashboard and a process display in PlantCraft View and under alarm rules in
 PlantCraft Alarms, and the reports of this repository are in PlantCraft Documents, linked to
 the plant's assets.
 
