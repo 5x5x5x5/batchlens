@@ -3,6 +3,23 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The bioreactor in Historian and Analytics
+
+- **Built:** `tools/seed_suite.py` adds the bioreactor's file to PlantCraft Historian as a CSV
+  source checked every minute, with its four signals archived, and gives the four signals an
+  expected range in PlantCraft Analytics. `tools/run_demo.sh` lets Historian read the plant's
+  folder (`HISTCRAFT_CSV_DIRS`). The plant map marks the signals as monitored.
+- **Seen (PlantCraft 0.6.0, fresh workspace):** Historian connected, 4 signals collecting,
+  45,940 values archived from the first batch's start; Analytics' Signal quality verdict on
+  each signal (temperature: quality 92 %, availability 100 %, no gaps) with the range drawn.
+- **Found:** Analytics' monitors other than Signal quality need control loops or a process
+  model; a new plant's signals are not listed until Analytics syncs, so the script asks for a
+  sync first.
+- **Fixed:** the demo script's stop handler ended early under `set -e` (a `pkill` with no
+  child to stop), which left every server running after the script was stopped.
+- **Not done:** PlantCraft does not read from Historian in this demo; two copies of the
+  history exist (`docs/gaps.md`).
+
 ## 2026-11-16: The banner, and going public
 
 - **Owner's ruling:** the banner reads "Synthetic data · simulated batches · not for process

@@ -89,7 +89,7 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     for role, row in signals.items():
         assert row["tag"] == TAGS[role] and row["source_id"] == SOURCE_ID
         assert row["asset_id"] == BIOREACTOR and row["unit"] == ONLINE_UNITS[role]
-        assert row["name"] and row["monitor"] is False
+        assert row["name"] and row["monitor"] is True
     assert signals["volume"]["unit"] == "L"  # the exact unit the harvest mass requires
 
 

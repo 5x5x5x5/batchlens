@@ -120,12 +120,19 @@ batchlens benchmark --out docs/verification-report.md
    dashboard "Bioreactor BR-2001" (the four signals, moving) and the process display "mAb
    process train" (the train in order, the bioreactor's current values); in **Alarms**, four
    rules on the bioreactor with illustrative limits; in **Documents**, the verification
-   report, the assumptions and this page, linked to the unit. Historian, Analytics and Models
-   run and hold nothing of this plant yet ([gaps.md](gaps.md)).
+   report, the assumptions and this page, linked to the unit; in **Historian**, the
+   bioreactor's file as a source checked every minute, its four signals archived from the
+   first batch on; in **Analytics**, the same four signals under the Signal quality monitor,
+   each with an illustrative expected range (Results, then a signal). Models runs and holds
+   nothing of this plant ([gaps.md](gaps.md)).
 10. **How often is it wrong?** [verification-report.md](verification-report.md): the same
     findings over 380 seeded batches with known faults.
 
 ![The bioreactor's dashboard in PlantCraft View](images/suite/dashboard.png)
+
+![The bioreactor's signals collected in PlantCraft Historian](images/suite/historian.png)
+
+![A bioreactor signal under PlantCraft Analytics' Signal quality monitor](images/suite/analytics-signal.png)
 
 ## Inside a live PlantCraft, by hand
 

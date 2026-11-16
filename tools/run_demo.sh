@@ -65,7 +65,8 @@ echo "Starting PlantCraft, BatchLens and $(( $(wc -w <<<"$APPS") - 1 )) of the s
 : > /tmp/batchlens-demo.log
 PIDS=""
 # PlantCraft's launcher starts the Simulator and PlantCraft as children: they are stopped first.
-trap 'for pid in $PIDS; do pkill -P "$pid" 2>/dev/null; done; kill $PIDS 2>/dev/null; wait 2>/dev/null; echo; echo "Stopped."' EXIT
+# (Each command ends in "|| true": under "set -e" a pid without children would end the trap early.)
+trap 'for pid in $PIDS; do pkill -P "$pid" 2>/dev/null || true; done; kill $PIDS 2>/dev/null || true; wait 2>/dev/null || true; echo; echo "Stopped."' EXIT
 # A signal ends the script through the line above (bash alone would leave the servers running).
 trap 'exit 143' TERM INT HUP
 (cd "$PLANTCRAFT_DIR" && PLANTCRAFT_APPS="${LIST#,}" PLANTCRAFT_OPS_URLS="${OPS#,}" \
@@ -81,6 +82,8 @@ curl -fs -o /dev/null "$PLANTCRAFT_URL/" || { echo "PlantCraft did not answer; s
 # Each app gets an app key from PlantCraft's workspace (made once, kept beside its data), as
 # PlantCraft's own launcher gives one to an app it starts. After PlantCraft is up: --reset
 # clears the workspace first.
+# Historian may read CSV files only in the folders named here: the plant's folder.
+export HISTCRAFT_CSV_DIRS="$PLANT_DIR"
 for app in $APPS; do
   IFS=: read -r id prefix port command <<<"$app"
   key=$(cd "$PLANTCRAFT_DIR" && python -c "import sys, run_opcua_demo as d; print(d._app_key(sys.argv[1], d.PROJECT_ROOT / 'var' / sys.argv[1]))" "$id")
@@ -116,8 +119,8 @@ curl -fs -b "$COOKIES" -X POST --data-binary "@$PLANT_DIR/plant-map.json" \
   | python -c 'import json,sys; r=json.load(sys.stdin); print("imported:", r["applied"], {s["name"]: [s["create"], s["update"], s["unchanged"]] for s in r["sections"]}, "issues:", r["issues"])'
 rm -f "$COOKIES"
 
-echo "Giving the suite's modules the mAb plant (a dashboard, a process display, alarm rules, documents)..."
-python "$REPO/tools/seed_suite.py" "$DEMO_URL" 2>&1 | tail -1
+echo "Giving the suite's modules the mAb plant (history, signal ranges, a dashboard, a process display, alarm rules, documents)..."
+python "$REPO/tools/seed_suite.py" "$DEMO_URL" "$PLANT_DIR/bioreactor.csv" "$ZONE" 2>&1 | tail -1
 
 cat <<DONE
 
