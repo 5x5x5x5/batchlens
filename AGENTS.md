@@ -1,8 +1,8 @@
-# AGENTS.md: BatchlensCraft (BatchLens)
+# AGENTS.md: BatchLens
 
 The rules for anyone, person or coding agent, who changes this repository.
 
-**BatchlensCraft** (`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) is an app of the
+**BatchLens** (`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) is an app of the
 PlantCraft suite, made from the suite's app template: BatchLens, synthetic, non-GxP mAb batch
 analytics (`README.md`). The first part of this file is the template's own rules, which all
 still hold; the second part, "BatchLens rules", adds this project's.

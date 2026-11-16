@@ -1,4 +1,4 @@
-# SPEC: BatchLens (BatchlensCraft)
+# SPEC: BatchLens
 
 What the app does and the public sources it relies on (AGENTS.md, "Clean room").
 

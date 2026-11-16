@@ -1,4 +1,4 @@
-"""Everything one BatchlensCraft server holds: settings, the batches and the PlantCraft clients.
+"""Everything one BatchLens server holds: settings, the batches and the PlantCraft clients.
 
 Who reads plant data: the pages read with the person's own token, so PlantCraft's permissions
 decide what each person sees. The app key (``PLANTCRAFT_APP_KEY``) is for what the app does on

@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// BatchlensCraft is served under /batchlens/ behind the suite's proxy (PlantCraft owns /).
+// BatchLens is served under /batchlens/ behind the suite's proxy (PlantCraft owns /).
 export default defineConfig({
   base: "/batchlens/",
   plugins: [react()],

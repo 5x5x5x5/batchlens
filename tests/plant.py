@@ -1,4 +1,4 @@
-"""The plant tests read, served by a fake PlantCraft to BatchlensCraft and its four users
+"""The plant tests read, served by a fake PlantCraft to BatchLens and its four users
 (admin, engineer, operator, outsider).
 
 Two parts: the suite's test plant (``plantcraft_sdk.testplant``: the Simulator's loops and 12
@@ -89,14 +89,14 @@ def bio_series() -> dict[str, pd.Series]:
 
 
 def make_fake(*, bioprocess: bool = True, **options) -> FakePlantCraft:
-    """The test plant, with what BatchlensCraft's ``app.toml`` contributes already sent (as the
+    """The test plant, with what BatchLens's ``app.toml`` contributes already sent (as the
     app does when it starts). ``bioprocess=False`` leaves the synthetic bioprocess plant out:
     what a live PlantCraft looks like before that plant is loaded into it."""
 
     fake = FakePlantCraft(
         users=plant_users("batchlens"),
         apps=[
-            {"id": "batchlens", "name": "BatchlensCraft", "url": "/batchlens/", "version": "0.1.0"}
+            {"id": "batchlens", "name": "BatchLensCraft", "url": "/batchlens/", "version": "0.1.0"}
         ],
         app_keys={"batchlens": APP_KEY},
         assets=assets() + (bio_assets() if bioprocess else []),

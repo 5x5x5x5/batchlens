@@ -84,8 +84,9 @@ alone needs no PlantCraft: the tests run against the SDK's fake.
 - **Independent.** A personal portfolio project. It is not written, reviewed or endorsed by the
   PlantCraft maintainers. It is built on [PlantCraft](https://github.com/PlantCraft/PlantCraft)'s
   Apache-2.0 app template and SDK and keeps their licence notices ([LICENSE](LICENSE),
-  [ATTRIBUTION.md](ATTRIBUTION.md)). Its manifest name is `BatchlensCraft` (id `batchlens`), the
-  form PlantCraft's app standard prescribes for an app outside the suite.
+  [ATTRIBUTION.md](ATTRIBUTION.md)). It is called BatchLens; its manifest name is `BatchLensCraft` (id
+  `batchlens`), the only form PlantCraft's SDK accepts for an app outside the suite. The
+  PlantCraft name is kept for the suite's own apps.
 - **Synthetic only.** Every batch, sample, signal and tolerance comes from a seeded generator
   with hand-chosen, illustrative parameters. Nothing comes from a real facility, employer or
   client.

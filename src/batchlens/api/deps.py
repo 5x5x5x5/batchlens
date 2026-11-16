@@ -16,7 +16,7 @@ from batchlens.api.runtime import Runtime
 from batchlens.batches.models import BatchRecord
 from batchlens.i18n import t
 
-ACCESS = Access("Batchlens")
+ACCESS = Access("BatchLens")
 RuntimeDep = Annotated[Runtime, Depends(runtime)]
 EditorUser = ACCESS.EditorUser
 guarded = ACCESS.guarded

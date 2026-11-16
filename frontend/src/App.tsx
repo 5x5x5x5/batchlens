@@ -30,9 +30,7 @@ export function App() {
   const tour = useMemo(() => (me ? () => tourSteps() : undefined), [me]);
   return <SuiteShell
     app="batchlens"
-    // The short name inside the suite (app standard, D10); the frame clips the full
-    // "BatchlensCraft" at the "Larger text" display size (docs/gaps.md).
-    appName="Batchlens"
+    appName="BatchLens"
     subtitle={t("Synthetic demo")}
     nav={NAV.map((item) => ({ ...item, label: t(item.label) }))}
     path={path}

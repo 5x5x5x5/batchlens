@@ -1,4 +1,4 @@
-"""BatchlensCraft's ``app.toml`` and help pages (``plantcraft_sdk.server.files``).
+"""BatchLens's ``app.toml`` and help pages (``plantcraft_sdk.server.files``).
 
 Found in ``BATCHLENS_APP_DIR`` (``/app`` in the image), else in the source checkout. The help
 browser files each guide in its folder, in this order.
