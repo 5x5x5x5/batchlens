@@ -5,29 +5,72 @@ bioreactor, each followed by harvest and one aggregated Protein A capture step. 
 made by `src/batchlens/demo/generator.py` from fixed seeds: the same output on every run and
 machine. **All of it is illustrative** ([scientific-assumptions.md](scientific-assumptions.md)).
 
-## Reproduce it from a clean checkout
+## Run it
+
+Once:
 
 ```sh
 uv venv --seed --python 3.12 ~/.venvs/batchlens
 export PATH="$HOME/.venvs/batchlens/bin:$PATH"
 make ci                                         # installs the SDK from vendor/, builds, tests
-BATCHLENS_E2E_SCREENSHOTS=shots make e2e        # the pages in a browser, screenshots in shots/
+git clone --branch v0.6.0 https://github.com/PlantCraft/PlantCraft.git ../PlantCraft
+(cd ../PlantCraft && uv pip install --python ~/.venvs/batchlens/bin/python -e sdk/python -e ".[server,opcua]" -e simulator)
 ```
 
-`make e2e` needs Playwright and Chromium once ([testing.md](testing.md), with `uv pip` in place
-of `pip`): `uv pip install --python ~/.venvs/batchlens/bin/python --find-links vendor -e ".[e2e]"`
-and `python -m playwright install chromium`. The journeys start the app with the five batches
-seeded, against the SDK's fake PlantCraft serving the synthetic plant (`tests/plant.py`).
-
-To load the batches into an app database yourself:
+Then, each time:
 
 ```sh
-BATCHLENS_DATA_DIR=/some/folder batchlens seed-demo
+tools/run_demo.sh             # add --reset for a fresh PlantCraft workspace
 ```
 
-It stores the five batches under stable ids and can be run again without changing anything.
+It starts PlantCraft's local demo with BatchLens inside it, loads the five batches, writes the
+synthetic plant and imports it into PlantCraft. Open http://127.0.0.1:8060 (no password in
+the local demo), then BatchLens from the app switcher at the top left, or
+http://127.0.0.1:9100/batchlens/ directly. Ctrl+C stops everything. The environment lives
+outside the repository on purpose ([gaps.md](gaps.md)).
 
-## Inside a live PlantCraft
+Tried with PlantCraft `v0.6.0` on Linux. The script uses two of PlantCraft's own interface
+routes to import the plant map; they are not part of its API v1 and may change.
+
+### Without PlantCraft
+
+```sh
+make ci                                         # everything against the SDK's fake PlantCraft
+uv pip install --python ~/.venvs/batchlens/bin/python --find-links vendor -e ".[e2e]"
+python -m playwright install chromium           # once
+BATCHLENS_E2E_SCREENSHOTS=shots make e2e        # the pages in a browser, screenshots in shots/
+batchlens benchmark --out docs/verification-report.md
+```
+
+## A five-minute tour
+
+1. **The list.** Five batches, one bioreactor, one after another. `BL-0001` carries the
+   reference mark: the batch the others are compared with. The banner on every page says what
+   this data is.
+2. **`BL-0003`, a culture that fell behind.** Findings: the titer left the reference at
+   culture day 7.9, with the sample that showed it, how far below, and that all six later
+   samples stayed below. Then what that amounts to: 7,317 g at harvest against 10,170 g. Then
+   the other results of the same samples beside the reference's, and the sentence that no
+   cause is attributed. Scroll to the titer chart: this batch and the reference, at equal
+   culture age.
+3. **Every number has a pedigree.** In the metrics table each row has a status, its reasons
+   and the ids of its inputs. The masses say they are estimates from concentration x volume
+   and name the assay. The assay results table at the bottom shows two times for each result:
+   collected, and available.
+4. **`BL-0004`, a good culture and a poor capture step.** No titer finding. Protein A recovery
+   is 20 points below the reference, 7,410 g against 9,230 g in the eluate. The loss is located
+   in a step, not blamed on a cause.
+5. **`BL-0005`, a good process and bad records.** One sample's time was keyed in as the
+   previous one's, and the historian has a hole over the harvest sample. The app refuses the
+   culture metrics and the harvest mass, names the record each tripped on, stops the trends
+   where the data stops, and still answers the Protein A recovery. This is the batch to show
+   someone who asks whether it can be trusted.
+6. **How often is it wrong?** [verification-report.md](verification-report.md): the same
+   findings over 320 seeded batches with known faults.
+
+## Inside a live PlantCraft, by hand
+
+`tools/run_demo.sh` does the following; this is what it does and why.
 
 Without the synthetic plant, a live PlantCraft has no bioreactor: the app-owned data works,
 and the trends and the product mass at harvest answer `insufficient` and name the missing
@@ -55,14 +98,12 @@ the wrong zone every value lands hours off and the numbers still look plausible.
 importing: batch BL-0001's trends must start at 2026-07-01 06:00 UTC with no gap at either end
 of the production phase, and its product mass at harvest must read 10,170 g.
 
-Tried on 2026-11-15 with PlantCraft `v0.6.0` under `make dev` (a fresh workspace,
-`DEV_FLAGS=--reset`): the import created 1 source, 4 assets and 4 signals with no issues, a
-second import changed nothing, and all four batches then show seven usable metrics equal to
-the values in the table below, four online trends and no gaps
-(`images/live-plantcraft/3-batch-with-synthetic-plant.png`). The import was driven through
-PlantCraft's own interface routes (`POST /api/map/preview` and `/api/map/apply`, as its
-pages call them) by the local demo's administrator; those routes are PlantCraft's, not part
-of API v1, and nothing in this repository calls them.
+Tried with PlantCraft `v0.6.0` under its local demo with a fresh workspace: the import creates
+1 source, 4 assets and 4 signals with no issues, a second import changes nothing, and every
+metric, finding and trend then equals what the tests' fake PlantCraft gives (last checked
+2026-11-16 for `BL-0001`, `BL-0003` and `BL-0005`). The import goes through PlantCraft's own
+interface routes (`/api/map/preview`, `/api/map/apply`), as its pages call them. Those are not
+API v1; only `tools/run_demo.sh` calls them, never the app.
 
 ## The synthetic plant
 

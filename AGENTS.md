@@ -1,13 +1,11 @@
 # AGENTS.md: BatchlensCraft (BatchLens)
 
-This folder is a working app of the PlantCraft suite, made to be copied: **BatchlensCraft**
-(`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) was made from the suite's app template
-and is now BatchLens: synthetic, non-GxP mAb batch analytics (see "BatchLens rules" below and
-`README.md`). The template's rules that follow all still hold.
+The rules for anyone, person or coding agent, who changes this repository.
 
-It lives in two places: `templates/app/` of the PlantCraft repository (where CI tests it against
-the current SDK and interface) and the app template repository made from it at each release.
-Everything below holds in both.
+**BatchlensCraft** (`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) is an app of the
+PlantCraft suite, made from the suite's app template: BatchLens, synthetic, non-GxP mAb batch
+analytics (`README.md`). The first part of this file is the template's own rules, which all
+still hold; the second part, "BatchLens rules", adds this project's.
 
 ## Where the rules come from
 
@@ -15,19 +13,18 @@ The suite's rules are in the PlantCraft repository
 (https://github.com/PlantCraft/PlantCraft): its root `AGENTS.md`, `docs/app-standard.md` (the
 app standard: manifest, layout, endpoints, image, suite table) and `docs/testing.md`. This file
 repeats the ones an app must follow; when the two differ, PlantCraft's wins and this file is
-fixed.
+fixed. The template's how-to guides (server, data, interface, translations, packaging, and
+recipes for search, widgets, events and background work) are not copied here: read them in
+https://github.com/PlantCraft/plantcraft-app-template.
 
 ## Start here
 
-1. Read `README.md` (what each file does), `docs/README.md` (the guides) and `prompts/README.md`
-   (the prompts to build an app). To add search, widgets, events, Desk items, a language model,
-   results or background work, follow its recipe in `docs/recipes/`.
-2. New app: `make rename NAME=Logbook` once (it becomes LogbookCraft, id `logbook`), then build
-   the object and its pages (prompts `02` and `03`), then try it (prompt `04`).
-3. `make test-fast` while working, `make ci` before every commit, `make e2e` when you touched a
+1. Read `README.md`, `docs/README.md` (what each document is) and `docs/STATUS.md` (the next
+   task).
+2. `make test-fast` while working, `make ci` before every commit, `make e2e` when you touched a
    page a person uses.
-4. Commit messages start with the app id (`logbook: shift entries per unit`); append a line to
-   `docs/devlog.md` before you finish.
+3. Commit messages start with the app id (`batchlens: ...`); add an entry to `docs/devlog.md`
+   before you finish.
 
 ## Map and layers
 
@@ -36,19 +33,18 @@ app.toml        the manifest: id, name, version, prefix, port, uid, permissions 
 src/batchlens/    the app, in layers (below)
 tests/          pytest against FakePlantCraft (no real PlantCraft); tests/e2e: browser journeys
 frontend/       Vite + React + TypeScript on @plantcraft/ui, served under /batchlens/
-docs/           the guides (docs/README.md), recipes (docs/recipes/) and STATUS/devlog/gaps
+docs/           the project's documents (docs/README.md): assumptions, demo, reports, STATUS/devlog/gaps
 docs/help/      help pages served at /api/help and shown under Help
 vendor/         the plantcraft-sdk wheel and the @plantcraft/ui package (never edited here)
 deploy/         requirements.in/.lock: the image's hashed dependencies (`make lock`)
-prompts/        prompts for an agent: new app, add an object, add a page, try it, package it
-tools/          rename.py (`make rename`)
+tools/          run_demo.sh (the whole demo locally); rename.py (the template's, already used)
 ```
 
 | Layer | Packages (`src/batchlens/`) | Role |
 |---|---|---|
 | -1 | `i18n` | `t()`; anything may use it |
 | 0 | `config`, `meta` | settings from the environment; `app.toml` and the help pages |
-| 1 | `suite` | what the app sends to PlantCraft with its app key (none yet; `docs/recipes/`) |
+| 1 | `suite` | what the app sends to PlantCraft with its app key (none yet) |
 | 1 | `calc` | pure formulas and result types: standard library only, nothing from the app |
 | 2 | `batches` | the app's object: records, store (`BatchStore`), rules (`BatchService`) |
 | 3 | `demo`, `analysis` | the seeded generator and seed loader; metrics assembled from records |

@@ -1,26 +1,22 @@
-# Documentation
+# Documents
 
-Everything you need to turn this template into an app of your own and ship it to a PlantCraft
-installation. Read them in this order the first time; afterwards, jump to the one you need.
-
-| Guide | What it answers |
+| Document | What it answers |
 |---|---|
-| [quickstart.md](quickstart.md) | From "Use this template" to your app running inside PlantCraft, in about 15 minutes |
-| [concepts.md](concepts.md) | What an app is in PlantCraft, what it owns and what it always asks the platform for |
-| [structure.md](structure.md) | Every folder and file of the template, and the layers the code keeps |
-| [backend.md](backend.md) | The server on `plantcraft-sdk`: settings, access, audit, reading the plant, errors |
-| [data.md](data.md) | The app's own database: stores, schema changes (migrations), backup |
-| [frontend.md](frontend.md) | The interface on `@plantcraft/ui`: frame, pages, tables, forms, help, tour |
-| [translations.md](translations.md) | `t()`, the language catalogs and the check that holds them complete |
-| [testing.md](testing.md) | `make ci`, the fake PlantCraft, the suite's rules as tests, browser journeys |
-| [packaging.md](packaging.md) | `app.toml` key by key, the image and the signed `.pcapp` package |
-| [publishing.md](publishing.md) | Versions, changelog, releases, keeping the SDK up to date, open and closed apps |
-| [recipes/](recipes/README.md) | Code to add one more thing: search, widgets, events, Desk, a language model, signals, results, background work |
+| [demo.md](demo.md) | How to run the demo, a five-minute tour of it, and what each synthetic batch contains |
+| [scientific-assumptions.md](scientific-assumptions.md) | Every formula with units and a worked example, every assumption and setting, the generator's model |
+| [verification-report.md](verification-report.md) | The findings scored against ground truth over 320 seeded batches: false alarms, detections, refusals, calculation error |
+| [case-study-engineering.md](case-study-engineering.md) | The design: what the software has to understand about a batch, and the decisions that follow |
+| [case-study-ai-development.md](case-study-ai-development.md) | How it was built with a coding agent: the rules, the trail, what went wrong |
+| [structure.md](structure.md) | Every package and file, and the layers the code keeps |
+| [gaps.md](gaps.md) | What is known to be missing, wrong or untested |
+| [devlog.md](devlog.md) | The development trail, newest first: plans, rulings, failures, measured check results |
+| [STATUS.md](STATUS.md) | Where the project stands and the next task |
+| [help/](help/batchlens.md) | The help page people read inside the app (English and Brazilian Portuguese) |
 
-The rules every app follows are in [`../AGENTS.md`](../AGENTS.md); the full app standard is
-`docs/app-standard.md` in the [PlantCraft repository](https://github.com/PlantCraft/PlantCraft).
-When this documentation and the standard differ, the standard wins.
+At the root: [`README.md`](../README.md), [`SPEC.md`](../SPEC.md) (what the app does and its
+public sources), [`ROADMAP.md`](../ROADMAP.md), [`AGENTS.md`](../AGENTS.md) (the rules for
+people and coding agents), [`ATTRIBUTION.md`](../ATTRIBUTION.md).
 
-The other files here belong to the app itself and you keep them up to date as you work:
-`STATUS.md` (where the app stands), `devlog.md` (one line per working session), `gaps.md`
-(known gaps), `help/` (the help pages people read inside the app) and `images/` (the logo).
+BatchLens is built on PlantCraft's app template. The template's own how-to guides (server,
+data, interface, translations, packaging) are not copied here; they are in
+[PlantCraft/plantcraft-app-template](https://github.com/PlantCraft/plantcraft-app-template).
