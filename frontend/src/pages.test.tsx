@@ -154,9 +154,9 @@ describe("the frame's pages", () => {
     expect(batches.match?.("/help")).toBe(false);
   });
 
-  it("every page says the data is synthetic and non-GxP", async () => {
+  it("every page says the data is synthetic and the batches simulated", async () => {
     const host = await render(<DemoBanner />);
-    expect(host.textContent).toBe("SYNTHETIC DEMO · NON-GxP · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION");
+    expect(host.textContent).toBe("SYNTHETIC DATA · SIMULATED BATCHES · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION");
   });
 });
 

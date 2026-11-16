@@ -63,7 +63,7 @@ ARG REVISION=unknown
 ARG CREATED=unknown
 
 LABEL org.opencontainers.image.title="batchlens" \
-      org.opencontainers.image.description="Synthetic, non-GxP demo of mAb batch analytics: from cell density to Protein A recovery." \
+      org.opencontainers.image.description="Batch analytics for mAb manufacturing on synthetic data: from cell density to drug substance." \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.created="${CREATED}" \

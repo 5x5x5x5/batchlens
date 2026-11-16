@@ -3,8 +3,8 @@
 The rules for anyone, person or coding agent, who changes this repository.
 
 **BatchLens** (`batchlens`, prefix `/batchlens/`, port 9100, uid 20100) is an app of the
-PlantCraft suite, made from the suite's app template: BatchLens, synthetic, non-GxP mAb batch
-analytics (`README.md`). The first part of this file is the template's own rules, which all
+PlantCraft suite, made from the suite's app template: BatchLens, mAb batch analytics shown on
+synthetic data (`README.md`). The first part of this file is the template's own rules, which all
 still hold; the second part, "BatchLens rules", adds this project's.
 
 ## Where the rules come from
@@ -106,7 +106,7 @@ to the platform's rules and never loosen one: where they differ, PlantCraft's ru
 
 ### What BatchLens is
 
-An independent, open-source, synthetic-data-only, non-GxP demonstration of mAb manufacturing
+An independent, open-source, synthetic-data-only demonstration of mAb manufacturing
 analytics for process engineers and manufacturing-informatics people. It joins batch phases,
 plant signals, offline assay results and product mass balances. It is not an MES, LIMS or QMS,
 and it makes no release, disposition or control decision. It is a portfolio project: clear
@@ -115,7 +115,9 @@ decisions, reproducible results and honest reporting matter more than breadth.
 ### Domain rules
 
 - **Synthetic only.** No employer or client data, tags, names, recipes, limits, schedules or
-  screenshots, even as examples. Every page says the data is synthetic and non-GxP.
+  screenshots, even as examples. Every page says the data is synthetic and the batches
+  simulated. (The owner dropped "non-GxP" from the banner on 2026-11-16: the direction is
+  monitoring GxP processes. That is a direction, not a claim; see "Working here".)
 - **Four things that are not each other.** A batch is not an asset. A phase execution (what
   happened on an asset, with start and end) is not a recipe. An assay result is not an online
   sample. The time a sample was collected is not the time its result became available.

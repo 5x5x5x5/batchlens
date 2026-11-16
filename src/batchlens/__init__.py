@@ -1,4 +1,4 @@
-"""BatchLens: synthetic, non-GxP mAb batch analytics on the PlantCraft suite."""
+"""BatchLens: mAb batch analytics on the PlantCraft suite, shown on synthetic data."""
 
 APP_ID = "batchlens"
 __version__ = "0.2.0"

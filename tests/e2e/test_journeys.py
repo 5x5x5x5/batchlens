@@ -27,7 +27,9 @@ def test_a_browser_without_a_token_is_sent_to_sign_in(anonymous, app_url):
     assert re.search(r"/login\?next=/batchlens/", anonymous.url), anonymous.url
 
 
-BANNER = "SYNTHETIC DEMO · NON-GxP · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION"
+BANNER = (
+    "SYNTHETIC DATA · SIMULATED BATCHES · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION"
+)
 
 
 def test_open_the_app_open_a_batch_and_see_its_phases_and_metrics(signed_in, app_url, screenshots):

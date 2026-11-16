@@ -116,7 +116,7 @@
   "Reference batch: {batch}": "Lote de referência: {batch}",
   "Result available": "Resultado disponível",
   "Result not yet available: {ids}.": "Resultado ainda não disponível: {ids}.",
-  "SYNTHETIC DEMO · NON-GxP · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION": "DEMONSTRAÇÃO SINTÉTICA · NÃO GxP · NÃO USAR PARA CONTROLE DE PROCESSO, LIBERAÇÃO OU DISPOSIÇÃO DE LOTES",
+  "SYNTHETIC DATA · SIMULATED BATCHES · NOT FOR PROCESS CONTROL, RELEASE OR BATCH DISPOSITION": "DADOS SINTÉTICOS · LOTES SIMULADOS · NÃO USAR PARA CONTROLE DE PROCESSO, LIBERAÇÃO OU DISPOSIÇÃO DE LOTES",
   "Sample": "Amostra",
   "Sample times are duplicated or out of order at {id}.": "Os instantes das amostras estão duplicados ou fora de ordem em {id}.",
   "Samples": "Amostras",
