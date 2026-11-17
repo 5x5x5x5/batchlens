@@ -235,5 +235,6 @@
   "Conductivity": "Condutividade",
   "Osmolality": "Osmolalidade",
   "Medium lot": "Lote de meio",
-  "Buffer lot": "Lote de tampão"
+  "Buffer lot": "Lote de tampão",
+  "{solution}: lot {lot} against the reference batch's lot {reference} ({days} and {referenceDays} days old when drawn)": "{solution}: lote {lot} contra o lote {reference} do lote de referência ({days} e {referenceDays} dias de idade na retirada)"
 }

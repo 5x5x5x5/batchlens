@@ -13,6 +13,7 @@ from typing import Any
 
 from batchlens import calc
 from batchlens.analysis.downstream import downstream
+from batchlens.analysis.lots import lot_evidence
 from batchlens.analysis.metrics import batch_metrics, measurements
 from batchlens.demo.generator import (
     CAMPAIGN_START,
@@ -32,12 +33,15 @@ QP_FACTORS = (0.55, 0.70, 0.85)
 RECOVERIES = (0.74, 0.80, 0.86)
 # One later purification step yielding this fraction of its nominal yield.
 STEP_MULTIPLIERS = (0.75, 0.85, 0.92)
+# The true pH of the Protein A elution buffer lot, where it is off its target of 3.5.
+ELUTION_PHS = (3.75, 3.85, 3.95)
 BAD_RECORDS = (
     {"mis_keyed_sample": 8},
     {"online_gap_days": (13.4, 14.25)},
     {"mis_keyed_sample": 8, "online_gap_days": (13.4, 14.25)},
 )
 FIRST_SEED, FIRST_REFERENCE_SEED = 1000, 9000
+FIRST_PH_SEED = 20000  # seeds of their own, so the batches above are the ones they were
 DEFAULT_BATCHES, DEFAULT_REFERENCES = 20, 5
 
 Case = tuple[str, Observations, GroundTruth, dict[str, calc.Result]]
@@ -273,6 +277,61 @@ def _bad_record_scores(made: list[Case], references: list[Case]) -> dict[str, An
     }
 
 
+def _evidence_scores(
+    made: list[Case], references: list[Case], batches: int
+) -> list[dict[str, Any]]:
+    """What the evidence beside a Protein A shortfall shows (``analysis.lots``): the elution
+    buffer lot's pH and conductivity against the reference batch's lot's.
+
+    Three kinds of batch: normal ones (how much two lots differ with nothing wrong), ones
+    whose recovery was set low directly (a loss whose cause is in no record), and ones whose
+    buffer lot was made off its pH (the loss follows from the lot). The pH difference should
+    stand out only in the last, and the conductivity difference in none."""
+
+    seed, off_target = FIRST_PH_SEED, []
+    for _ in range(batches):
+        for level in ELUTION_PHS:
+            off_target.append(_case("elution_ph", seed, elution_buffer_ph=level))
+            seed += 1
+    groups: list[tuple[str, float | None, list[Case]]] = [
+        ("normal", None, [case for case in made if case[0] == "normal"]),
+        ("recovery_set_directly", None, [case for case in made if case[0] == "reduced_recovery"]),
+    ]
+    groups += [
+        ("elution_ph", level, [c for c in off_target if c[2].elution_buffer_ph == level])
+        for level in ELUTION_PHS
+    ]
+    rows = []
+    for group, level, cases_of in groups:
+        found, shown = 0, {"ph": [], "conductivity": []}
+        for _, observations, _, results in cases_of:
+            for _, other, _, other_results in references:
+                short = calc.recovery_shortfall(
+                    results["protein_a_recovery"], other_results["protein_a_recovery"]
+                )
+                found += short.value is not None
+                lots = {lot.batch.batch_id: lot for lot in (*observations.lots, *other.lots)}
+                [evidence] = lot_evidence(
+                    observations.record, other.record, lots, "protein_a_capture"
+                )
+                for row in evidence["results"]:
+                    shown[row["analyte"]].append(row["difference"])
+        rows.append(
+            {
+                "group": group,
+                "true_ph": level,
+                "comparisons": len(shown["ph"]),
+                "shortfall_found": found,
+                "ph_mean_difference": statistics.fmean(shown["ph"]),
+                "ph_mean_abs_difference": statistics.fmean(map(abs, shown["ph"])),
+                "conductivity_mean_abs_difference": statistics.fmean(
+                    map(abs, shown["conductivity"])
+                ),
+            }
+        )
+    return rows
+
+
 def _errors(made: list[Case]) -> dict[str, Any]:
     """How far each computed metric is from the generator's true value, in percent of it, over
     the batches whose records are good."""
@@ -319,6 +378,7 @@ def run(batches: int = DEFAULT_BATCHES, references: int = DEFAULT_REFERENCES) ->
             "qp_factors": list(QP_FACTORS),
             "recoveries": list(RECOVERIES),
             "step_multipliers": list(STEP_MULTIPLIERS),
+            "elution_phs": list(ELUTION_PHS),
         },
         "counts": {
             "references": references,
@@ -333,5 +393,6 @@ def run(batches: int = DEFAULT_BATCHES, references: int = DEFAULT_REFERENCES) ->
         "titer_divergence": _titer_scores(made, reference_cases),
         "recovery_shortfall": _recovery_scores(made, reference_cases),
         "later_step_shortfall": _later_step_scores(made, reference_cases),
+        "protein_a_evidence": _evidence_scores(made, reference_cases, batches),
         "calculation_error_percent": _errors(made),
     }

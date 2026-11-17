@@ -444,7 +444,7 @@ def test_the_batch_that_lost_product_in_protein_a_gets_a_recovery_finding(seeded
         "reference": eluate["reference"]["value"],
         "difference": eluate["difference"],
     }
-    assert finding["evidence"] == []
+    assert [group["at"] for group in finding["evidence"]] == ["buffer_lot"]
     # Its culture was normal, and so was its yield into the step, within the tolerance.
     assert codes(finding_of(client, "BL-0004", "titer_divergence")["observation"]) == [
         "no_divergence"
@@ -952,7 +952,7 @@ def test_a_solution_lot_is_a_batch_of_its_own_kind_and_is_not_listed(seeded, cli
     assert sample["phase_kind"] == "solution_prep"
     found = {r["analyte"]: (r["value"], r["unit"]) for r in sample["results"]}
     assert found["ph"][1] == "pH" and found["conductivity"][1] == "mS/cm"
-    assert found["ph"][0] == pytest.approx(3.5, abs=0.1)
+    assert found["ph"][0] == pytest.approx(3.9, abs=0.1)  # this lot was made off its target
     assert client.get("/api/batches/BL-0001").json()["batch"]["kind"] == "product"
     medium = client.get("/api/batches/BL-0004-MF/samples").json()["samples"][0]
     assert sorted(r["analyte"] for r in medium["results"]) == ["osmolality", "ph"]
@@ -984,3 +984,46 @@ def test_a_database_from_before_solution_lots_is_upgraded_and_its_batches_are_pr
         assert runtime.batches.get("BL-0001-MF").batch.kind == "medium"
     finally:
         runtime.shutdown()
+
+
+def test_a_step_that_recovered_less_shows_the_buffer_lot_it_drew_beside_the_references(
+    seeded, client
+):
+    assert TRUTH["BL-0004"].elution_buffer_ph == 3.9  # the generator's own cause
+    finding = finding_of(client, "BL-0004", "protein_a_recovery_shortfall")
+    [group] = finding["evidence"]
+    assert (group["at"], group["solution"]) == ("buffer_lot", "Protein A elution buffer")
+    assert (group["lot_id"], group["reference_lot_id"]) == ("BL-0004-BA", "BL-0001-BA")
+    assert (group["sample_id"], group["reference_sample_id"]) == (
+        "BL-0004-BA-S01",
+        "BL-0001-BA-S01",
+    )
+    assert group["age_days"] == pytest.approx(1.0) and group["reference_age_days"] == pytest.approx(
+        1.0
+    )
+    rows = {row["analyte"]: row for row in group["results"]}
+    assert sorted(rows) == ["conductivity", "ph"]
+    # Evidence, not a verdict: the numbers of both lots and their difference.
+    assert rows["ph"]["value"] == pytest.approx(3.9, abs=0.08)
+    assert rows["ph"]["reference_value"] == pytest.approx(3.5, abs=0.08)
+    assert rows["ph"]["difference"] == pytest.approx(0.4, abs=0.1)
+    assert abs(rows["conductivity"]["difference"]) < 0.6
+    assert finding["cause"] is None
+    # A step within tolerance carries no lot table, and neither does another finding.
+    for batch_id in ("BL-0002", "BL-0003"):
+        assert finding_of(client, batch_id, "protein_a_recovery_shortfall")["evidence"] == []
+    assert finding_of(client, "BL-0004", "cation_exchange_yield_shortfall")["evidence"] == []
+
+
+def test_lot_evidence_holds_only_what_was_available_at_as_of(seeded, client):
+    record = CAMPAIGN["BL-0004"].record
+    eluate = next(pool for pool in record.pools if pool.pool == "protein_a_eluate")
+    # Once the eluate was reported the shortfall is found; the lot was sampled a day earlier.
+    as_of = (eluate.result_available_at + timedelta(minutes=1)).isoformat()
+    finding = finding_of(client, "BL-0004", "protein_a_recovery_shortfall", as_of=as_of)
+    assert finding["observation"]["value"] > 15 and len(finding["evidence"]) == 1
+    # With the lot of the batch gone from the store, the finding stands and shows no lot.
+    seeded.batches.store._connect().execute(
+        "DELETE FROM batches WHERE batch_id = 'BL-0004-BA'"
+    ).connection.commit()
+    assert finding_of(client, "BL-0004", "protein_a_recovery_shortfall")["evidence"] == []

@@ -3,6 +3,22 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: The buffer lot as evidence
+
+Fourth item of the agreed order, second half.
+
+- **Built:** in the generator the Protein A recovery now depends on the true pH of its elution
+  buffer lot (the second input-to-outcome dependency the owner allowed). `BL-0004` is the
+  same batch with the same numbers, now with a reason in its records: a lot made at pH 3.9.
+  A step shortfall that is found carries the lot its step drew beside the reference batch's.
+- **Ruling:** the lot table is shown only with a shortfall and nothing is computed from it.
+  The cause stays empty: the app lays two lots side by side and the reader decides.
+- **Measured (verification report):** the pH row differs by 0.01 on average between two good
+  lots, by 0.02 where a recovery was lowered with no cause in the records, and by 0.25 to
+  0.44 where the lot was off. The conductivity row, never changed, differs by about 0.1
+  everywhere, and by 0.35 on `BL-0004`: an unrelated difference a reader could over-read.
+- **Checked:** every earlier generated value unchanged (`synthetic-generator/6`).
+
 ## 2026-11-16: Solution lots
 
 Fourth item of the agreed order, first half.

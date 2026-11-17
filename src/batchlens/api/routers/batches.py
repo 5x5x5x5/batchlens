@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from plantcraft_sdk.utc import utc_iso
 
 from batchlens.analysis.downstream import downstream
+from batchlens.analysis.lots import with_lot_evidence
 from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
 from batchlens.analysis.transfers import transfers, windows
 from batchlens.api import deps, plant
@@ -242,6 +243,10 @@ def metrics_answer(
     # One list of findings: the culture's and the capture step's, then the later steps'.
     found = findings(record, reference, results, reference_results, as_of=as_of)
     found += train.pop("findings")
+    lots = lots_of(rt, record)
+    found = with_lot_evidence(
+        found, record, reference, lots | (lots_of(rt, reference) if reference else {}), as_of
+    )
     volumes = {
         asset_id: plant.volume_between(client, asset_id, start, end, seen)
         for asset_id, (start, end) in windows(record, as_of).items()
@@ -256,7 +261,7 @@ def metrics_answer(
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
         # What was moved into which vessel, each against that vessel's volume signal.
-        "transfers": transfers(record, volumes, lots_of(rt, record), as_of=as_of),
+        "transfers": transfers(record, volumes, lots, as_of=as_of),
     }
 
 

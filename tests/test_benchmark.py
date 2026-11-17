@@ -152,3 +152,30 @@ def test_the_command_line_writes_the_report(tmp_path, capsys, monkeypatch):
 def test_the_published_report_is_what_the_benchmark_gives_today():
     published = (ROOT / "docs" / "verification-report.md").read_text(encoding="utf-8")
     assert published == render(run())
+
+
+def test_the_lot_evidence_stands_out_only_where_the_lot_was_the_cause(small):
+    rows = {(row["group"], row["true_ph"]): row for row in small["protein_a_evidence"]}
+    assert list(rows) == [
+        ("normal", None),
+        ("recovery_set_directly", None),
+        ("elution_ph", 3.75),
+        ("elution_ph", 3.85),
+        ("elution_ph", 3.95),
+    ]
+    # Two good lots differ by a few hundredths of a pH unit; so do the lots of a batch whose
+    # recovery was set low with no cause in the records, although its shortfall is found.
+    assert rows[("normal", None)]["ph_mean_abs_difference"] < 0.05
+    assert rows[("normal", None)]["shortfall_found"] == 0
+    direct = rows[("recovery_set_directly", None)]
+    assert direct["shortfall_found"] > 0 and direct["ph_mean_abs_difference"] < 0.05
+    # A lot made off its pH shows it, more the further off it was, and loses more product.
+    shown = [rows[("elution_ph", level)]["ph_mean_difference"] for level in (3.75, 3.85, 3.95)]
+    assert shown == sorted(shown) and 0.15 < shown[0] and shown[-1] < 0.55
+    assert (
+        rows[("elution_ph", 3.95)]["shortfall_found"]
+        == rows[("elution_ph", 3.95)]["comparisons"]
+        == 4
+    )
+    # The conductivity was never changed: its difference is the same size in every group.
+    assert all(row["conductivity_mean_abs_difference"] < 0.4 for row in rows.values())

@@ -196,7 +196,7 @@ def _consequence(
     }
 
 
-def _evidence(
+def sample_evidence(
     record: BatchRecord,
     reference: BatchRecord,
     culture_start: datetime,
@@ -306,7 +306,7 @@ def findings(
                 ("divergence", seen["result_id"], seen["reference_result_id"]),
                 ("last_sample", divergence.inputs[-2], divergence.inputs[-1]),
             ]
-            evidence = _evidence(record, reference, culture.start, pairs, as_of)
+            evidence = sample_evidence(record, reference, culture.start, pairs, as_of)
     found = [
         {
             "finding": "titer_divergence",
@@ -335,7 +335,7 @@ def findings(
             "consequence": _consequence("harvest_mass", own, other)
             if started.value is not None
             else None,
-            "evidence": _evidence(
+            "evidence": sample_evidence(
                 record, reference, passage.start, [("seed_n1_end", *last_counts)], as_of
             )
             if passage is not None and len(last_counts) == 2 and all(last_counts)

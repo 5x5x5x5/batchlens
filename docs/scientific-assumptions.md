@@ -320,6 +320,15 @@ below the range.
 - Which batches are comparable is a person's choice, like the reference. The app does not
   check that they are alike.
 
+### Evidence beside a step recovery shortfall
+
+For the Protein A step, cation exchange and UF/DF, a shortfall that was found carries the lot
+of buffer the step drew, beside the reference batch's lot of the same solution: every result
+of each lot's sample (pH, conductivity) with the difference, and each lot's age when its step
+began to draw it. It is shown only with a shortfall. Nothing is computed from it, no tolerance
+is applied to it, and the cause of the finding stays empty. `docs/verification-report.md`
+measures what those differences are when the lot was the cause and when it was not.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names
@@ -419,10 +428,16 @@ passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L 
 | Assay noise (1 SD, relative) | VCD 3 %, viability 0.5 %, glucose and lactate 3 %, titer 2 %, pool concentration 1 % | |
 | Result availability | Cell counts and metabolites 0.5 to 3 h after collection; titer 18 to 30 h; pools 2 to 4 h after measurement | |
 | Harvest-to-load yield | 0.93 (x 1 ± 0.5 %) of the true harvest mass | Load volume 1920 ± 10 L |
-| Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass | Eluate at about 18 g/L, as two cycle pools (48 to 52 % each) merged into one |
+| Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass, less 0.6 per pH unit of the elution buffer lot's true pH above 3.6 (a lot at 3.9 gives 0.74) | Eluate at about 18 g/L, as two cycle pools (48 to 52 % each) merged into one |
 | Rest of the train | Viral inactivation 0.98, cation exchange 0.90, anion exchange 0.96, viral filtration 0.98, UF/DF 0.95 (each x 1 ± 0.5 %), two hours apart | Drug substance at 50 g/L; its own random stream, so earlier values did not change |
 | Online signals | One value every 10 minutes during the production phase | |
 | Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
+
+**A second outcome that depends on an input.** The Protein A recovery depends on the true pH
+of the batch's elution buffer lot: nothing up to 3.6, then 0.6 less per pH unit. A shape (a knee
+and a slope), not a binding model. `BL-0004` uses it: its lot was made at pH 3.9, measured
+3.94. The benchmark also still lowers the recovery directly in some batches, which is a loss
+whose cause is in no record.
 
 **An outcome that depends on an input.** The density the production culture starts at depends
 on the N-1 passage: with `n1_growth_factor` below about 0.8 the N-1 vessel holds too few cells,
