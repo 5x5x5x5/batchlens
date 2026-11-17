@@ -1050,3 +1050,31 @@ def test_lot_evidence_holds_only_what_was_available_at_as_of(seeded, client):
         "DELETE FROM batches WHERE batch_id = 'BL-0004-BA'"
     ).connection.commit()
     assert finding_of(client, "BL-0004", "protein_a_recovery_shortfall")["evidence"] == []
+
+
+def test_one_window_without_values_does_not_give_the_signal_up_for_the_request(monkeypatch):
+    """PlantCraft 0.6.0 answers a window in which nothing was recorded as a failed read (seen
+    on the live demo: the batch with a hole in its historian lost its bioreactor for every
+    transfer on the page). A second failure does give it up: that is a dead source."""
+
+    from batchlens.api import plant
+
+    failed = calc.Reason("series_unreadable", {"detail": "No tag was loaded"})
+    answers = [failed, {"t": ["2026-07-01T06:00:00Z"], "v": [1400.0]}, failed]
+    asked = []
+
+    def read(call, missing):
+        asked.append(1)
+        return answers[len(asked) - 1]
+
+    monkeypatch.setattr(plant, "_read", read)
+    monkeypatch.setattr(plant, "_signal", lambda *args: {"id": "sig", "unit": "L"})
+    monkeypatch.setattr(plant, "asset", lambda *args: {})
+    seen: dict = {}
+    window = (datetime(2026, 7, 1, tzinfo=UTC), datetime(2026, 7, 2, tzinfo=UTC))
+    assert plant.volume_between(None, "BR-2001", *window, seen) is failed
+    second = plant.volume_between(None, "BR-2001", *window, seen)
+    assert isinstance(second, calc.Online) and len(second.points) == 1
+    assert plant.volume_between(None, "BR-2001", *window, seen) is failed and len(asked) == 3
+    # Twice failed: not asked again.
+    assert plant.volume_between(None, "BR-2001", *window, seen) is failed and len(asked) == 3
