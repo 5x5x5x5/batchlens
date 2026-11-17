@@ -4,7 +4,8 @@ export interface Me {
 }
 
 /** The shapes of src/batchlens/api/routers/batches.py. Every instant is UTC text. */
-export interface Batch { batch_id: string; product: string; is_reference: boolean; created_at: string; provenance: string }
+/** `kind`: "product", or a solution lot's ("medium", "buffer"), whose `product` names the solution. */
+export interface Batch { batch_id: string; product: string; is_reference: boolean; created_at: string; provenance: string; kind?: string }
 
 export interface BatchRow extends Batch {
   /** The batch's window: its first phase execution's start to its last one's end. */
@@ -86,6 +87,8 @@ export interface Metrics { batch_id: string; as_of: string | null; reference_bat
  * destination's volume signal. In an as-of view of one under way, `end` and `volume` are null. */
 export interface Transfer {
   transfer_id: string; kind: string; from_asset_id: string; to_asset_id: string; from_lot_id: string;
+  /** The solution lot drawn from: what it is, and its age in days when the transfer began. */
+  lot_solution?: string | null; lot_age_days?: number | null;
   start: string; end: string | null; volume: number | null; volume_unit: string; balance: Result;
 }
 

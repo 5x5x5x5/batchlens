@@ -542,8 +542,8 @@ def transfers_of(client, batch_id: str, **params) -> list[dict]:
 
 def test_every_feed_is_checked_against_the_bioreactors_volume(seeded, client):
     rows = transfers_of(client, "BL-0001")
-    assert [row["kind"] for row in rows] == ["passage", "inoculation", *["feed"] * 10]
-    for feed in rows[2:]:
+    assert [row["kind"] for row in rows][:12] == ["passage", "inoculation", *["feed"] * 10]
+    for feed in rows[2:12]:
         assert (feed["from_asset_id"], feed["to_asset_id"]) == ("MH-1201", "BR-2001")
         assert feed["volume"] == pytest.approx(60, abs=1) and feed["volume_unit"] == "L"
         balance = feed["balance"]
@@ -903,3 +903,84 @@ def test_a_value_that_is_not_a_number_never_reaches_a_trend():
     )
     # Steps of 20 minutes: [1.0, nan] -> 1.0; [3.0, inf] -> 3.0; the third step has nothing.
     assert values == [1.0, 3.0, None] and len(marks) == 3
+
+
+def test_feeds_and_buffers_name_the_lot_they_came_from_and_how_old_it_was(seeded, client):
+    rows = transfers_of(client, "BL-0001")
+    assert [row["kind"] for row in rows] == [
+        "passage",
+        "inoculation",
+        *["feed"] * 10,
+        *["buffer"] * 3,
+    ]
+    assert rows[0]["from_lot_id"] == "" and rows[0]["lot_solution"] is None
+    feeds = rows[2:12]
+    assert {feed["from_lot_id"] for feed in feeds} == {"BL-0001-MF"}
+    assert {feed["lot_solution"] for feed in feeds} == {"Feed medium"}
+    # One lot of medium for ten daily feeds: made the day before the first, so it is a day old
+    # at the first feed (less the ten minutes a feed takes) and ten days old at the last.
+    ages = [feed["lot_age_days"] for feed in feeds]
+    assert ages[0] == pytest.approx(1 - (2 * 60 + 10) / 1440) and ages[-1] == pytest.approx(
+        ages[0] + 9
+    )
+    buffers = {row["lot_solution"]: row for row in rows[12:]}
+    assert sorted(buffers) == [
+        "Cation-exchange elution buffer",
+        "Diafiltration buffer",
+        "Protein A elution buffer",
+    ]
+    elution = buffers["Protein A elution buffer"]
+    assert (elution["from_asset_id"], elution["to_asset_id"]) == ("BH-1301", "CH-3001")
+    assert elution["from_lot_id"] == "BL-0001-BA" and elution["volume"] == pytest.approx(
+        300, rel=0.05
+    )
+    assert elution["lot_age_days"] == pytest.approx(1.0)  # prepared 26 h before, in 2 h
+    # A skid has no volume signal: the draw is listed and not checked.
+    assert codes(elution["balance"]) == ["signal_not_found"]
+
+
+def test_a_solution_lot_is_a_batch_of_its_own_kind_and_is_not_listed(seeded, client):
+    listed = [row["batch_id"] for row in client.get("/api/batches").json()["batches"]]
+    assert len(listed) == 9 and not any(batch_id.endswith(("-MF", "-BA")) for batch_id in listed)
+    lot = client.get("/api/batches/BL-0004-BA").json()
+    assert (lot["batch"]["kind"], lot["batch"]["product"]) == ("buffer", "Protein A elution buffer")
+    assert [(p["kind"], p["asset_id"]) for p in lot["phases"]] == [
+        ("solution_prep", "MX-1101"),
+        ("solution_hold", "BH-1301"),
+    ]
+    [sample] = client.get("/api/batches/BL-0004-BA/samples").json()["samples"]
+    assert sample["phase_kind"] == "solution_prep"
+    found = {r["analyte"]: (r["value"], r["unit"]) for r in sample["results"]}
+    assert found["ph"][1] == "pH" and found["conductivity"][1] == "mS/cm"
+    assert found["ph"][0] == pytest.approx(3.5, abs=0.1)
+    assert client.get("/api/batches/BL-0001").json()["batch"]["kind"] == "product"
+    medium = client.get("/api/batches/BL-0004-MF/samples").json()["samples"][0]
+    assert sorted(r["analyte"] for r in medium["results"]) == ["osmolality", "ph"]
+    # A lot is never the reference and never among the comparable batches.
+    assert client.get("/api/batches/BL-0002/metrics").json()["reference_batch_id"] == "BL-0001"
+
+
+def test_a_database_from_before_solution_lots_is_upgraded_and_its_batches_are_products(tmp_path):
+    import sqlite3
+
+    from batchlens.config import Settings
+
+    path = Settings(processcraft_url="http://x", data_dir=tmp_path).database_path
+    with sqlite3.connect(path) as old:  # the batches table as it was before the kind column
+        old.execute(
+            "CREATE TABLE batches (batch_id TEXT PRIMARY KEY, product TEXT NOT NULL, "
+            "is_reference INTEGER NOT NULL, created_at TEXT NOT NULL, provenance TEXT NOT NULL)"
+        )
+        old.execute(
+            "INSERT INTO batches VALUES ('OLD-1', 'mAb-X', 1, '2026-01-01T00:00:00.000Z', 'p')"
+        )
+    old.close()
+    runtime = make_runtime(tmp_path, make_fake())
+    try:
+        kept = runtime.batches.get("OLD-1")
+        assert kept is not None and kept.batch.kind == "product" and kept.batch.is_reference
+        assert [batch.batch_id for batch, _ in runtime.batches.summaries()] == ["OLD-1"]
+        seed_demo(runtime.batches)  # and the new kind is stored beside it
+        assert runtime.batches.get("BL-0001-MF").batch.kind == "medium"
+    finally:
+        runtime.shutdown()

@@ -31,8 +31,8 @@ from batchlens.batches.models import (
 
 # Raised when what the generator makes changes, so a database seeded by an older one is
 # recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
-# 3: the seed train before the production culture. 4: transfers.
-VERSION = "synthetic-generator/4"
+# 3: the seed train before the production culture. 4: transfers. 5: solution lots.
+VERSION = "synthetic-generator/5"
 PRODUCT = "mAb-X"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"
@@ -45,6 +45,50 @@ SEED_DENSITY = 0.5  # 1e6 cells/mL, the target after every transfer, the product
 SEED_RATE = math.log(7.0) / SEED_DAYS  # per day
 FEED_TANK = "MH-1201"  # the feed medium's hold tank
 TRANSFER_MINUTES = {"passage": 30, "inoculation": 30, "feed": 10}  # how long each takes
+MEDIA_MIX_TANK, BUFFER_MIX_TANK = "MX-1001", "MX-1101"
+# The solution lots a batch draws from. Each is prepared in a mix tank, sampled once at the
+# end of the preparation and held in its own tank until the last draw.
+# suffix of the lot's id: (solution, kind, hold tank, {analyte: (nominal, noise, decimals)}).
+SOLUTION_UNITS = {"ph": "pH", "conductivity": "mS/cm", "osmolality": "mOsm/kg"}
+SOLUTION_METHODS = {
+    "ph": "Bench pH meter",
+    "conductivity": "Bench conductivity meter",
+    "osmolality": "Freezing-point osmometer",
+}
+SOLUTIONS = {
+    "MF": (
+        "Feed medium",
+        "medium",
+        FEED_TANK,
+        {"ph": (7.0, 0.02, 2), "osmolality": (1150.0, 8.0, 0)},
+    ),
+    "BA": (
+        "Protein A elution buffer",
+        "buffer",
+        "BH-1301",
+        {"ph": (3.5, 0.02, 2), "conductivity": (5.0, 0.1, 2)},
+    ),
+    "BC": (
+        "Cation-exchange elution buffer",
+        "buffer",
+        "BH-1302",
+        {"ph": (5.5, 0.02, 2), "conductivity": (25.0, 0.3, 2)},
+    ),
+    "BD": (
+        "Diafiltration buffer",
+        "buffer",
+        "BH-1303",
+        {"ph": (6.0, 0.02, 2), "conductivity": (3.0, 0.08, 2)},
+    ),
+}
+# The purification step each buffer is drawn by, and the litres it draws.
+BUFFER_DRAWS = {
+    "BA": ("protein_a_capture", 300.0),
+    "BC": ("cation_exchange", 400.0),
+    "BD": ("ufdf", 700.0),
+}
+PREP_HOURS = 2
+BUFFER_LEAD_HOURS = 26  # a buffer's preparation begins this long before its step
 HARVEST_SKID = "HV-2101"
 PROTEIN_A_SKID = "CH-3001"
 # The rest of the purification train, in process order:
@@ -145,6 +189,8 @@ class Observations:
 
     record: BatchRecord
     online: dict[str, list[tuple[datetime, float]]]
+    # The solution lots the batch drew from, each a record of its own kind.
+    lots: tuple[BatchRecord, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -315,7 +361,15 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
     moving = random.Random(f"{seed}/transfers")
     transfers: list[Transfer] = []
 
-    def moved(kind: str, source: str, target: str, end: datetime, litres: float) -> None:
+    def moved(
+        kind: str,
+        source: str,
+        target: str,
+        end: datetime,
+        litres: float,
+        lot: str = "",
+        begin: datetime | None = None,
+    ) -> None:
         transfers.append(
             Transfer(
                 f"{batch_id}-T{len(transfers) + 1:02d}",
@@ -323,14 +377,65 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
                 kind,
                 source,
                 target,
-                end - timedelta(minutes=TRANSFER_MINUTES[kind]),
+                begin or end - timedelta(minutes=TRANSFER_MINUTES[kind]),
                 end,
                 round(litres, 1),
                 VOLUME_UNIT,
-                "",
+                lot,
                 provenance,
             )
         )
+
+    # Solution lots, from a generator of their own as well.
+    mixing = random.Random(f"{seed}/solutions")
+    lots: list[BatchRecord] = []
+
+    def lot(suffix: str, prep_start: datetime, emptied: datetime) -> str:
+        """A lot prepared from ``prep_start`` and held until ``emptied``; answers its id."""
+
+        solution, kind, hold_tank, analytes = SOLUTIONS[suffix]
+        lot_id = f"{batch_id}-{suffix}"
+        made = prep_start + timedelta(hours=PREP_HOURS)
+        mix_tank = MEDIA_MIX_TANK if kind == "medium" else BUFFER_MIX_TANK
+        lot_phases = (
+            PhaseExecution(
+                f"{lot_id}-P1", lot_id, "solution_prep", mix_tank, prep_start, made, provenance
+            ),
+            PhaseExecution(
+                f"{lot_id}-P2", lot_id, "solution_hold", hold_tank, made, emptied, provenance
+            ),
+        )
+        sample = Sample(
+            f"{lot_id}-S01",
+            lot_id,
+            lot_phases[0].phase_id,
+            made - timedelta(minutes=15),
+            provenance,
+        )
+        lot_results = tuple(
+            AssayResult(
+                f"{sample.sample_id}-{analyte}",
+                sample.sample_id,
+                analyte,
+                round(nominal + mixing.gauss(0, noise), decimals),
+                SOLUTION_UNITS[analyte],
+                SOLUTION_METHODS[analyte],
+                sample.collected_at + timedelta(seconds=round(mixing.uniform(0.5, 2) * 3600)),
+                "valid",
+                provenance,
+            )
+            for analyte, (nominal, noise, decimals) in analytes.items()
+        )
+        lots.append(
+            BatchRecord(
+                Batch(lot_id, solution, False, prep_start, provenance, kind),
+                lot_phases,
+                (sample,),
+                lot_results,
+                (),
+            )
+        )
+        return lot_id
 
     first, passage_start = SEED_DENSITY, start - timedelta(days=SEED_DAYS * len(SEED_TRAIN))
     for position, (kind, asset_id, litres) in enumerate(SEED_TRAIN):
@@ -386,11 +491,18 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         )
         first = min(SEED_DENSITY, grown * litres / next_litres)
         passage_start = phase.end
+    # One lot of feed medium for the whole culture, prepared the day before the first feed.
+    medium = lot(
+        "MF",
+        start + timedelta(days=FIRST_FEED_DAY - 1),
+        start + timedelta(days=FIRST_FEED_DAY + FEEDS - 1),
+    )
     for feed in range(FEEDS):
         litres = FEED_LITRES * moving.gauss(1, 0.005)
         if feed == scenario.mis_recorded_feed:
             litres /= 10
-        moved("feed", FEED_TANK, BIOREACTOR, start + timedelta(days=FIRST_FEED_DAY + feed), litres)
+        fed = start + timedelta(days=FIRST_FEED_DAY + feed)
+        moved("feed", FEED_TANK, BIOREACTOR, fed, litres, medium)
     mis_recorded = (
         None
         if scenario.mis_recorded_feed is None
@@ -547,6 +659,20 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         more_phases.append(phase)
         pools.append(made)
         previous = made
+    # A lot of each buffer, prepared about a day before the step that draws it.
+    by_kind = {phase.kind: phase for phase in (*phases, *more_phases)}
+    for suffix, (step, litres) in BUFFER_DRAWS.items():
+        phase = by_kind[step]
+        buffer = lot(suffix, phase.start - timedelta(hours=BUFFER_LEAD_HOURS), phase.end)
+        moved(
+            "buffer",
+            SOLUTIONS[suffix][2],
+            phase.asset_id,
+            phase.end,
+            litres * moving.gauss(1, 0.01),
+            buffer,
+            phase.start,
+        )
     record = BatchRecord(
         Batch(batch_id, PRODUCT, scenario.is_reference, start, provenance),
         (*seed_phases, *phases, *more_phases),
@@ -575,7 +701,10 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         first,
         mis_recorded,
     )
-    return Observations(record, _online(rng, start, scenario.online_gap_days)), truth_out
+    return (
+        Observations(record, _online(rng, start, scenario.online_gap_days), tuple(lots)),
+        truth_out,
+    )
 
 
 CAMPAIGN_START = datetime(2026, 7, 1, 6, 0, tzinfo=UTC)

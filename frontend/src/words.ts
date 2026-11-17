@@ -33,6 +33,8 @@ export function phaseName(kind: string): string {
   switch (kind) {
     case "seed_n2": return t("N-2 seed culture");
     case "seed_n1": return t("N-1 seed culture");
+    case "solution_prep": return t("Preparation");
+    case "solution_hold": return t("Hold");
     case "production_culture": return t("Production culture");
     case "harvest": return t("Harvest");
     case "protein_a_capture": return t("Protein A capture");
@@ -45,11 +47,20 @@ export function phaseName(kind: string): string {
   }
 }
 
+export function batchKindName(kind: string): string {
+  switch (kind) {
+    case "medium": return t("Medium lot");
+    case "buffer": return t("Buffer lot");
+    default: return kind;
+  }
+}
+
 export function transferName(kind: string): string {
   switch (kind) {
     case "passage": return t("Seed passage moved on");
     case "inoculation": return t("Inoculation");
     case "feed": return t("Feed");
+    case "buffer": return t("Buffer drawn");
     default: return kind;
   }
 }
@@ -76,6 +87,9 @@ export function analyteName(analyte: string): string {
     case "glucose": return t("Glucose");
     case "lactate": return t("Lactate");
     case "titer": return t("Titer");
+    case "ph": return t("pH");
+    case "conductivity": return t("Conductivity");
+    case "osmolality": return t("Osmolality");
     default: return analyte;
   }
 }

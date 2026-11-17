@@ -141,13 +141,17 @@ batchlens benchmark --out docs/verification-report.md
    volume signal. On `BL-0005` one feed reads 6 L recorded against 60 L arrived: flagged,
    and neither number is changed. The passage and the inoculation say why they were not
    checked.
-10. **Comparable batches.** In Metrics, the last column gives the median and the range of
+10. **Solution lots.** In Transfers, each feed names the lot of feed medium it came from and
+    how old that lot was (one lot serves ten daily feeds, so the last feed uses medium ten
+    days old), and each of three purification steps names its buffer lot. A lot opens as a
+    page of its own: where it was prepared and held, its sample, its pH and conductivity.
+11. **Comparable batches.** In Metrics, the last column gives the median and the range of
     the five comparable batches for each metric. On `BL-0004` the Protein A recovery reads
     73.4 % against a median of 93.5 % (91.1 to 93.6); on `BL-0002`, a normal batch, the
     harvest-to-load yield of 91.9 % sits just under a range that starts at 92.0 %, which is
     what a range of four batches is worth. An editor can add a batch to the set or take it
     out, and the change is audited.
-11. **A batch that is running.** `BL-0007` is in its production culture. The process train
+12. **A batch that is running.** `BL-0007` is in its production culture. The process train
    shows the two seed passages done, one step under way and seven not started. The titer finding is already there (it left
    the reference at culture day 8.0), with the latest sample named as not yet reported, and
    the consequence at harvest says it cannot be compared yet. Nothing dated later than now is

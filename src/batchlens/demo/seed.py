@@ -73,6 +73,8 @@ def seed_demo(
                     ", ".join(undone),
                 )
         batches.save(record)
+        for lot in item.lots:  # the solution lots it drew from, loaded with it
+            batches.save(lot)
         seeded.append(batch_id)
     if mark:
         # Every demo batch, not only those loaded now: a database seeded before the set

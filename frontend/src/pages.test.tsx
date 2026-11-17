@@ -380,6 +380,17 @@ describe("one batch", () => {
     expect(rows[2]).toContain("No volume value within 900 s before the transfer.");
   });
 
+  it("shows a solution lot with its phases, samples and results, and nothing computed for a product batch", async () => {
+    answers.detail = { ...DETAIL, batch: { ...DETAIL.batch, batch_id: "BL-0002-BA", product: "Protein A elution buffer", kind: "buffer" } };
+    calls.length = 0;
+    const host = await render(<BatchPage batchId="BL-0002-BA" me={VIEWER} />);
+    expect(host.querySelector("h1, h2")!.textContent).toContain("Lot BL-0002-BA");
+    expect(host.querySelector("[data-lot]")!.textContent).toContain("Protein A elution buffer · Buffer lot");
+    expect([...host.querySelectorAll("[data-section]")].map((section) => section.getAttribute("data-section"))).toEqual(["phases", "samples", "results"]);
+    expect(host.querySelector(".train")).toBeNull();
+    expect(calls.some((call) => call.startsWith("metrics") || call.startsWith("trends"))).toBe(false);
+  });
+
   it("lists every assay result with its collection and availability times", async () => {
     const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const rows = [...host.querySelectorAll('[data-section="results"] tbody tr')].map((row) => row.textContent ?? "");

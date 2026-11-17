@@ -84,39 +84,40 @@ def _signal(
 
 
 def volume(
-    client: PlantCraftClient, culture: PhaseExecution | None, as_of: datetime | None
+    client: PlantCraftClient,
+    culture: PhaseExecution | None,
+    as_of: datetime | None,
+    seen: dict[str, Any] | None = None,
 ) -> calc.Online | calc.Reason:
     """The bioreactor's recorded volume over the end of the production phase: the only stretch
-    in which ``calc.harvest_mass`` accepts a titer sample."""
+    in which ``calc.harvest_mass`` accepts a titer sample. ``seen`` as in ``volume_between``."""
 
     if culture is None:
         return calc.Reason("phase_missing")
-    signal = _signal(client, asset(client, culture.asset_id), culture.asset_id, "volume")
-    if isinstance(signal, calc.Reason):
-        return signal
     reach = timedelta(hours=calc.HARVEST_TITER_WINDOW_HOURS, seconds=calc.VOLUME_MAX_AGE_SECONDS)
     start = max(culture.start, culture.end - reach)
     end = culture.end if as_of is None else min(culture.end, as_of)
-    points: list[tuple[datetime, float]] = []
-    if start < end:
-        missing = calc.Reason("signal_not_found", {"asset_id": culture.asset_id, "role": "volume"})
-        series = _read(lambda: client.series(signal["id"], start, end), missing)
-        if isinstance(series, calc.Reason):
-            return series
-        points = [
-            (_instant(stamp), float(value))
-            for stamp, value in zip(series["t"], series["v"])
-            if isinstance(value, int | float) and not isinstance(value, bool)
-        ]
-    return calc.Online(signal["id"], signal.get("unit") or "", points)
+    return volume_between(client, culture.asset_id, start, end, seen)
 
 
 def volume_between(
-    client: PlantCraftClient, asset_id: str, start: datetime, end: datetime
+    client: PlantCraftClient,
+    asset_id: str,
+    start: datetime,
+    end: datetime,
+    seen: dict[str, Any] | None = None,
 ) -> calc.Online | calc.Reason:
-    """The recorded values of an asset's volume signal between two instants, or why not."""
+    """The recorded values of an asset's volume signal between two instants, or why not.
 
-    signal = _signal(client, asset(client, asset_id), asset_id, "volume")
+    ``seen`` is one request's memory, shared by its reads: an asset's signal is looked up once,
+    and a signal whose data source failed is not asked again (each failed read is retried by
+    the client, and a page that reads seven batches' windows of one dead signal would wait for
+    all of them)."""
+
+    seen = {} if seen is None else seen
+    if asset_id not in seen:
+        seen[asset_id] = _signal(client, asset(client, asset_id), asset_id, "volume")
+    signal = seen[asset_id]
     if isinstance(signal, calc.Reason):
         return signal
     points: list[tuple[datetime, float]] = []
@@ -124,6 +125,8 @@ def volume_between(
         missing = calc.Reason("signal_not_found", {"asset_id": asset_id, "role": "volume"})
         series = _read(lambda: client.series(signal["id"], start, end), missing)
         if isinstance(series, calc.Reason):
+            if series.code == "series_unreadable":
+                seen[asset_id] = series
             return series
         points = [
             (_instant(stamp), float(value))

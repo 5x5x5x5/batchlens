@@ -3,6 +3,25 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: Solution lots
+
+Fourth item of the agreed order, first half.
+
+- **Built:** a batch has a kind (`product`, `medium`, `buffer`); a solution lot is a batch of
+  its own kind with a preparation phase, a hold phase, one sample and its results. Four lots
+  per product batch. Feeds and three buffer draws name their lot; the Transfers table shows
+  the lot and its age; a lot has a page of its own.
+- **Ruling (the owner's choice between two):** lots as batches with a kind, not a separate
+  object, so phases, samples, results, `as_of` and corrections are reused unchanged. The batch
+  list, the reference, the comparable set and the assistant's list hold product batches only.
+- **Schema:** the first migration (`batch_kind`): a column on `batches`. A test opens a
+  database made before it.
+- **Found while measuring test time:** the metrics route looked up the same bioreactor's asset
+  and signal once per comparable batch, and retried a dead data source for each. One request
+  now looks each up once and does not ask a failed source again (5.5 s to under 1 s with the
+  historian down).
+- **Checked:** every earlier generated value unchanged (`synthetic-generator/5`).
+
 ## 2026-11-16: Comparable batches
 
 Third item of the agreed order.
