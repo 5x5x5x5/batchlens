@@ -87,7 +87,9 @@ function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
   return <>
     <p className="muted">{t("Other results of the same samples, beside the reference batch's. Nothing is concluded from them.")}</p>
     {evidence.map((group) => <div key={group.at}>
-      <h4>{group.at === "seed_n1_end"
+      <h4>{group.at === "buffer_lot"
+        ? t("{solution}: lot {lot} against the reference batch's lot {reference} ({days} and {referenceDays} days old when drawn)", { solution: group.solution ?? "", lot: group.lot_id ?? "", reference: group.reference_lot_id ?? "", days: (group.age_days ?? 0).toFixed(1), referenceDays: (group.reference_age_days ?? 0).toFixed(1) })
+        : group.at === "seed_n1_end"
         ? t("At the end of the N-1 seed passage: {sample} against {reference} (day {day} of the passage)", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })
         : group.at === "divergence"
         ? t("At the divergence: {sample} against {reference} (culture day {day})", { sample: group.sample_id, reference: group.reference_sample_id, day: group.culture_day.toFixed(1) })

@@ -37,7 +37,7 @@ campaign before (`BK-0007` to `BK-0009`) are kept to compare with:
 | `BL-0001` | Normal; the reference | Its own numbers |
 | `BL-0002` | Normal | Within every tolerance |
 | `BL-0003` | Specific productivity fell from day 7 | Titer left the reference at culture day 7.9; 7,317 g against 10,170 g at harvest |
-| `BL-0004` | Normal culture, poor Protein A step | Recovery 20 points below the reference; 7,410 g against 9,230 g in the eluate |
+| `BL-0004` | Normal culture, poor Protein A step: its elution buffer lot was made at pH 3.9 for 3.5 | Recovery 20 points below the reference; 7,410 g against 9,230 g in the eluate; beside it, the buffer lot at pH 3.94 against the reference's 3.49 |
 | `BL-0005` | Normal culture, **bad records** | Culture metrics `invalid`, harvest mass `insufficient`, each naming the record it tripped on |
 | `BL-0006` | Slow last seed passage: the culture began with too few cells | The culture began 61 % below the reference's density; 9,392 g against 10,170 g at harvest, at a normal productivity per cell |
 | `BL-0007` | **Running now**, nine days into its culture when the demo starts; productivity fell from day 7 | Titer left the reference at culture day 8.0; nothing about harvest yet, because it has not happened |

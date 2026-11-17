@@ -140,6 +140,39 @@ def render(result: dict[str, Any]) -> str:
         )
     lines += [
         "",
+        "## Evidence beside a Protein A shortfall",
+        "",
+        "Beside a Protein A recovery that fell short the page lays the elution buffer lot's pH and",
+        "conductivity against the reference batch's lot's, and concludes nothing. This table is",
+        "what those two differences are in three kinds of batch: normal ones, where they are what",
+        "two good lots differ by; batches whose recovery the generator set low directly, a loss",
+        "whose cause is in no record; and batches whose buffer lot was made off its pH of 3.5,",
+        "where the generator lowers the recovery by 60 points per pH unit above 3.6. The",
+        "conductivity is never changed, so its column is the size of a difference that means",
+        "nothing.",
+        "",
+        "| Batches | True buffer pH | Comparisons | Shortfall found | pH shown: mean difference"
+        " | pH shown: mean absolute | Conductivity shown: mean absolute |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    names = {
+        "normal": "Normal",
+        "recovery_set_directly": "Recovery set low directly",
+        "elution_ph": "Buffer lot off its pH",
+    }
+    for row in result["protein_a_evidence"]:
+        level = "3.5" if row["true_ph"] is None else f"{row['true_ph']:g}"
+        lines.append(
+            f"| {names[row['group']]} | {level} | {row['comparisons']} | "
+            f"{_share(row['shortfall_found'], row['comparisons'])} | "
+            f"{row['ph_mean_difference']:+.2f} | {row['ph_mean_abs_difference']:.2f} | "
+            f"{row['conductivity_mean_abs_difference']:.2f} mS/cm |"
+        )
+    lines += [
+        "",
+        "A shortfall with a flat pH row is the case to remember: the lot table is evidence to",
+        "read, and an unremarkable lot does not make the loss smaller.",
+        "",
         "## Calculation error",
         "",
         "Each computed metric against the generator's true value, as a percentage of the true",

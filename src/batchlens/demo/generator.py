@@ -32,7 +32,8 @@ from batchlens.batches.models import (
 # Raised when what the generator makes changes, so a database seeded by an older one is
 # recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
 # 3: the seed train before the production culture. 4: transfers. 5: solution lots.
-VERSION = "synthetic-generator/5"
+# 6: the Protein A recovery depends on its elution buffer's pH.
+VERSION = "synthetic-generator/6"
 PRODUCT = "mAb-X"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"
@@ -87,6 +88,9 @@ BUFFER_DRAWS = {
     "BC": ("cation_exchange", 400.0),
     "BD": ("ufdf", 700.0),
 }
+# The Protein A step elutes less the further its elution buffer's pH is above ELUTION_PH_KNEE:
+# the recovery falls by ELUTION_PH_SLOPE per pH unit beyond it. A shape, not a binding model.
+ELUTION_PH, ELUTION_PH_KNEE, ELUTION_PH_SLOPE = 3.5, 3.6, 0.6
 PREP_HOURS = 2
 BUFFER_LEAD_HOURS = 26  # a buffer's preparation begins this long before its step
 HARVEST_SKID = "HV-2101"
@@ -166,6 +170,9 @@ class Scenario:
     qp_shift_factor: float = 1.0
     harvest_to_load_yield: float = 0.93
     protein_a_recovery: float = 0.92
+    # The true pH of the batch's lot of Protein A elution buffer. Above ELUTION_PH_KNEE the
+    # recovery above is lowered (see ELUTION_PH_SLOPE).
+    elution_buffer_ph: float = ELUTION_PH
     # The N-1 passage's growth rate is multiplied by this. Below about 0.8 the whole N-1
     # vessel holds too few cells for the production culture's target, and the culture starts
     # at a lower density.
@@ -214,6 +221,7 @@ class GroundTruth:
     seed_growth_rates: dict[str, float] = field(default_factory=dict)
     inoculation_density: float = SEED_DENSITY  # 1e6 cells/mL, the production culture's start
     mis_recorded_transfer: str | None = None  # the transfer id
+    elution_buffer_ph: float = ELUTION_PH  # the true pH of the Protein A elution buffer lot
 
 
 def _vcd(day: float, peak: float, rate: float, first: float = SEED_DENSITY) -> float:
@@ -389,6 +397,8 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
     # Solution lots, from a generator of their own as well.
     mixing = random.Random(f"{seed}/solutions")
     lots: list[BatchRecord] = []
+    # Where a lot's true value is the scenario's, not the nominal one.
+    true = {("BA", "ph"): scenario.elution_buffer_ph}
 
     def lot(suffix: str, prep_start: datetime, emptied: datetime) -> str:
         """A lot prepared from ``prep_start`` and held until ``emptied``; answers its id."""
@@ -417,7 +427,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
                 f"{sample.sample_id}-{analyte}",
                 sample.sample_id,
                 analyte,
-                round(nominal + mixing.gauss(0, noise), decimals),
+                round(true.get((suffix, analyte), nominal) + mixing.gauss(0, noise), decimals),
                 SOLUTION_UNITS[analyte],
                 SOLUTION_METHODS[analyte],
                 sample.collected_at + timedelta(seconds=round(mixing.uniform(0.5, 2) * 3600)),
@@ -562,7 +572,8 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
 
     harvest_mass = titer * _volume(days[-1])
     step_yield = scenario.harvest_to_load_yield * rng.gauss(1, 0.005)
-    recovery = scenario.protein_a_recovery * rng.gauss(1, 0.005)
+    lost_to_ph = ELUTION_PH_SLOPE * max(0.0, scenario.elution_buffer_ph - ELUTION_PH_KNEE)
+    recovery = (scenario.protein_a_recovery - lost_to_ph) * rng.gauss(1, 0.005)
     load_mass, load_volume = harvest_mass * step_yield, 1920.0 + rng.uniform(-10, 10)
     eluate_mass = load_mass * recovery
     eluate_volume = eluate_mass / 18.0 * rng.uniform(0.97, 1.03)
@@ -700,6 +711,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         seed_rates,
         first,
         mis_recorded,
+        scenario.elution_buffer_ph,
     )
     return (
         Observations(record, _online(rng, start, scenario.online_gap_days), tuple(lots)),
@@ -778,8 +790,9 @@ def _campaign(
             103,
         ),
         (
+            # An elution buffer made at pH 3.9 instead of 3.5: recovery 0.92 - 0.6 * 0.3 = 0.74.
             Scenario(
-                "BL-0004", start(3), label="reduced_protein_a_recovery", protein_a_recovery=0.74
+                "BL-0004", start(3), label="reduced_protein_a_recovery", elution_buffer_ph=3.9
             ),
             104,
         ),

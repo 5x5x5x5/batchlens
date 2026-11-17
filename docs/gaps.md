@@ -76,3 +76,6 @@ Known gaps, with the date they were found.
 | 2026-11-16 | Solution lots: every batch has lots of its own; no lot is shared between batches, and no mix tank schedule is modelled. A lot's page does not list the transfers that drew from it. Lots are reached only from a batch's Transfers table. | Open |
 | 2026-11-16 | Solution lots: a buffer draw is recorded but not checked: the skids and the hold tanks have no volume or level signal. | Open |
 | 2026-11-16 | Solution lots: a lot's results are shown, not judged. There is no recipe or specification, by design; a lot is compared only with another batch's lot of the same solution (next roadmap step). | By design |
+| 2026-11-16 | Lot evidence: the page lays a buffer lot beside the reference batch's one lot. Two good lots differ too (conductivity by about 0.1 mS/cm on average in the benchmark, and `BL-0004`'s by 0.35), and the page gives no measure of what an ordinary difference is. The comparable batches' lots are not used. | Open |
+| 2026-11-16 | Lot evidence: only the three steps that draw a recorded buffer carry it, only pH and conductivity are recorded, and only the Protein A recovery depends on its buffer in the generator. | Open |
+| 2026-11-16 | Lot evidence appears only once a shortfall is found, which is after the step: nothing compares a lot with the reference's before it is used. | Open |

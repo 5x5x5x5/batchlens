@@ -117,6 +117,8 @@ batchlens benchmark --out docs/verification-report.md
    six: every later step is within a point or two of the reference, and the batch ends at
    51 % of its harvest against the reference's 73 %. Below, the genealogy shows the two capture
    cycles merged into one eluate, with the mass balance of the merge.
+   Under the finding, the lot of elution buffer the step drew beside the reference batch's:
+   pH 3.94 against 3.49, conductivity 5.15 against 4.8 mS/cm. Nothing is concluded from it.
 5. **`BL-0005`, a good process and bad records.** One sample's time was keyed in as the
    previous one's, and the historian has a hole over the harvest sample. The app refuses the
    culture metrics and the harvest mass, names the record each tripped on, stops the trends
@@ -246,7 +248,7 @@ nothing about it.
 | `BL-0001` | 101 | 2026-07-01 06:00 | Normal, designated reference | Nothing; marked comparable |
 | `BL-0002` | 102 | 2026-07-22 06:00 | Normal | Ordinary variability only; marked comparable |
 | `BL-0003` | 103 | 2026-08-12 06:00 | Reduced culture productivity | qP is multiplied by 0.55 from day 7; glucose +0.8 g/L and lactate rising 0.25 g/L per day from then |
-| `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; recovery 0.74 instead of 0.92 |
+| `BL-0004` | 104 | 2026-09-02 06:00 | Reduced Protein A recovery | Normal culture; its lot of Protein A elution buffer was made at pH 3.9 instead of 3.5, which gives a recovery of 0.74 instead of 0.92 |
 | `BL-0005` | 105 | 2026-09-23 06:00 | Data problem | A normal culture, recorded badly: sample 9's collection time was keyed in as sample 8's, and feed 7 was recorded as 6 L instead of 60 L, and the historian kept nothing from culture day 13.4 to the end of the phase |
 | `BL-0006` | 107 | 2026-10-14 06:00 | Low inoculum | The N-1 seed passage grew at 0.4 of its rate, so the whole N-1 vessel held too few cells and the culture began at 0.19 instead of 0.5 (1e6 cells/mL); qP is normal |
 | `BL-0007` | 106 | live campaign only: nine days before the first start, 06:00 | Reduced culture productivity, running | qP is multiplied by 0.6 from day 7; generated whole like the others, and shown only up to now |

@@ -69,6 +69,9 @@ export interface Evidence {
   at: string; sample_id: string; reference_sample_id: string; culture_day: number;
   /** Hours since the last feed before each sample; null before the first feed. */
   hours_since_feed?: number | null; reference_hours_since_feed?: number | null;
+  /** For a buffer lot beside the reference's: the solution, both lots, and each lot's age in
+   * days when its step began to draw it. */
+  solution?: string; lot_id?: string; reference_lot_id?: string; age_days?: number; reference_age_days?: number;
   results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null }>;
 }
 

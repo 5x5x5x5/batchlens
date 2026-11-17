@@ -12,7 +12,7 @@ measures whether the analysis does what it says on data shaped like its own demo
 says nothing about real processes, real assay noise or real historians, and it is not a
 validation of anything.
 
-- Generator: `synthetic-generator/5`, 20 seeds of every variant.
+- Generator: `synthetic-generator/6`, 20 seeds of every variant.
 - Batches: 20 normal, 180 with reduced specific
   productivity (from culture day 5, 7, 9; to
   55 %, 70 %, 85 % of nominal), 60 with
@@ -93,6 +93,28 @@ was changed; "wrong step" counts those raised in a batch whose loss was in anoth
 | 5 points | 100 of 100 (100.0 %) | 100 of 100 (100.0 %) | 91 of 100 (91.0 %) | 32 of 7700 (0.4 %) | 4 |
 | 10 points | 100 of 100 (100.0 %) | 99 of 100 (99.0 %) | 12 of 100 (12.0 %) | 0 of 7700 (0.0 %) | 0 |
 | 15 points | 100 of 100 (100.0 %) | 37 of 100 (37.0 %) | 0 of 100 (0.0 %) | 0 of 7700 (0.0 %) | 0 |
+
+## Evidence beside a Protein A shortfall
+
+Beside a Protein A recovery that fell short the page lays the elution buffer lot's pH and
+conductivity against the reference batch's lot's, and concludes nothing. This table is
+what those two differences are in three kinds of batch: normal ones, where they are what
+two good lots differ by; batches whose recovery the generator set low directly, a loss
+whose cause is in no record; and batches whose buffer lot was made off its pH of 3.5,
+where the generator lowers the recovery by 60 points per pH unit above 3.6. The
+conductivity is never changed, so its column is the size of a difference that means
+nothing.
+
+| Batches | True buffer pH | Comparisons | Shortfall found | pH shown: mean difference | pH shown: mean absolute | Conductivity shown: mean absolute |
+|---|---|---|---|---|---|---|
+| Normal | 3.5 | 100 | 0 of 100 (0.0 %) | +0.01 | 0.01 | 0.13 mS/cm |
+| Recovery set low directly | 3.5 | 300 | 191 of 300 (63.7 %) | +0.01 | 0.02 | 0.10 mS/cm |
+| Buffer lot off its pH | 3.75 | 100 | 18 of 100 (18.0 %) | +0.25 | 0.25 | 0.08 mS/cm |
+| Buffer lot off its pH | 3.85 | 100 | 100 of 100 (100.0 %) | +0.36 | 0.36 | 0.10 mS/cm |
+| Buffer lot off its pH | 3.95 | 100 | 100 of 100 (100.0 %) | +0.44 | 0.44 | 0.10 mS/cm |
+
+A shortfall with a flat pH row is the case to remember: the lot table is evidence to
+read, and an unremarkable lot does not make the loss smaller.
 
 ## Calculation error
 
