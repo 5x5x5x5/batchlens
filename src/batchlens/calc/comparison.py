@@ -38,7 +38,7 @@ SHORTFALL_VERSION = "recovery_shortfall/2"  # 2: a tolerance per step
 # false alarms and detections measured in docs/verification-report.md.
 RECOVERY_TOLERANCE_POINTS = 5.0
 TOLERANCE_POINTS_BY_METRIC = {"harvest_to_load_yield": 10.0}
-POSITION_VERSION = "set_position/1"
+POSITION_VERSION = "set_position/2"  # 2: a prediction interval
 # Fewer comparable batches than this with a value, and a metric is not placed among them.
 MINIMUM_COMPARABLE = 3
 INOCULATION_SHORTFALL_VERSION = "inoculation_shortfall/1"
@@ -230,14 +230,30 @@ def inoculation_shortfall(
     )
 
 
+# Student's t for a two-sided 99 % interval, by degrees of freedom (2 to 30; 2.576 beyond).
+T_99 = dict(
+    zip(
+        range(2, 31),
+        (9.925, 5.841, 4.604, 4.032, 3.707, 3.499, 3.355, 3.250, 3.169, 3.106, 3.055, 3.012)
+        + (2.977, 2.947, 2.921, 2.898, 2.878, 2.861, 2.845, 2.831, 2.819, 2.807, 2.797, 2.787)
+        + (2.779, 2.771, 2.763, 2.756, 2.750),
+    )
+)
+
+
 def set_position(
     value: Result, others: Sequence[Result], *, minimum: int = MINIMUM_COMPARABLE
 ) -> Result:
     """Where a metric sits among the same metric of the comparable batches: its difference
-    from their median, with their count, median, lowest and highest, and whether it lies
-    below, within or above their range. Comparable batches without a value are left out and
-    counted; with fewer than ``minimum`` left there is no answer. A range of a few batches
-    is what those batches happened to give, not a limit."""
+    from their median, with their count, median, lowest and highest, and the range one more
+    batch like them is expected in.
+
+    That range is a 99 % prediction interval, ``mean +/- t * s * sqrt(1 + 1/n)`` with the
+    sample standard deviation ``s`` and Student's ``t`` for ``n - 1`` degrees of freedom: it
+    widens as the batches get fewer, which the plain lowest-to-highest range does not. The
+    reason says whether the value lies below, within or above it. It assumes the comparable
+    batches are alike and roughly normal; it is not a limit. Comparable batches without a
+    value are left out and counted; with fewer than ``minimum`` left there is no answer."""
 
     metric = f"{value.metric}_among_comparable"
     usable = sorted(other.value for other in others if other.value is not None)
@@ -245,21 +261,27 @@ def set_position(
     if value.value is None:
         reason = Reason("input_not_usable", {"metric": value.metric, "status": value.status})
         return insufficient(metric, value.unit, POSITION_VERSION, reason)
-    if len(usable) < minimum:
-        counted = {"count": len(usable), "minimum": minimum, "without_value": left_out}
+    count = len(usable)
+    if count < minimum:
+        counted = {"count": count, "minimum": minimum, "without_value": left_out}
         return insufficient(
             metric, value.unit, POSITION_VERSION, Reason("too_few_comparable_batches", counted)
         )
-    middle = len(usable) // 2
-    median = usable[middle] if len(usable) % 2 else 0.5 * (usable[middle - 1] + usable[middle])
-    where = (
-        "below" if value.value < usable[0] else "above" if value.value > usable[-1] else "within"
-    )
+    middle = count // 2
+    median = usable[middle] if count % 2 else 0.5 * (usable[middle - 1] + usable[middle])
+    mean = sum(usable) / count
+    spread = (sum((each - mean) ** 2 for each in usable) / (count - 1)) ** 0.5
+    half = T_99.get(count - 1, 2.576) * spread * (1 + 1 / count) ** 0.5
+    low, high = mean - half, mean + half
+    where = "below" if value.value < low else "above" if value.value > high else "within"
     seen = {
-        "count": len(usable),
+        "count": count,
         "median": median,
         "lowest": usable[0],
         "highest": usable[-1],
+        "expected_low": low,
+        "expected_high": high,
+        "level_percent": 99.0,
         "without_value": left_out,
     }
     return Result(
@@ -267,7 +289,7 @@ def set_position(
         value.value - median,
         value.unit,
         USABLE,
-        (Reason(f"{where}_comparable_range", seen),),
+        (Reason(f"{where}_expected_range", seen),),
         value.inputs
         + tuple(i for other in others if other.value is not None for i in other.inputs),
         POSITION_VERSION,

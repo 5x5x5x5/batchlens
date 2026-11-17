@@ -36,6 +36,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A split with a mass balance: the drug substance divided into bulk containers, their sum against the whole; a container missing from the records shows as mass unaccounted for | Done, oracle-tested, on the batch page |
 | Batch context published to PlantCraft: an interval event on the asset while a batch's phase runs on it (the owner granted the `events` write permission) | Done, tested against the fake PlantCraft |
 | Volume signals on the seed reactors and the feed tank; a transfer checked at both ends, or by its source alone | Done, oracle-tested, on the batch page |
+| The range one more comparable batch is expected in (a 99 % prediction interval, wider the fewer the batches), with a mark where a metric lies outside it | Done, oracle-tested, on the batch page |
 
 ## Next, in the intended order
 
@@ -46,15 +47,14 @@ backward (what went into each step) before the chain forward.
    trend of them.
 2. Transfers, the rest: evidence paired by hours since the last feed, not only labelled
    with them; a check of the buffer draws.
-3. Comparable batches, the rest: findings against the set instead of the one reference
-   batch; a spread that accounts for how few batches there are.
+3. Comparable batches, the rest: findings against the set's expected range instead of the
+   one reference batch and a fixed tolerance.
 4. Solution lots, the rest: an ordinary lot-to-lot difference from the comparable batches'
    lots, beside the evidence; lots shared between batches.
 5. Batch context, the rest: the window of a finished batch (events cannot be dated back;
    a published result with its own time could, and needs the `results` permission); links
    from a batch into View, Alarms and Analytics for that window.
-6. Tolerances from the batches themselves: a spread per step from the comparable batches
-   in place of a fixed number.
+6. (Joined with item 3: the expected range is the tolerance from the batches themselves.)
 7. Genealogy, the rest: material carried between batches, with a mass balance.
 
 The generator may make an outcome depend on an input (titer on inoculation density, recovery

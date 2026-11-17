@@ -506,12 +506,12 @@ describe("one batch", () => {
   });
 
   it("shows the comparable batches' median and range beside a metric, and lets an editor change the set", async () => {
-    const among = { metric: "qp_among_comparable", value: 1.5, unit: "pg/cell/day", status: "usable", inputs: [], calculation_version: "set_position/1", reasons: [{ code: "within_comparable_range", values: { count: 5, median: 29.76, lowest: 28.77, highest: 31.24, without_value: 0 } }] };
+    const among = { metric: "qp_among_comparable", value: 1.5, unit: "pg/cell/day", status: "usable", inputs: [], calculation_version: "set_position/1", reasons: [{ code: "below_expected_range", values: { count: 5, median: 29.76, lowest: 28.77, highest: 31.24, expected_low: 25.36, expected_high: 34.32, level_percent: 99, without_value: 0 } }] };
     const few = { ...among, value: null, status: "insufficient", reasons: [{ code: "too_few_comparable_batches", values: { count: 2, minimum: 3, without_value: 0 } }] };
     answers.metrics = { ...METRICS, comparable_batch_ids: ["BK-0007", "BL-0001"], metrics: [{ ...METRICS.metrics[0], comparable: among }, { ...METRICS.metrics[1], comparable: few }] };
     let host = await render(<BatchPage batchId="BL-0002" me={EDITOR} />);
     const rows = [...host.querySelectorAll('[data-section="metrics"] tbody tr')].map((row) => row.textContent ?? "");
-    expect(rows[0]).toContain("29.828.8 to 31.2, 5 batches");
+    expect(rows[0]).toContain("29.8 Belowexpected 25.4 to 34.3 (99 %, 5 batches)");
     expect(rows[1]).toContain("Only 2 comparable batches have a value; 3 are needed.");
     expect(host.querySelector("[data-comparable]")!.textContent).toBe("Comparable batches: BK-0007, BL-0001.");
     calls.length = 0;

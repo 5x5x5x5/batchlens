@@ -214,7 +214,6 @@
   "Collected {hours} h after a feed; the reference sample {reference} h after one. Glucose and lactate move with every feed.": "Coletada {hours} h após uma alimentação; a amostra de referência, {reference} h após uma. Glicose e lactato variam a cada alimentação.",
   "Comparable batches": "Lotes comparáveis",
   "Comparable": "Comparável",
-  "{lowest} to {highest}, {count} batches": "{lowest} a {highest}, {count} lotes",
   "Take {batch} out of the comparable batches? The change is written to PlantCraft's audit log.": "Retirar {batch} dos lotes comparáveis? A alteração é gravada no log de auditoria do PlantCraft.",
   "Add {batch} to the comparable batches the others are read against? The change is written to PlantCraft's audit log.": "Adicionar {batch} aos lotes comparáveis com os quais os outros são lidos? A alteração é gravada no log de auditoria do PlantCraft.",
   "Take out of the comparable batches": "Retirar dos lotes comparáveis",
@@ -242,5 +241,8 @@
   "What was moved into which vessel, as recorded, against what the volume signals of the vessels at both ends show arriving and leaving. Where a vessel and the record disagree the transfer is flagged; which of them is wrong is not decided.": "O que foi transferido para qual vaso, conforme registrado, em relação ao que os sinais de volume dos vasos nas duas pontas mostram chegando e saindo. Onde um vaso e o registro divergem a transferência é sinalizada; não se decide qual deles está errado.",
   "Vessels, against the record": "Vasos, em relação ao registro",
   "The destination's volume rose by {arrived} L and the source's fell by {left} L, against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do destino subiu {arrived} L e o da origem caiu {left} L, contra {recorded} L registrados (a tolerância é {tolerance} %).",
-  "The source vessel's volume fell by {left} L against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do vaso de origem caiu {left} L contra {recorded} L registrados (a tolerância é {tolerance} %)."
+  "The source vessel's volume fell by {left} L against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do vaso de origem caiu {left} L contra {recorded} L registrados (a tolerância é {tolerance} %).",
+  "Below": "Abaixo",
+  "Above": "Acima",
+  "expected {low} to {high} ({level} %, {count} batches)": "esperado de {low} a {high} ({level} %, {count} lotes)"
 }

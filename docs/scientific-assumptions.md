@@ -310,24 +310,32 @@ the feed tank 650.0 L and 589.0 L. `arrived = 61.2`, `left = 61.0`, `balance = 1
 - Assumption: nothing else entered or left either vessel during the transfer (no sampling, no
   evaporation, no base addition).
 
-### 15. A metric among the comparable batches (`set_position/1`), the metric's unit
+### 15. A metric among the comparable batches (`set_position/2`), the metric's unit
 
-For one metric: the comparable batches' count, median, lowest and highest value, and this
-batch's difference from the median. The reason says whether the value lies below, within or
-above their range. The batch itself is never in its own set, and every batch is computed as of
-the same moment.
+For one metric: the comparable batches' count, median, lowest and highest value, this batch's
+difference from the median, and the range one more batch like them is expected in. The batch
+itself is never in its own set, and every batch is computed as of the same moment.
 
-Example, recoveries of 93.6, 91.1, 92.4 and 93.0 %: sorted 91.1, 92.4, 93.0, 93.6, median
-`(92.4 + 93.0) / 2 = 92.7`. A recovery of 73.4 % is `73.4 - 92.7 = -19.3` from the median,
-below the range.
+The expected range is a 99 % prediction interval: `mean +/- t * s * sqrt(1 + 1/n)`, with the
+sample standard deviation `s` over the `n` comparable batches and Student's `t` for `n - 1`
+degrees of freedom (9.925 for three batches, 5.841 for four, 4.604 for five, 2.576 beyond
+thirty-one). The reason says whether the value lies below, within or above it (version 2;
+version 1 compared with the lowest and highest only).
+
+Example, recoveries of 93.6, 91.1, 92.4 and 93.0 %: median 92.7, mean 92.525,
+`s = sqrt(3.4275 / 3) = 1.069`, `92.525 +/- 5.841 * 1.069 * sqrt(1.25) = 85.5 to 99.5`. A
+recovery of 73.4 % is below it; one of 89.0 %, lower than all four, is within it. With only
+the first three batches the range is 78.0 to 106.7.
 
 - `insufficient`: the batch's own metric has no value; fewer than `MINIMUM_COMPARABLE`
   comparable batches have one (those without are counted in the reason, never guessed).
-- **The range of a few batches is not a limit.** With five batches a normal sixth falls
-  outside their range about one time in three for each metric. The page therefore shows the
-  median and the range and draws no verdict from them, and no finding is raised from them.
-- Which batches are comparable is a person's choice, like the reference. The app does not
-  check that they are alike.
+- **Why not the lowest and highest.** With five batches a normal sixth falls outside their
+  range about one time in three for each metric. The interval widens as the batches get
+  fewer, so few batches say little, as they should.
+- **What it assumes:** that the comparable batches are alike and their values roughly normal,
+  and that this batch would be one of them. Nothing checks that. It is an observation beside
+  the metric, not a limit, and no finding is raised from it.
+- Which batches are comparable is a person's choice, like the reference.
 
 ### 16. Split balance (`split_balance/1`), `%`
 

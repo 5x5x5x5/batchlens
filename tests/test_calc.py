@@ -531,20 +531,38 @@ def test_a_metric_is_placed_among_the_comparable_batches_by_their_median_and_ran
         "usable",
     )
     assert result.value == pytest.approx(-19.3)
-    assert codes(result) == ["below_comparable_range"]
+    assert codes(result) == ["below_expected_range"]
+    # Mean 92.525, s = sqrt(3.4275 / 3) = 1.0689, t (3 degrees of freedom, 99 %) = 5.841:
+    # 92.525 +/- 5.841 * 1.0689 * sqrt(1 + 1/4) = 92.525 +/- 6.980.
     assert result.reasons[0].values == {
         "count": 4,
         "median": pytest.approx(92.7),
         "lowest": 91.1,
         "highest": 93.6,
+        "expected_low": pytest.approx(85.545, abs=0.001),
+        "expected_high": pytest.approx(99.505, abs=0.001),
+        "level_percent": 99.0,
         "without_value": 0,
     }
     assert result.inputs == ("x", "b0", "b1", "b2", "b3")
-    assert result.calculation_version == "set_position/1"
-    assert codes(calc.set_position(recovery(92.0), others)) == ["within_comparable_range"]
-    assert codes(calc.set_position(recovery(93.6), others)) == ["within_comparable_range"]
-    assert codes(calc.set_position(recovery(95.0), others[:3])) == ["above_comparable_range"]
-    assert calc.set_position(recovery(95.0), others[:3]).reasons[0].values["median"] == 92.4
+    assert result.calculation_version == "set_position/2"
+    # Outside what the four batches happened to give, and still nothing to remark on.
+    assert codes(calc.set_position(recovery(95.0), others)) == ["within_expected_range"]
+    assert codes(calc.set_position(recovery(89.0), others)) == ["within_expected_range"]
+    assert codes(calc.set_position(recovery(101.0), others)) == ["above_expected_range"]
+
+
+def test_fewer_comparable_batches_make_the_expected_range_wider():
+    four = [recovery(v, f"b{i}") for i, v in enumerate((93.6, 91.1, 92.4, 93.0))]
+    wide = calc.set_position(recovery(80.0), four[:3]).reasons[0]
+    narrow = calc.set_position(recovery(80.0), four).reasons[0]
+    # Three batches: 92.367 +/- 9.925 * 1.2503 * sqrt(1 + 1/3) = +/- 14.33.
+    assert wide.values["expected_low"] == pytest.approx(78.04, abs=0.01)
+    assert (wide.code, narrow.code) == ("within_expected_range", "below_expected_range")
+    # Batches that all gave the same value leave no room at all: stated, not hidden.
+    same = calc.set_position(recovery(92.1), [recovery(92.0, f"s{i}") for i in range(3)])
+    assert same.reasons[0].code == "above_expected_range"
+    assert same.reasons[0].values["expected_low"] == same.reasons[0].values["expected_high"] == 92.0
 
 
 def test_too_few_comparable_batches_with_a_value_place_nothing():
