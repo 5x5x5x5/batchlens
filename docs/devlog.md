@@ -3,6 +3,23 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: What the comparable batches lead to expect
+
+Remainder of the third and sixth items.
+
+- **Built:** `set_position/2`: beside the median, a 99 % prediction interval for one more
+  batch like the comparable ones, and a mark on the page where a metric lies outside it.
+- **Why:** the lowest-to-highest range of five batches excluded normal batches one time in
+  three, so the page could show it and say nothing. The interval allows for how few batches
+  there are, which makes a mark defensible.
+- **Seen in the demo:** no normal batch is marked on any metric. `BL-0003` is marked on qP
+  and the masses, `BL-0004` on the Protein A recovery and the eluate, `BL-0006` on the N-1
+  growth rate and the inoculation density: each on what went wrong and nothing else.
+- **Ruling:** still an observation in the metrics table, not a finding. The findings keep
+  the one reference batch and fixed tolerances until the owner decides otherwise.
+- **Found on the live demo and fixed (PR 38):** PlantCraft answers an empty window as a
+  failed read, and one such failure made a request give the bioreactor's signal up.
+
 ## 2026-11-17: A transfer checked at both ends
 
 Remainder of the first two items.

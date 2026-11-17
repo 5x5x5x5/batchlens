@@ -507,11 +507,15 @@ def test_each_metric_sits_beside_the_comparable_batches_median_and_range(seeded,
     assert answer["comparable_batch_ids"] == ["BK-0007", "BK-0008", "BK-0009", "BL-0001", "BL-0002"]
     found = {item["metric"]: item["comparable"] for item in answer["metrics"]}
     recovery = found["protein_a_recovery"]
-    assert recovery["status"] == "usable" and codes(recovery) == ["below_comparable_range"]
+    assert recovery["status"] == "usable" and codes(recovery) == ["below_expected_range"]
     seen = recovery["reasons"][0]["values"]
     assert seen["count"] == 5 and 91 < seen["lowest"] < seen["median"] < seen["highest"] < 94
     assert recovery["value"] == pytest.approx(73.39 - seen["median"], abs=0.01)
-    assert codes(found["qp"]) == ["within_comparable_range"]
+    assert codes(found["qp"]) == ["within_expected_range"]
+    # A normal batch just outside what five batches happened to give is not remarked on.
+    started = found["inoculation_density"]["reasons"][0]
+    assert started["code"] == "within_expected_range"
+    assert started["values"]["expected_low"] < 0.5 < started["values"]["lowest"]
     # A comparable batch is not read against itself: four others are left.
     own = client.get("/api/batches/BL-0002/metrics").json()
     assert "BL-0002" not in own["comparable_batch_ids"]
@@ -536,7 +540,7 @@ def test_comparable_batches_are_read_as_of_the_same_moment(seeded, client):
     # The comparable batches finished long before: their harvest masses are known, this one's not.
     assert found["harvest_mass"]["value"] is None
     assert codes(found["harvest_mass"]["comparable"]) == ["input_not_usable"]
-    assert codes(found["ivcd"]["comparable"])[0].endswith("_comparable_range")
+    assert codes(found["ivcd"]["comparable"])[0].endswith("_expected_range")
 
 
 def transfers_of(client, batch_id: str, **params) -> list[dict]:

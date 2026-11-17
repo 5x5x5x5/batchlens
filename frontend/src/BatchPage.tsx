@@ -41,13 +41,17 @@ function MetricValue({ metric }: { metric: Metric }) {
   return <>{significant(metric.value, metricDigits(metric.metric))} {metric.unit}</>;
 }
 
-/** The comparable batches' median and range of a metric. No verdict: a range of a few batches
- * is what those batches happened to give. */
+/** The comparable batches' median of a metric and the range one more batch like them is
+ * expected in (a prediction interval, wider the fewer they are), with a word when the value
+ * lies outside it. An observation: the interval is not a limit. */
 function Among({ result, digits }: { result?: Result | null; digits: number }) {
   if (!result) return null;
-  const seen = result.reasons.find((reason) => reason.code.endsWith("_comparable_range"))?.values;
-  if (!seen) return <span className="muted">{result.reasons.map(reasonText).join(" ")}</span>;
-  return <>{significant(Number(seen.median), digits)}<small>{t("{lowest} to {highest}, {count} batches", { lowest: significant(Number(seen.lowest), digits), highest: significant(Number(seen.highest), digits), count: String(seen.count) })}</small></>;
+  const reason = result.reasons.find((item) => item.code.endsWith("_expected_range"));
+  if (!reason) return <span className="muted">{result.reasons.map(reasonText).join(" ")}</span>;
+  const seen = reason.values;
+  const outside = reason.code.startsWith("below") ? t("Below") : reason.code.startsWith("above") ? t("Above") : "";
+  return <>{significant(Number(seen.median), digits)}{outside && <> <Pill status="suspect" label={outside} /></>}
+    <small>{t("expected {low} to {high} ({level} %, {count} batches)", { low: significant(Number(seen.expected_low), digits), high: significant(Number(seen.expected_high), digits), level: String(seen.level_percent), count: String(seen.count) })}</small></>;
 }
 
 function MetricsTable({ metrics }: { metrics: Metrics }) {
