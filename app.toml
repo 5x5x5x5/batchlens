@@ -36,7 +36,7 @@ roles = {}
 
 [permissions]
 read = ["assets", "signals", "series"]
-write = ["audit"]
+write = ["audit", "events"]
 plant_write = false
 outbound = []
 
@@ -46,9 +46,17 @@ results = []
 [consumes]
 results = []
 
-# What the app adds to PlantCraft's own screens (Ctrl+K search, widgets, Desk's calendar and
-# to-do, language model uses, references) and the events it writes go in [contributes] and
-# [[publishes.events]]. BatchLens contributes none; the template's recipes show each one.
+# The one event BatchLens writes (src/batchlens/suite/events.py): a phase execution under way on
+# its asset. PlantCraft stamps an event when it arrives, so its time is when BatchLens reported
+# it; the phase's own times are in the payload.
+[[publishes.events]]
+name = "phase.running"
+title = "Batch phase running"
+description = "A phase execution of a batch is under way on the asset (start) or is over (end). Key: the phase execution's id."
+severity = "info"
+category = "process"
+phase = "interval"
+payload = { batch = "Batch id", phase = "Phase execution id", kind = "Phase kind", start = "When the phase began (UTC)", end = "When it ended (UTC); none while it runs" }
 
 # Two read-only tools for PlantCraft's assistant, called as the person who asks and served at
 # <prefix>api/assistant/tools/<id> (src/batchlens/api/routers/tools.py).

@@ -59,6 +59,9 @@ the plant's assets.
 
 ![The running batch in BatchLens](docs/images/suite/live-batch.png)
 
+BatchLens tells PlantCraft one thing on its own: an event on an asset while a batch's phase is
+running on it (`docs/demo.md`, "What BatchLens tells PlantCraft"). Everything else it reads.
+
 ## What makes it more than a dashboard
 
 - **A batch is a window on shared equipment.** The same four bioreactor signals carry every

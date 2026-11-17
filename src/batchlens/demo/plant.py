@@ -13,7 +13,7 @@ clock of its scenario's source time zone (``scenario.source.timezone``; the sour
 ``timezone`` setting does not change it). ``time_zone`` must be that zone, or every value lands
 hours off, silently. The instants are the same whatever the zone.
 
-An administrator imports the map in PlantCraft (docs/demo.md); BatchLens writes nothing to
+An administrator imports the map in PlantCraft (docs/demo.md); BatchLens writes none of this to
 PlantCraft itself and never publishes these values as its own series. The tests' fake
 PlantCraft (``tests/plant.py``) serves this same plant. Standard library only.
 """

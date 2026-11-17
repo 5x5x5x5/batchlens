@@ -34,6 +34,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | The Protein A recovery depends on its elution buffer's pH in the generator; a step shortfall carries the buffer lot it drew beside the reference's; the benchmark measures what that evidence shows when the lot was the cause and when it was not | Done, tested, on the batch page and in the verification report |
 | A tolerance per step: 5 points for a step measured pool to pool, 10 for the harvest-to-load yield, chosen from the benchmark | Done, oracle-tested |
 | A split with a mass balance: the drug substance divided into bulk containers, their sum against the whole; a container missing from the records shows as mass unaccounted for | Done, oracle-tested, on the batch page |
+| Batch context published to PlantCraft: an interval event on the asset while a batch's phase runs on it (the owner granted the `events` write permission) | Done, tested against the fake PlantCraft |
 
 ## Next, in the intended order
 
@@ -49,8 +50,9 @@ backward (what went into each step) before the chain forward.
    batch; a spread that accounts for how few batches there are.
 4. Solution lots, the rest: an ordinary lot-to-lot difference from the comparable batches'
    lots, beside the evidence; lots shared between batches.
-5. Batch context published to PlantCraft (phase executions as events on their assets), which
-   lets View, Alarms and Analytics scope to a batch window. Needs a new write permission.
+5. Batch context, the rest: the window of a finished batch (events cannot be dated back;
+   a published result with its own time could, and needs the `results` permission); links
+   from a batch into View, Alarms and Analytics for that window.
 6. Tolerances from the batches themselves: a spread per step from the comparable batches
    in place of a fixed number.
 7. Genealogy, the rest: material carried between batches, with a mass balance.
