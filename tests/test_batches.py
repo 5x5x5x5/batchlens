@@ -1088,3 +1088,44 @@ def test_one_window_without_values_does_not_give_the_signal_up_for_the_request(m
     assert plant.volume_between(None, "BR-2001", *window, seen) is failed and len(asked) == 3
     # Twice failed: not asked again.
     assert plant.volume_between(None, "BR-2001", *window, seen) is failed and len(asked) == 3
+
+
+def test_a_batch_in_progress_is_compared_with_the_others_at_the_same_culture_age(seeded, client):
+    record, reference = CAMPAIGN["BL-0002"].record, CAMPAIGN["BL-0001"].record
+    culture, theirs = (r.phase("production_culture") for r in (record, reference))
+    as_of = culture.start + timedelta(days=9, hours=6)
+    found = {
+        m["metric"]: m
+        for m in client.get(
+            "/api/batches/BL-0002/metrics", params={"as_of": as_of.isoformat()}
+        ).json()["metrics"]
+    }
+    # The reference's IVCD is what it had reached nine days in, not its fourteen-day total.
+    volume = calc.Online("v", VOLUME_UNIT, CAMPAIGN["BL-0001"].online["volume"])
+    then = {
+        r.metric: r
+        for r in batch_metrics(reference, volume, as_of=theirs.start + timedelta(days=9, hours=6))
+    }
+    whole = {r.metric: r for r in batch_metrics(reference, volume)}
+    assert found["ivcd"]["reference"]["value"] == pytest.approx(then["ivcd"].value)
+    assert then["ivcd"].value < 0.7 * whole["ivcd"].value
+    assert abs(found["ivcd"]["difference"]) < 15
+    # And so are the comparable batches: a normal batch nine days in is not marked below them.
+    among = found["ivcd"]["comparable"]["reasons"][0]
+    assert among["code"] == "within_expected_range" and among["values"]["highest"] < 110
+    # Seen whole, the batch is compared with the others whole.
+    done = {m["metric"]: m for m in client.get("/api/batches/BL-0002/metrics").json()["metrics"]}
+    assert done["ivcd"]["reference"]["value"] == pytest.approx(whole["ivcd"].value)
+
+
+def test_the_same_age_is_never_later_than_the_moment_asked_about(seeded):
+    from batchlens.analysis.metrics import same_age
+
+    early, late = CAMPAIGN["BL-0002"].record, CAMPAIGN["BL-0004"].record
+    as_of = early.phase("production_culture").start + timedelta(days=5)
+    # BL-0004 began six weeks later: at that moment it had not begun, and nothing of it is read.
+    assert same_age(early, late, as_of) == as_of
+    assert same_age(late, early, late.phase("production_culture").start + timedelta(days=5)) == (
+        early.phase("production_culture").start + timedelta(days=5)
+    )
+    assert same_age(early, late, None) is None

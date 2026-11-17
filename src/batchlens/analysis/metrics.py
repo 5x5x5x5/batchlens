@@ -141,6 +141,28 @@ def batch_metrics(
     ]
 
 
+def same_age(record: BatchRecord, other: BatchRecord, as_of: datetime | None) -> datetime | None:
+    """The instant at which ``other`` was as far along as ``record`` is at ``as_of``: the same
+    time since the start of its production culture. A batch in progress (or seen as of a
+    moment in its course) is compared with what the others had reached at that age, not with
+    their finished totals: nine days of cell growth are not below fourteen. Never later than
+    ``as_of`` itself, so nothing is read that was not known then. A whole batch (``as_of``
+    none, or after everything about it was known) is compared with the others whole."""
+
+    if as_of is None:
+        return None
+    own, theirs = record.phase("production_culture"), other.phase("production_culture")
+    known = [phase.end for phase in record.phases]
+    known += [result.result_available_at for result in record.results]
+    known += [pool.result_available_at for pool in record.pools]
+    if own is None or theirs is None or (known and as_of >= max(known)):
+        return as_of
+    try:
+        return min(as_of, theirs.start + (as_of - own.start))
+    except OverflowError:  # a moment at the ends of time has no instant of the same age
+        return as_of
+
+
 def beside_reference(
     results: list[calc.Result],
     reference: list[calc.Result] | None,
