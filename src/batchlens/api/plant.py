@@ -26,6 +26,8 @@ T = TypeVar("T")
 # The bioreactor's signal roles the pages show, in this order.
 ROLES = ("ph", "do", "temperature", "volume")
 TREND_POINTS = 300
+# Failed reads of one signal in one request after which it is not asked again.
+DEAD_AFTER = 2
 
 
 def _read(read: Callable[[], T], missing: calc.Reason) -> T | calc.Reason:
@@ -110,9 +112,10 @@ def volume_between(
     """The recorded values of an asset's volume signal between two instants, or why not.
 
     ``seen`` is one request's memory, shared by its reads: an asset's signal is looked up once,
-    and a signal whose data source failed is not asked again (each failed read is retried by
-    the client, and a page that reads seven batches' windows of one dead signal would wait for
-    all of them)."""
+    and a signal whose reads failed ``DEAD_AFTER`` times is not asked again (each failed read
+    is retried by the client, and a page that reads seven batches' windows of one dead signal
+    would wait for all of them). One failure is not enough to give a signal up: PlantCraft
+    0.6.0 answers a window in which nothing was recorded as a failed read."""
 
     seen = {} if seen is None else seen
     if asset_id not in seen:
@@ -120,13 +123,16 @@ def volume_between(
     signal = seen[asset_id]
     if isinstance(signal, calc.Reason):
         return signal
+    failures = seen.setdefault(("failures", asset_id), [])
+    if len(failures) >= DEAD_AFTER:
+        return failures[-1]
     points: list[tuple[datetime, float]] = []
     if start < end:
         missing = calc.Reason("signal_not_found", {"asset_id": asset_id, "role": "volume"})
         series = _read(lambda: client.series(signal["id"], start, end), missing)
         if isinstance(series, calc.Reason):
             if series.code == "series_unreadable":
-                seen[asset_id] = series
+                failures.append(series)
             return series
         points = [
             (_instant(stamp), float(value))
