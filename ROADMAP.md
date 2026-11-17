@@ -32,6 +32,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A set of comparable batches a person chooses (three earlier normal batches added to the demo): each metric beside the set's median and range | Done, oracle-tested, on the batch page; the findings still use the one reference batch |
 | Solution lots as batches of their own kind: feed medium and three buffers per batch, prepared, held and sampled; each feed and buffer draw names its lot and the lot's age | Done, tested, on the batch page and a page per lot |
 | The Protein A recovery depends on its elution buffer's pH in the generator; a step shortfall carries the buffer lot it drew beside the reference's; the benchmark measures what that evidence shows when the lot was the cause and when it was not | Done, tested, on the batch page and in the verification report |
+| A tolerance per step: 5 points for a step measured pool to pool, 10 for the harvest-to-load yield, chosen from the benchmark | Done, oracle-tested |
 
 ## Next, in the intended order
 
@@ -49,7 +50,8 @@ backward (what went into each step) before the chain forward.
    lots, beside the evidence; lots shared between batches.
 5. Batch context published to PlantCraft (phase executions as events on their assets), which
    lets View, Alarms and Analytics scope to a batch window. Needs a new write permission.
-6. A tolerance per purification step in place of one for all.
+6. Tolerances from the batches themselves: a spread per step from the comparable batches
+   in place of a fixed number.
 7. A fuller genealogy: splits, repeated cycles and material carried between batches, with a
    mass balance at each.
 

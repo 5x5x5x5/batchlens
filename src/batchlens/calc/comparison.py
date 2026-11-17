@@ -30,9 +30,14 @@ DIVERGENCE_VERSION = "titer_divergence/1"
 DIVERGENCE_TOLERANCE_FRACTION = 0.15
 # A sample is compared with the reference sample nearest in culture age, at most this far away.
 PAIRING_WINDOW_HOURS = 6.0
-SHORTFALL_VERSION = "recovery_shortfall/1"
-# A yield or recovery lower than the reference's by more than this many percentage points.
-RECOVERY_TOLERANCE_POINTS = 10.0
+SHORTFALL_VERSION = "recovery_shortfall/2"  # 2: a tolerance per step
+# A yield or recovery lower than the reference's by more than this many percentage points is
+# a shortfall. A step measured pool to pool varies little from batch to batch; the
+# harvest-to-load yield rests on one culture titer and varies by several points with nothing
+# wrong, so it has a wider tolerance of its own. Illustrative settings, chosen from the
+# false alarms and detections measured in docs/verification-report.md.
+RECOVERY_TOLERANCE_POINTS = 5.0
+TOLERANCE_POINTS_BY_METRIC = {"harvest_to_load_yield": 10.0}
 POSITION_VERSION = "set_position/1"
 # Fewer comparable batches than this with a value, and a metric is not placed among them.
 MINIMUM_COMPARABLE = 3
@@ -144,11 +149,15 @@ def titer_divergence(
 
 
 def recovery_shortfall(
-    value: Result, reference: Result, *, tolerance_points: float = RECOVERY_TOLERANCE_POINTS
+    value: Result, reference: Result, *, tolerance_points: float | None = None
 ) -> Result:
     """How many percentage points a yield or recovery is below the reference batch's, when that
     is more than the tolerance; no value (``within_reference``) otherwise, also when it is
-    above. ``insufficient`` when either has no value."""
+    above. ``insufficient`` when either has no value. Without ``tolerance_points`` the
+    tolerance is the metric's own (``TOLERANCE_POINTS_BY_METRIC``)."""
+
+    if tolerance_points is None:
+        tolerance_points = TOLERANCE_POINTS_BY_METRIC.get(value.metric, RECOVERY_TOLERANCE_POINTS)
 
     metric, unit = f"{value.metric}_shortfall", "percentage points"
     for part in (value, reference):

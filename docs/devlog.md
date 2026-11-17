@@ -3,6 +3,19 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A tolerance per step
+
+Sixth item of the agreed order (the fifth needs a new write permission and waits for the
+owner).
+
+- **Built:** `recovery_shortfall/2`: 5 points for a step measured pool to pool, 10 for the
+  harvest-to-load yield, which rests on a single culture titer.
+- **Why these numbers:** they are rows of the verification report. At 5 points a later step
+  at 92 % of its nominal yield is found in 91 % of comparisons instead of 12 %, at the price
+  of a false alarm in 0.4 % of step comparisons; the harvest-to-load yield at 5 points would
+  raise one in 2.9 %.
+- **Seen in the demo:** no batch gained or lost a finding.
+
 ## 2026-11-16: The buffer lot as evidence
 
 Fourth item of the agreed order, second half.

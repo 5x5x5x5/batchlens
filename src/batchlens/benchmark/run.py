@@ -373,6 +373,9 @@ def run(batches: int = DEFAULT_BATCHES, references: int = DEFAULT_REFERENCES) ->
             "batches_per_variant": batches,
             "titer_tolerance_default_percent": 100 * calc.DIVERGENCE_TOLERANCE_FRACTION,
             "recovery_tolerance_default_points": calc.RECOVERY_TOLERANCE_POINTS,
+            "yield_tolerance_default_points": calc.TOLERANCE_POINTS_BY_METRIC[
+                "harvest_to_load_yield"
+            ],
             "pairing_window_hours": calc.PAIRING_WINDOW_HOURS,
             "onset_days": list(ONSET_DAYS),
             "qp_factors": list(QP_FACTORS),

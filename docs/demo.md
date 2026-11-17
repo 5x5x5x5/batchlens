@@ -274,8 +274,8 @@ happened to read 5 % low. The app shows that number as it is.
 
 ## What the app finds
 
-Against the reference batch `BL-0001`, with the default tolerances (15 % of titer, 10 points of
-a step recovery, 20 % of the inoculation density). Every compared batch gets the same nine
+Against the reference batch `BL-0001`, with the default tolerances (15 % of titer, 5 points of
+a step recovery and 10 of the harvest-to-load yield, 20 % of the inoculation density). Every compared batch gets the same nine
 findings: the titer, the inoculation density, the
 harvest-to-load yield, the Protein A recovery, and the yield of each of the five later steps.
 In the demo every later step of every batch is within the tolerance; the page lists what was
