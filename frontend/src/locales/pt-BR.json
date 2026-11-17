@@ -245,5 +245,6 @@
   "Below": "Abaixo",
   "Above": "Acima",
   "expected {low} to {high} ({level} %, {count} batches)": "esperado de {low} a {high} ({level} %, {count} lotes)",
-  "Comparable batches' lots": "Lotes dos lotes comparáveis"
+  "Comparable batches' lots": "Lotes dos lotes comparáveis",
+  "Open these signals over this window in PlantCraft Trends": "Abrir estes sinais nesta janela nas Tendências do PlantCraft"
 }

@@ -3,7 +3,7 @@
  * assay result with both of its times. The page shows what the server computed; no formula
  * lives here. */
 import { lazy, Suspense, useEffect, useState } from "react";
-import { confirmAction, DataTable, isoOf, localOf, Pill } from "@plantcraft/ui";
+import { confirmAction, DataTable, isoOf, localOf, Pill, useSuiteApps } from "@plantcraft/ui";
 import { api } from "./api";
 import { ProcessTrain } from "./ProcessTrain";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
@@ -26,11 +26,20 @@ function Section({ id, title, detail, children }: { id: string; title: string; d
   </section>;
 }
 
-function Phases({ detail }: { detail: BatchDetail }) {
+/** An address on PlantCraft's own host (the app may be served from another). */
+function suiteHref(path: string, base: string): string {
+  try { return new URL(path, new URL(base || "/", window.location.origin)).toString(); } catch { return path; }
+}
+
+function Phases({ detail, suite }: { detail: BatchDetail; suite: string }) {
   return <DataTable rows={detail.phases} rowKey={(phase) => phase.phase_id} label={t("Phase executions")}
     columns={[
       { key: "phase", label: t("Phase"), render: (phase) => phaseName(phase.kind) },
-      { key: "asset", label: t("Asset"), render: (phase) => phase.asset_name ?? <>{phase.asset_id}<NotInPlantCraft /></> },
+      // An asset PlantCraft holds opens there: its page shows the signals and, in its timeline,
+      // the phases BatchLens reported on it.
+      { key: "asset", label: t("Asset"), render: (phase) => (phase.asset_name
+        ? <a href={suiteHref(`/assets/${encodeURIComponent(phase.asset_id)}`, suite)} data-link="asset">{phase.asset_name}</a>
+        : <>{phase.asset_id}<NotInPlantCraft /></>) },
       { key: "start", label: t("Start"), render: (phase) => when(phase.start) },
       { key: "end", label: t("End"), render: (phase) => (phase.end ? when(phase.end) : <span className="muted">{t("In progress")}</span>) },
     ]} />;
@@ -233,8 +242,13 @@ function Pools({ detail }: { detail: BatchDetail }) {
     ]} />;
 }
 
-function TrendCharts({ trends, samples, reference }: { trends: Trends; samples: Samples; reference: Samples | null }) {
+function TrendCharts({ trends, samples, reference, suite }: { trends: Trends; samples: Samples; reference: Samples | null; suite: string }) {
   const range = { start: trends.start ?? undefined, end: trends.end ?? undefined };
+  // The same signals over the same window in PlantCraft View's Trends, when View is installed.
+  const view = useSuiteApps().find((app) => app.id === "dashcraft");
+  const signals = trends.signals.flatMap((signal) => (signal.signal_id ? [signal.signal_id] : []));
+  const query = new URLSearchParams([...signals.map((id) => ["signal", id]), ["start", trends.start ?? ""], ["end", trends.end ?? trends.signals.find((signal) => signal.t.length > 0)?.t.at(-1) ?? ""]]);
+  const inView = view && signals.length > 0 && trends.start ? suiteHref(`${view.url.replace(/\/$/, "")}/trends?${query}`, suite) : null;
   const offline = ["vcd", "titer"].map((analyte) => {
     // The production culture's samples only: the seed passages are not on the bioreactor's timeline.
     const results = samples.samples.filter((sample) => sample.phase_kind === "production_culture").flatMap((sample) => sample.results.filter((result) => result.analyte === analyte).map((result) => ({ at: sample.collected_at, result })));
@@ -245,6 +259,7 @@ function TrendCharts({ trends, samples, reference }: { trends: Trends; samples: 
     return { analyte, lines };
   });
   return <Suspense fallback={<Loading />}>
+    {inView && <p><a href={inView} data-link="trends">{t("Open these signals over this window in PlantCraft Trends")}</a></p>}
     {trends.signals.map((signal) => <div className="panel" key={signal.role}>
       <h3>{roleName(signal.role)}{signal.name && <small className="muted"> {signal.name}</small>}</h3>
       {signal.status === "usable" && signal.t.length > 0
@@ -369,7 +384,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     <p className="muted" data-lot>{detail.batch.product} · {batchKindName(detail.batch.kind ?? "")} · {detail.batch.provenance}</p>
     <ZoneNote />
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
-    <Section id="phases" title={t("Phase executions")} detail={t("Where the lot was prepared and held, and when. The batch that drew from it lists the draws under Transfers.")}><Phases detail={detail} /></Section>
+    <Section id="phases" title={t("Phase executions")} detail={t("Where the lot was prepared and held, and when. The batch that drew from it lists the draws under Transfers.")}><Phases detail={detail} suite={me.processcraft_url} /></Section>
     <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>
       <SamplesSection batchId={batchId} samples={samples} detail={detail} canEdit={me.can_edit && !asOf} onChanged={() => setVersion((value) => value + 1)} />
     </Section>
@@ -404,7 +419,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
       : t("No other batch is marked as comparable.")}{detail.is_comparable ? ` ${t("This batch is one of the comparable batches.")}` : ""}</p>
     <ZoneNote />
     <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
-    <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><ProcessTrain phases={detail.phases} /><Phases detail={detail} /></Section>
+    <Section id="phases" title={t("Phase executions")} detail={t("What happened on which asset, and when.")}><ProcessTrain phases={detail.phases} /><Phases detail={detail} suite={me.processcraft_url} /></Section>
     {metrics.findings.length > 0 && <Section id="findings" title={t("Findings")} detail={t("This batch against the reference batch. Tolerances are illustrative settings, not limits.")}>
       {metrics.findings.filter((finding) => !isQuiet(finding)).map((finding) => <FindingPanel key={finding.finding} finding={finding} />)}
       {metrics.findings.some(isQuiet) && <div className="panel" data-findings="within">
@@ -416,7 +431,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     <Section id="downstream" title={t("Downstream recovery")} detail={t("Each purification step: the product mass that went in and came out, and what is left of the harvest. Where pools were merged, the merged mass is checked against the sum of its parts.")}><DownstreamSection train={metrics.downstream} /></Section>
     <Section id="transfers" title={t("Transfers")} detail={t("What was moved into which vessel, as recorded, against what the volume signals of the vessels at both ends show arriving and leaving. Where a vessel and the record disagree the transfer is flagged; which of them is wrong is not decided.")}><Transfers transfers={metrics.transfers} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
-    <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
+    <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} suite={me.processcraft_url} /></Section>
     <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>
       <SamplesSection batchId={batchId} samples={samples} detail={detail} canEdit={me.can_edit && !asOf} onChanged={() => setVersion((value) => value + 1)} />
     </Section>
