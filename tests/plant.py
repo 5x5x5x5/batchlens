@@ -32,7 +32,7 @@ from plantcraft_sdk.testplant import plant_assets as assets
 from plantcraft_sdk.testplant import plant_signals as signals
 
 from batchlens.demo.generator import BIOREACTOR, ONLINE_UNITS, demo_campaign
-from batchlens.demo.plant import ASSETS, DESCRIPTION, SIGNAL_NAMES, SOURCE_ID, TAGS
+from batchlens.demo.plant import ASSETS, DESCRIPTION, SIGNAL_NAMES, SOURCE_ID, TAGS, VESSEL_TAGS
 
 __all__ = ["APP_KEY", "HOURS", "NOW", "SOURCE", "START", "assets", "make_fake", "signals"]
 __all__ += ["BIO_SIGNALS", "plant_series"]
@@ -42,6 +42,8 @@ MANIFEST = tomllib.loads((Path(__file__).parents[1] / "app.toml").read_text(enco
 
 # The bioreactor's signals as PlantCraft names them once the map is imported: role -> signal id.
 BIO_SIGNALS = {role_key: f"{SOURCE_ID}:{tag}" for role_key, tag in TAGS.items()}
+# The volume signal of each other vessel: asset id -> signal id.
+VESSEL_SIGNALS = {asset_id: f"{SOURCE_ID}:{tag}" for asset_id, tag in VESSEL_TAGS.items()}
 
 
 def bio_assets() -> list[dict[str, Any]]:
@@ -55,6 +57,11 @@ def bio_assets() -> list[dict[str, Any]]:
             "parent_id": parent or "plant",
             "attributes": {"description": DESCRIPTION},
             **({"signals": dict(BIO_SIGNALS)} if asset_id == BIOREACTOR else {}),
+            **(
+                {"signals": {"volume": VESSEL_SIGNALS[asset_id]}}
+                if asset_id in VESSEL_SIGNALS
+                else {}
+            ),
         }
         for asset_id, (kind, name, parent) in ASSETS.items()
     ]
@@ -72,6 +79,17 @@ def bio_signals() -> list[dict[str, Any]]:
             "high": None,
         }
         for role_key, signal_id in BIO_SIGNALS.items()
+    ] + [
+        {
+            "id": signal_id,
+            "name": f"{asset_id} {SIGNAL_NAMES['volume']}",
+            "source": SOURCE_ID,
+            "unit": ONLINE_UNITS["volume"],
+            "description": "",
+            "low": None,
+            "high": None,
+        }
+        for asset_id, signal_id in VESSEL_SIGNALS.items()
     ]
 
 
@@ -82,6 +100,11 @@ def bio_series() -> dict[str, pd.Series]:
     found = {}
     for role_key, signal_id in BIO_SIGNALS.items():
         points = [point for batch in observations for point in batch.online[role_key]]
+        found[signal_id] = pd.Series(
+            [value for _, value in points], pd.DatetimeIndex([moment for moment, _ in points])
+        )
+    for asset_id, signal_id in VESSEL_SIGNALS.items():
+        points = [point for batch in observations for point in batch.vessels[asset_id]]
         found[signal_id] = pd.Series(
             [value for _, value in points], pd.DatetimeIndex([moment for moment, _ in points])
         )

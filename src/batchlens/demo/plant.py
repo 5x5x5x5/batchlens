@@ -55,6 +55,10 @@ SIGNAL_NAMES = {
 }
 # role -> tag (the CSV column).
 TAGS = {role: f"BIO.{BIOREACTOR}.{role.upper()}" for role in ONLINE_UNITS}
+# The other vessels with a volume signal (the seed reactors, the feed tank): asset id -> tag.
+VESSEL_TAGS = {
+    asset_id: f"BIO.{asset_id}.VOLUME" for asset_id in (*(a for _, a, _ in SEED_TRAIN), FEED_TANK)
+}
 # The control loops' fast signals come from a source and a file of their own, which holds the
 # last LOOP_HOURS only: loop monitoring looks at what a loop is doing now.
 LOOP_SOURCE_NAME = "BatchLens synthetic loops"
@@ -132,6 +136,10 @@ def recorded(
             for moment, value in points:
                 if until is None or moment <= until:
                     rows.setdefault(moment, {})[TAGS[role]] = value
+        for asset_id, points in batch.vessels.items():
+            for moment, value in points:
+                if until is None or moment <= until:
+                    rows.setdefault(moment, {})[VESSEL_TAGS[asset_id]] = value
     return rows
 
 
@@ -201,6 +209,18 @@ def plant_map(csv_path: Path, loops_path: Path) -> dict[str, object]:
             for role, tag in TAGS.items()
         ]
         + [
+            {
+                "tag": tag,
+                "source_id": SOURCE_ID,
+                "name": f"{asset_id} {SIGNAL_NAMES['volume']}",
+                "unit": ONLINE_UNITS["volume"],
+                "asset_id": asset_id,
+                "role": "volume",
+                "monitor": False,
+            }
+            for asset_id, tag in VESSEL_TAGS.items()
+        ]
+        + [
             # A loop's signals belong to the loop only (the loops sheet binds them by role).
             {
                 "tag": LOOP_TAGS[f"{role}.{part}"],
@@ -263,7 +283,8 @@ def write_plant_files(
         draft.replace(path)
         return path
 
-    csv_path = write("bioreactor.csv", recorded(live_from, until), list(TAGS.values()))
+    columns = [*TAGS.values(), *VESSEL_TAGS.values()]
+    csv_path = write("bioreactor.csv", recorded(live_from, until), columns)
     loops_path = write(
         "bioreactor-loops.csv", loop_rows(live_from, until), list(LOOP_TAGS.values())
     )

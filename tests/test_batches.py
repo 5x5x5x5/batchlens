@@ -552,17 +552,26 @@ def test_every_feed_is_checked_against_the_bioreactors_volume(seeded, client):
         balance = feed["balance"]
         assert balance["status"] == "usable" and abs(balance["value"]) < 5
         assert codes(balance) == ["transfer_balanced"]
-        assert balance["inputs"] == [feed["transfer_id"], BIO_SIGNALS["volume"]]
-    # The seed reactor has no volume signal, and the bioreactor recorded nothing before its
-    # culture began: neither transfer is checked, and each says why.
+        # Checked at both ends: the bioreactor's rise and the feed tank's fall.
+        assert balance["inputs"] == [
+            feed["transfer_id"],
+            BIO_SIGNALS["volume"],
+            "batchlens-synthetic:BIO.MH-1201.VOLUME",
+        ]
+        seen = balance["reasons"][0]["values"]
+        assert seen["arrived"] == pytest.approx(60, abs=3) and seen["left"] == pytest.approx(
+            60, abs=3
+        )
+    # The passage is checked at both seed reactors. The bioreactor recorded nothing before its
+    # culture began, so the inoculation is checked by what left the last seed reactor alone.
     passage, inoculation = rows[:2]
     assert (passage["from_asset_id"], passage["to_asset_id"]) == ("BR-1001", "BR-1002")
-    assert (passage["balance"]["status"], codes(passage["balance"])) == (
-        "insufficient",
-        ["signal_not_found"],
-    )
+    assert passage["balance"]["status"] == "usable" and abs(passage["balance"]["value"]) < 5
+    assert set(passage["balance"]["reasons"][0]["values"]) >= {"arrived", "left"}
     assert inoculation["to_asset_id"] == "BR-2001" and 150 < inoculation["volume"] < 250
-    assert codes(inoculation["balance"]) == ["no_volume_near_transfer"]
+    assert inoculation["balance"]["status"] == "usable" and abs(inoculation["balance"]["value"]) < 5
+    seen = inoculation["balance"]["reasons"][0]["values"]
+    assert "arrived" not in seen and seen["left"] == pytest.approx(inoculation["volume"], rel=0.05)
 
 
 def test_a_feed_recorded_with_a_digit_dropped_is_flagged_not_corrected(seeded, client):
@@ -938,8 +947,10 @@ def test_feeds_and_buffers_name_the_lot_they_came_from_and_how_old_it_was(seeded
         300, rel=0.05
     )
     assert elution["lot_age_days"] == pytest.approx(1.0)  # prepared 26 h before, in 2 h
-    # A skid has no volume signal: the draw is listed and not checked.
-    assert codes(elution["balance"]) == ["signal_not_found"]
+    # Neither the hold tank nor the skid has a volume signal: listed, not checked, both named.
+    assert codes(elution["balance"]) == ["signal_not_found", "signal_not_found"]
+    named = [reason["values"]["asset_id"] for reason in elution["balance"]["reasons"]]
+    assert named == ["CH-3001", "BH-1301"]
 
 
 def test_a_solution_lot_is_a_batch_of_its_own_kind_and_is_not_listed(seeded, client):

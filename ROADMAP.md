@@ -35,17 +35,17 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A tolerance per step: 5 points for a step measured pool to pool, 10 for the harvest-to-load yield, chosen from the benchmark | Done, oracle-tested |
 | A split with a mass balance: the drug substance divided into bulk containers, their sum against the whole; a container missing from the records shows as mass unaccounted for | Done, oracle-tested, on the batch page |
 | Batch context published to PlantCraft: an interval event on the asset while a batch's phase runs on it (the owner granted the `events` write permission) | Done, tested against the fake PlantCraft |
+| Volume signals on the seed reactors and the feed tank; a transfer checked at both ends, or by its source alone | Done, oracle-tested, on the batch page |
 
 ## Next, in the intended order
 
 Agreed with the owner on 2026-11-16: depth before breadth. The work extends the evidence
 backward (what went into each step) before the chain forward.
 
-1. Seed train, the rest: the seed reactors' online signals. (The passages, their growth
-   rates, the inoculation density, its finding and a demo batch that shows it are done.)
-2. Transfers, the rest: the source side of a transfer (needs volume signals on the seed
-   reactors and the feed tank); evidence paired by hours since the last feed, not only
-   labelled with them. (The record, the balance and the flag are done.)
+1. Seed train, the rest: the seed reactors' pH, dissolved oxygen and temperature, and a
+   trend of them.
+2. Transfers, the rest: evidence paired by hours since the last feed, not only labelled
+   with them; a check of the buffer draws.
 3. Comparable batches, the rest: findings against the set instead of the one reference
    batch; a spread that accounts for how few batches there are.
 4. Solution lots, the rest: an ordinary lot-to-lot difference from the comparable batches'

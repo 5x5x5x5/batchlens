@@ -469,7 +469,7 @@ def test_transfer_balance_is_what_arrived_against_what_was_recorded_in_percent()
     assert result.value == pytest.approx(2.0)
     assert codes(result) == ["transfer_balanced"]
     assert result.reasons[0].values["arrived"] == pytest.approx(61.2)
-    assert result.inputs == ("T1", "vol") and result.calculation_version == "transfer_balance/1"
+    assert result.inputs == ("T1", "vol") and result.calculation_version == "transfer_balance/2"
 
 
 def test_a_transfer_whose_record_and_vessel_disagree_is_suspect_with_its_value_shown():
@@ -590,3 +590,33 @@ def test_a_split_with_a_part_or_the_whole_missing_is_insufficient_never_a_partia
     assert codes(calc.split_balance(grams(None, "ds"), [grams(1.0, "c1")])) == ["input_not_usable"]
     assert codes(calc.split_balance(grams(8000.0, "ds"), [])) == ["no_parts"]
     assert codes(calc.split_balance(grams(0.0, "ds"), [grams(1.0, "c1")])) == ["zero_denominator"]
+
+
+def test_a_transfer_is_checked_at_the_source_vessel_too_and_by_it_alone_when_need_be():
+    into = tank((10, 1400.0), (20, 1460.0))
+    out_of = Online(
+        "src", "L", [(T0 + timedelta(minutes=m), v) for m, v in ((10, 650.0), (20, 589.0))]
+    )
+    both = calc.transfer_balance("T1", 60.0, "L", into, source=out_of, **FEED)
+    assert (both.status, both.value) == ("usable", pytest.approx(0.0))
+    assert both.reasons[0].values == {
+        "arrived": 60.0,
+        "left": 61.0,
+        "recorded": 60.0,
+        "tolerance_percent": 5.0,
+    }
+    assert both.inputs == ("T1", "vol", "src")
+    # The destination recorded nothing: 100 * (61 - 60) / 60 = 1.7 % from the source alone.
+    alone = calc.transfer_balance("T1", 60.0, "L", None, source=out_of, **FEED)
+    assert alone.value == pytest.approx(100 / 60) and "arrived" not in alone.reasons[0].values
+    # The record agrees with the destination and not with the source: still suspect.
+    short = Online(
+        "src", "L", [(T0 + timedelta(minutes=m), v) for m, v in ((10, 650.0), (20, 600.0))]
+    )
+    split = calc.transfer_balance("T1", 60.0, "L", into, source=short, **FEED)
+    assert (split.status, codes(split)) == ("suspect", ["outside_transfer_tolerance"])
+    assert split.value == pytest.approx(0.0) and split.reasons[0].values["left"] == 50.0
+    # No vessel at either end has a value close enough: insufficient, each side named.
+    none = calc.transfer_balance("T1", 60.0, "L", tank((40, 1.0)), source=tank((40, 1.0)), **FEED)
+    assert none.status == "insufficient"
+    assert [r.values["vessel"] for r in none.reasons] == ["arrived", "left"]

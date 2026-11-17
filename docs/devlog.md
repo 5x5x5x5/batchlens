@@ -3,6 +3,20 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: A transfer checked at both ends
+
+Remainder of the first two items.
+
+- **Built:** a volume signal for each seed reactor and for the feed tank (same file and
+  source as the bioreactor's); `transfer_balance/2` checks the source vessel's fall as well
+  as the destination's rise, and uses the source alone where the destination recorded nothing.
+- **What changed in the demo:** the passage and the inoculation, which read "not checked",
+  are now checked; every feed is checked twice. `BL-0005`'s mis-recorded feed is contradicted
+  by two vessels that agree with each other.
+- **Ruling:** even then the app does not say the record is the wrong one. It shows the three
+  numbers.
+- **Checked:** every earlier generated value unchanged (`synthetic-generator/8`).
+
 ## 2026-11-17: Telling PlantCraft which phase is running
 
 Fifth item of the agreed order. The owner granted the write permission it needs.

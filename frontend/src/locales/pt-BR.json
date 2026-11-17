@@ -202,10 +202,8 @@
   "To": "Para",
   "Ended": "Terminou",
   "Recorded volume": "Volume registrado",
-  "Arrived, against the record": "Chegou, em relação ao registro",
   "Not checked": "Não verificada",
   "Reasons": "Motivos",
-  "What was moved into which vessel, as recorded, against the volume the vessel's own signal shows arriving. Where the two disagree the transfer is flagged; which of them is wrong is not decided.": "O que foi transferido para qual vaso, conforme registrado, em relação ao volume que o sinal do próprio vaso mostra chegando. Onde os dois divergem a transferência é sinalizada; não se decide qual deles está errado.",
   "Seed passage moved on": "Passagem de inóculo transferida",
   "Inoculation": "Inoculação",
   "Feed": "Alimentação",
@@ -240,5 +238,9 @@
   "Drug substance, container {number}": "Substância ativa, recipiente {number}",
   "The {parts} recorded portions differ from the pool they were divided from by more than {tolerance} %.": "As {parts} porções registradas diferem do pool do qual foram divididas em mais de {tolerance} %.",
   "Not every portion had been measured.": "Nem todas as porções haviam sido medidas.",
-  "Split balance": "Balanço da divisão"
+  "Split balance": "Balanço da divisão",
+  "What was moved into which vessel, as recorded, against what the volume signals of the vessels at both ends show arriving and leaving. Where a vessel and the record disagree the transfer is flagged; which of them is wrong is not decided.": "O que foi transferido para qual vaso, conforme registrado, em relação ao que os sinais de volume dos vasos nas duas pontas mostram chegando e saindo. Onde um vaso e o registro divergem a transferência é sinalizada; não se decide qual deles está errado.",
+  "Vessels, against the record": "Vasos, em relação ao registro",
+  "The destination's volume rose by {arrived} L and the source's fell by {left} L, against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do destino subiu {arrived} L e o da origem caiu {left} L, contra {recorded} L registrados (a tolerância é {tolerance} %).",
+  "The source vessel's volume fell by {left} L against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do vaso de origem caiu {left} L contra {recorded} L registrados (a tolerância é {tolerance} %)."
 }

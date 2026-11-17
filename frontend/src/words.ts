@@ -167,7 +167,13 @@ export function reasonText(reason: Reason): string {
       : t("Signal {signal} was not found in PlantCraft.", { signal: text("signal_id") });
     case "within_reference": return t("{metric} is within {tolerance} points of the reference batch ({value} % against {reference} %).", { metric: metricName(text("metric")), tolerance: text("tolerance_points"), value: Number(v.value).toFixed(1), reference: Number(v.reference_value).toFixed(1) });
     case "inoculation_within_reference": return t("Inoculation density is within {tolerance} % of the reference batch ({value} against {reference} 1e6 cells/mL).", { tolerance: text("tolerance_percent"), value: text("value"), reference: text("reference_value") });
-    case "outside_transfer_tolerance": return t("The vessel's volume rose by {arrived} L against {recorded} L recorded (the tolerance is {tolerance} %).", { arrived: Number(v.arrived).toFixed(1), recorded: text("recorded"), tolerance: text("tolerance_percent") });
+    case "outside_transfer_tolerance": {
+      const values = { arrived: Number(v.arrived).toFixed(1), left: Number(v.left).toFixed(1), recorded: text("recorded"), tolerance: text("tolerance_percent") };
+      if (v.arrived != null && v.left != null) return t("The destination's volume rose by {arrived} L and the source's fell by {left} L, against {recorded} L recorded (the tolerance is {tolerance} %).", values);
+      return v.left != null
+        ? t("The source vessel's volume fell by {left} L against {recorded} L recorded (the tolerance is {tolerance} %).", values)
+        : t("The vessel's volume rose by {arrived} L against {recorded} L recorded (the tolerance is {tolerance} %).", values);
+    }
     case "no_volume_near_transfer": return v.side === "before"
       ? t("No volume value within {seconds} s before the transfer.", { seconds: text("max_age_seconds") })
       : t("No volume value within {seconds} s after the transfer.", { seconds: text("max_age_seconds") });
