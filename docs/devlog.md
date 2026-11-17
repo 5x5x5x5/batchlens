@@ -3,6 +3,15 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: Links into the suite
+
+- **Built:** in the phase table an asset PlantCraft holds opens its page there; above the
+  trends, a link opens the same signals over the same window in View's Trends. The address
+  and its parameters (`signal`, `start`, `end`) are the ones PlantCraft's assistant uses for
+  its own charts; View is found among the suite's apps by its id, and without it no link is
+  shown.
+- **Not built:** links into Alarms and Analytics.
+
 ## 2026-11-17: Part-way batches compared at the same age
 
 - **Found on the live demo:** `BL-0007`, nine days into its culture, was marked "Below" on

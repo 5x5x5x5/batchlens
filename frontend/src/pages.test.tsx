@@ -20,7 +20,8 @@ vi.mock("./api", () => ({
   },
 }));
 // The suite's confirmation dialog: the person says yes.
-vi.mock("@plantcraft/ui", async (original) => ({ ...(await original<typeof import("@plantcraft/ui")>()), confirmAction: () => Promise.resolve(true) }));
+const suiteApps = vi.hoisted(() => ({ list: [] as Array<{ id: string; name: string; url: string }> }));
+vi.mock("@plantcraft/ui", async (original) => ({ ...(await original<typeof import("@plantcraft/ui")>()), confirmAction: () => Promise.resolve(true), useSuiteApps: () => suiteApps.list }));
 // The chart needs Plotly and a real layout: the page test only checks what it is given.
 vi.mock("@plantcraft/ui/plot", () => ({
   TimeChart: ({ lines }: { lines: Array<{ name: string; t: string[] }> }) => <div data-chart={lines.map((line) => `${line.name}:${line.t.length}`).join("|")} />,
@@ -419,6 +420,22 @@ describe("one batch", () => {
     expect([...host.querySelectorAll("[data-section]")].map((section) => section.getAttribute("data-section"))).toEqual(["phases", "samples", "results"]);
     expect(host.querySelector(".train")).toBeNull();
     expect(calls.some((call) => call.startsWith("metrics") || call.startsWith("trends"))).toBe(false);
+  });
+
+  it("links an asset to its page in PlantCraft, and the trends to View when it is installed", async () => {
+    let host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const assets = [...host.querySelectorAll('[data-link="asset"]')].map((link) => link.getAttribute("href"));
+    expect(assets.map((href) => new URL(href!).pathname)).toEqual(["/assets/CH-3001"]);
+    // An asset PlantCraft does not hold has nothing to open.
+    expect(host.querySelector('[data-section="phases"]')!.textContent).toContain("Not found in PlantCraft");
+    expect(host.querySelector('[data-link="trends"]')).toBeNull(); // View is not installed
+    suiteApps.list = [{ id: "dashcraft", name: "View", url: "/dash/" }];
+    host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const href = host.querySelector('[data-link="trends"]')!.getAttribute("href")!;
+    suiteApps.list = [];
+    expect(new URL(href).pathname).toBe("/dash/trends");
+    expect(new URL(href).searchParams.getAll("signal").length).toBeGreaterThan(0);
+    expect(new URL(href).searchParams.get("start")).toBe(TRENDS.start);
   });
 
   it("lists every assay result with its collection and availability times", async () => {
