@@ -37,6 +37,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | Batch context published to PlantCraft: an interval event on the asset while a batch's phase runs on it (the owner granted the `events` write permission) | Done, tested against the fake PlantCraft |
 | Volume signals on the seed reactors and the feed tank; a transfer checked at both ends, or by its source alone | Done, oracle-tested, on the batch page |
 | The range one more comparable batch is expected in (a 99 % prediction interval, wider the fewer the batches), with a mark where a metric lies outside it | Done, oracle-tested, on the batch page |
+| Lot evidence placed among the comparable batches' lots, so an ordinary lot-to-lot difference is not over-read | Done, tested, on the batch page |
 
 ## Next, in the intended order
 
@@ -49,8 +50,7 @@ backward (what went into each step) before the chain forward.
    with them; a check of the buffer draws.
 3. Comparable batches, the rest: findings against the set's expected range instead of the
    one reference batch and a fixed tolerance.
-4. Solution lots, the rest: an ordinary lot-to-lot difference from the comparable batches'
-   lots, beside the evidence; lots shared between batches.
+4. Solution lots, the rest: lots shared between batches.
 5. Batch context, the rest: the window of a finished batch (events cannot be dated back;
    a published result with its own time could, and needs the `results` permission); links
    from a batch into View, Alarms and Analytics for that window.

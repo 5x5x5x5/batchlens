@@ -231,9 +231,10 @@ def metrics_answer(
     reference_results = metrics_of(reference) if reference else None
     # The comparable batches, without this one: a batch is not read against itself.
     comparable_ids = [item for item in rt.batches.comparable_ids() if item != batch_id]
-    comparable = [
-        metrics_of(item) for item in map(rt.batches.get, comparable_ids) if item is not None
-    ]
+    comparable_batches = tuple(
+        item for item in map(rt.batches.get, comparable_ids) if item is not None
+    )
+    comparable = [metrics_of(item) for item in comparable_batches]
 
     def harvest_of(found):
         return next(item for item in found if item.metric == "harvest_mass")
@@ -244,9 +245,12 @@ def metrics_answer(
     found = findings(record, reference, results, reference_results, as_of=as_of)
     found += train.pop("findings")
     lots = lots_of(rt, record)
-    found = with_lot_evidence(
-        found, record, reference, lots | (lots_of(rt, reference) if reference else {}), as_of
-    )
+    if any(item["observation"]["value"] is not None for item in found):
+        # Evidence is shown with a finding only: the other batches' lots are read only then.
+        beside_lots = dict(lots)
+        for other in (reference, *comparable_batches):
+            beside_lots |= lots_of(rt, other) if other else {}
+        found = with_lot_evidence(found, record, reference, beside_lots, as_of, comparable_batches)
     volumes = {
         asset_id: plant.volume_between(client, asset_id, start, end, seen)
         for asset_id, (start, end) in windows(record, as_of).items()

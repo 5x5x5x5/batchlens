@@ -118,7 +118,9 @@ batchlens benchmark --out docs/verification-report.md
    51 % of its harvest against the reference's 73 %. Below, the genealogy shows the two capture
    cycles merged into one eluate, with the mass balance of the merge.
    Under the finding, the lot of elution buffer the step drew beside the reference batch's:
-   pH 3.94 against 3.49, conductivity 5.15 against 4.8 mS/cm. Nothing is concluded from it.
+   pH 3.94 against 3.49, conductivity 5.15 against 4.8 mS/cm. A last column places each among
+   the comparable batches' lots: the pH is marked Above what they lead to expect, the
+   conductivity is not. Nothing is concluded from it.
 5. **`BL-0005`, a good process and bad records.** One sample's time was keyed in as the
    previous one's, and the historian has a hole over the harvest sample. The app refuses the
    culture metrics and the harvest mass, names the record each tripped on, stops the trends
