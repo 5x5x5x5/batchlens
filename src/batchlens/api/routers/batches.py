@@ -13,7 +13,7 @@ from plantcraft_sdk.utc import utc_iso
 
 from batchlens.analysis.downstream import downstream
 from batchlens.analysis.lots import with_lot_evidence
-from batchlens.analysis.metrics import batch_metrics, beside_reference, findings
+from batchlens.analysis.metrics import batch_metrics, beside_reference, findings, same_age
 from batchlens.analysis.transfers import transfers, windows
 from batchlens.api import deps, plant
 from batchlens.api.deps import CurrentUser, EditorUser, RuntimeDep, batch_or_404
@@ -221,8 +221,10 @@ def metrics_answer(
     seen: dict[str, Any] = {}  # this request's reads of volume signals (plant.volume_between)
 
     def metrics_of(item):
-        volume = plant.volume(client, item.phase("production_culture"), as_of, seen)
-        return batch_metrics(item, volume, as_of=as_of)
+        # Another batch is read at the same culture age as this one (analysis.same_age).
+        at = as_of if item is record else same_age(record, item, as_of)
+        volume = plant.volume(client, item.phase("production_culture"), at, seen)
+        return batch_metrics(item, volume, as_of=at)
 
     reference = rt.batches.reference()
     if reference is not None and reference.batch.batch_id == batch_id:

@@ -314,7 +314,7 @@ the feed tank 650.0 L and 589.0 L. `arrived = 61.2`, `left = 61.0`, `balance = 1
 
 For one metric: the comparable batches' count, median, lowest and highest value, this batch's
 difference from the median, and the range one more batch like them is expected in. The batch
-itself is never in its own set, and every batch is computed as of the same moment.
+itself is never in its own set.
 
 The expected range is a 99 % prediction interval: `mean +/- t * s * sqrt(1 + 1/n)`, with the
 sample standard deviation `s` over the `n` comparable batches and Student's `t` for `n - 1`
@@ -398,6 +398,15 @@ Rounding happens only in the interface (`frontend/src/format.ts`); the API sends
 - A difference is shown no finer than the coarser of the two values beside it.
 - A recorded value (an assay result, a pool volume) is shown as recorded, without trailing zeros.
 - Times are shown in the installation's time zone, which every page names.
+
+## A batch compared part-way
+
+A batch in progress, or seen as of a moment in its course, is compared with the reference and
+the comparable batches at **the same culture age**: each of them is computed as of the instant
+it was as long after the start of its own production culture, never later than the moment
+asked about. Nine days of cell growth are compared with the others' nine days, not with their
+fourteen. A batch seen whole is compared with the others whole. The purification train's own
+table still reads the reference batch as of the moment asked about.
 
 ## A batch that is running
 

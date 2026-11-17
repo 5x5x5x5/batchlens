@@ -3,6 +3,15 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: Part-way batches compared at the same age
+
+- **Found on the live demo:** `BL-0007`, nine days into its culture, was marked "Below" on
+  IVCD: its nine days against the finished batches' fourteen. The Reference and Difference
+  columns had made the same comparison since the first slice; a mark made it visible.
+- **Fixed:** a batch in progress, or an as-of view within its course, reads the reference and
+  the comparable batches as of the same culture age (`analysis.metrics.same_age`), never
+  later than the moment asked about.
+
 ## 2026-11-17: An ordinary lot-to-lot difference
 
 Remainder of the fourth item.
