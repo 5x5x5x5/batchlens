@@ -3,6 +3,24 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: Telling PlantCraft which phase is running
+
+Fifth item of the agreed order. The owner granted the write permission it needs.
+
+- **Built:** `suite/events.py`: one declared interval event, `phase.running`, on the asset of
+  a phase execution, `start` when it is under way and `end` when it is over. A background
+  look every minute with the app key; only changes are written.
+- **Found in PlantCraft's API:** an event cannot carry its own time. It is stamped on arrival.
+  So the plan's "phase executions as interval events" holds only for what happens while the
+  app runs.
+- **Ruling:** nothing is written for a phase already over when the app looks. A `start` dated
+  today for a culture of last month would be a false entry in an asset's timeline. The demo's
+  finished batches therefore have no events; the live batch has one open.
+- **Ruling:** `events` only. The permission asked for and granted was for this; publishing
+  metrics as results is another permission and cuts against "metrics are never stored".
+- **Layers:** the publishing module may not import the batch model (the suite's layer rule),
+  so it takes the service's summaries as they are.
+
 ## 2026-11-16: A split, with its mass balance
 
 Seventh item of the agreed order, the part that stays inside one batch.

@@ -187,7 +187,8 @@ batchlens benchmark --out docs/verification-report.md
 Without the synthetic plant, a live PlantCraft has no bioreactor: the app-owned data works,
 and the trends and the product mass at harvest answer `insufficient` and name the missing
 asset. To give PlantCraft the plant, the app writes two files and an administrator imports one
-of them. BatchLens writes nothing to PlantCraft itself.
+of them. The one thing BatchLens writes to PlantCraft itself is an event when a batch's phase starts or
+ends on an asset (below).
 
 ```sh
 batchlens demo-plant --out /a/folder/plantcraft/can/read --time-zone America/Sao_Paulo
@@ -235,6 +236,19 @@ from the source `batchlens-synthetic-loops`: `TIC-2001` (temperature), `AIC-2001
 The same four signals carry every batch, so every read is scoped to a phase execution's
 asset and time window. `src/batchlens/demo/plant.py` defines this plant once: the files
 above and the tests' fake PlantCraft are both made from it.
+
+## What BatchLens tells PlantCraft
+
+One thing, with its app key, and nothing else: an event `batchlens.phase.running` on an asset
+when a phase execution of a batch is under way on it (`start`) and when it is over (`end`),
+keyed by the phase execution's id. The payload holds the batch, the phase and its times. The
+asset's page in PlantCraft shows it in its timeline, and Alarms can make a rule of it.
+
+PlantCraft stamps an event when it arrives, so the event's time is when BatchLens reported it:
+within a minute of the change while the app runs, and whenever the app next starts otherwise.
+The phase's own times are in the payload. For the same reason nothing is written about a phase
+that was over before the app looked, so the finished batches of the demo have no events; the
+running batch has one open on the bioreactor. No metric or finding is published.
 
 ## Which batch carries which scenario (ground truth)
 
