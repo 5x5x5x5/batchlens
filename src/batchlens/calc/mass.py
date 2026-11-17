@@ -39,6 +39,7 @@ RECOVERY_SUSPECT_ABOVE_PERCENT = 105.0
 # Pools merged into one: the merged mass may differ from the sum of the parts by this much.
 MERGE_TOLERANCE_PERCENT = 3.0
 MERGE_VERSION = "merge_balance/1"
+SPLIT_VERSION = "split_balance/1"
 # A transfer: the volume that arrived may differ from the recorded one by this much.
 TRANSFER_TOLERANCE_PERCENT = 5.0
 TRANSFER_VERSION = "transfer_balance/1"
@@ -218,6 +219,44 @@ def merge_balance(
         tuple(reasons),
         tuple(i for part in parts for i in part.inputs) + whole.inputs,
         MERGE_VERSION,
+    )
+
+
+def split_balance(
+    whole: Result,
+    parts: Sequence[Result],
+    *,
+    tolerance_percent: float = MERGE_TOLERANCE_PERCENT,
+) -> Result:
+    """One pool divided into several: ``100 * (sum(parts) - whole) / whole``, the mass the
+    parts hold beyond (or short of) what was divided. Outside the tolerance (the merge's) it
+    is ``suspect``: mass does not appear, and what disappears should be accounted for, a part
+    that was never recorded included. A part without a value makes it ``insufficient``; a
+    partial sum is never used."""
+
+    def missing(reason: Reason) -> Result:
+        return insufficient("split_balance", "%", SPLIT_VERSION, reason)
+
+    if not parts:
+        return missing(Reason("no_parts", {}))
+    for part in (whole, *parts):
+        if part.value is None:
+            return missing(
+                Reason("input_not_usable", {"metric": part.metric, "status": part.status})
+            )
+    if whole.value == 0:
+        return missing(Reason("zero_denominator", {"metric": whole.metric}))
+    value = 100 * (sum(part.value for part in parts) - whole.value) / whole.value
+    outside = abs(value) > tolerance_percent
+    seen = {"tolerance_percent": float(tolerance_percent), "parts": len(parts)}
+    return Result(
+        "split_balance",
+        value,
+        "%",
+        SUSPECT if outside else USABLE,
+        (Reason("outside_split_tolerance", seen),) if outside else (),
+        whole.inputs + tuple(i for part in parts for i in part.inputs),
+        SPLIT_VERSION,
     )
 
 

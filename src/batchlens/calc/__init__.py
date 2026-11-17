@@ -35,6 +35,7 @@ from batchlens.calc.mass import (
     merge_balance,
     pool_mass,
     ratio_percent,
+    split_balance,
     transfer_balance,
 )
 from batchlens.calc.results import (
@@ -60,6 +61,7 @@ __all__ = [
     "TRANSFER_TOLERANCE_PERCENT",
     "transfer_balance",
     "merge_balance",
+    "split_balance",
     "PAIRING_WINDOW_HOURS",
     "RECOVERY_TOLERANCE_POINTS",
     "TOLERANCE_POINTS_BY_METRIC",

@@ -236,5 +236,9 @@
   "Osmolality": "Osmolalidade",
   "Medium lot": "Lote de meio",
   "Buffer lot": "Lote de tampão",
-  "{solution}: lot {lot} against the reference batch's lot {reference} ({days} and {referenceDays} days old when drawn)": "{solution}: lote {lot} contra o lote {reference} do lote de referência ({days} e {referenceDays} dias de idade na retirada)"
+  "{solution}: lot {lot} against the reference batch's lot {reference} ({days} and {referenceDays} days old when drawn)": "{solution}: lote {lot} contra o lote {reference} do lote de referência ({days} e {referenceDays} dias de idade na retirada)",
+  "Drug substance, container {number}": "Substância ativa, recipiente {number}",
+  "The {parts} recorded portions differ from the pool they were divided from by more than {tolerance} %.": "As {parts} porções registradas diferem do pool do qual foram divididas em mais de {tolerance} %.",
+  "Not every portion had been measured.": "Nem todas as porções haviam sido medidas.",
+  "Split balance": "Balanço da divisão"
 }

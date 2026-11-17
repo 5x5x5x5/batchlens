@@ -5,7 +5,7 @@ reference batch's did.
 Every mass is a pool measurement's volume times concentration (``calc.pool_mass``); a step's
 yield is the mass out over the mass in; the recovery from harvest is the mass out over the
 product mass at harvest. Where pools were merged, the merged mass is checked against the sum
-of its parts. Nothing is stored, and ``as_of`` applies to every measurement.
+of its parts; where one was divided, the sum of the portions against the whole. Nothing is stored, and ``as_of`` applies to every measurement.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from typing import Any
 from batchlens import calc
 from batchlens.analysis.metrics import _pool, as_calc_pool
 from batchlens.batches.models import BatchRecord
+from batchlens.calc.mass import SPLIT_VERSION
 
 # (step, the pool that goes in, the pool that comes out), in process order.
 STEPS = (
@@ -76,6 +77,22 @@ def _genealogy(record: BatchRecord, as_of: datetime | None) -> list[dict[str, An
             balance = calc.merge_balance(
                 [masses[source] for source in sources], masses[pool.measurement_id]
             ).to_dict()
+        # A split: the pool divided into portions, their sum against the whole. A portion not
+        # yet measured at ``as_of`` is not a part yet, and the balance waits for all of them.
+        portions = [
+            link.to_pool_id
+            for link in record.links
+            if link.from_pool_id == pool.measurement_id and link.kind == "portion"
+        ]
+        split = None
+        if len(portions) > 1:
+            if all(portion in masses for portion in portions):
+                split = calc.split_balance(
+                    masses[pool.measurement_id], [masses[portion] for portion in portions]
+                ).to_dict()
+            else:
+                waiting = calc.Reason("portions_not_measured_yet", {"portions": len(portions)})
+                split = calc.insufficient("split_balance", "%", SPLIT_VERSION, waiting).to_dict()
         nodes.append(
             {
                 "pool": pool.pool,
@@ -83,6 +100,7 @@ def _genealogy(record: BatchRecord, as_of: datetime | None) -> list[dict[str, An
                 "mass": masses[pool.measurement_id].to_dict(),
                 "sources": sources,
                 "merge_balance": balance,
+                "split_balance": split,
             }
         )
     return nodes

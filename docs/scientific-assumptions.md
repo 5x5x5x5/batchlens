@@ -326,6 +326,22 @@ below the range.
 - Which batches are comparable is a person's choice, like the reference. The app does not
   check that they are alike.
 
+### 16. Split balance (`split_balance/1`), `%`
+
+One pool divided into several: `100 * (sum(parts) - whole) / whole`, each mass a pool
+measurement's volume times concentration. Only links marked as a division (`portion`) are
+checked; a step that worked on the material is not a split, however many pools came out of it.
+
+Example: a drug substance of 8,000 g in containers of 2,500, 2,480 and 2,970 g:
+`100 * (7,950 - 8,000) / 8,000 = -0.6 %`. With the third container missing from the records:
+`100 * (4,980 - 8,000) / 8,000 = -37.8 %`, `suspect`.
+
+- `suspect`: outside `MERGE_TOLERANCE_PERCENT` (the merge's 3 %), either way.
+- `insufficient`: a portion on record had not been measured, or its result was not available,
+  at `as_of`; the whole has no value or is zero. A partial sum is never used.
+- It cannot see a portion that was never recorded: that shows as mass unaccounted for, and
+  the app does not say why.
+
 ### Evidence beside a step recovery shortfall
 
 For the Protein A step, cation exchange and UF/DF, a shortfall that was found carries the lot
@@ -436,6 +452,7 @@ passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L 
 | Harvest-to-load yield | 0.93 (x 1 ± 0.5 %) of the true harvest mass | Load volume 1920 ± 10 L |
 | Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass, less 0.6 per pH unit of the elution buffer lot's true pH above 3.6 (a lot at 3.9 gives 0.74) | Eluate at about 18 g/L, as two cycle pools (48 to 52 % each) merged into one |
 | Rest of the train | Viral inactivation 0.98, cation exchange 0.90, anion exchange 0.96, viral filtration 0.98, UF/DF 0.95 (each x 1 ± 0.5 %), two hours apart | Drug substance at 50 g/L; its own random stream, so earlier values did not change |
+| Bulk containers | The drug substance less 0.5 % left in the lines, filled into containers of 50 L (the last takes the rest), each measured as filled, twenty minutes apart, with 1 % concentration noise | Its own random stream. The last container may be left out of the records; the fill itself is unchanged |
 | Online signals | One value every 10 minutes during the production phase | |
 | Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
 
