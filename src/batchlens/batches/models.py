@@ -12,7 +12,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+# What a batch is a batch of. A solution lot (a medium, a buffer) is a batch of its own kind:
+# it is prepared, held, sampled and assayed like one, and product batches draw from it.
+BATCH_KINDS = ("product", "medium", "buffer")
 PHASE_KINDS = (
+    "solution_prep",
+    "solution_hold",
     "seed_n2",
     "seed_n1",
     "production_culture",
@@ -45,6 +50,7 @@ class Batch:
     is_reference: bool
     created_at: datetime
     provenance: str
+    kind: str = "product"  # one of BATCH_KINDS; for a solution lot, ``product`` names the solution
 
 
 @dataclass(frozen=True)
@@ -108,13 +114,14 @@ class PoolLink:
     provenance: str
 
 
-TRANSFER_KINDS = ("passage", "inoculation", "feed")
+TRANSFER_KINDS = ("passage", "inoculation", "feed", "buffer")
 
 
 @dataclass(frozen=True)
 class Transfer:
     """Material moved from one asset into another between two instants, as it was recorded:
-    a seed passage moved on, the production culture inoculated, a feed added. The volume is
+    a seed passage moved on, the production culture inoculated, a feed added, a buffer drawn by
+    a purification step. The volume is
     the recorded one (a totaliser, a weight, a batch record entry), not read from a signal.
     ``from_lot_id`` names the solution lot drawn from; empty when the material is the batch's
     own."""

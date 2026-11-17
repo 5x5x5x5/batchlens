@@ -2,7 +2,7 @@
 
 | Table | Holds |
 |---|---|
-| ``batches`` | one row per batch: product, the reference flag |
+| ``batches`` | one row per batch or solution lot: product, the reference flag, its kind |
 | ``phase_executions`` | what happened on an asset (PlantCraft's ``asset_id``) between two instants |
 | ``samples`` | an offline sample and when it was collected |
 | ``assay_results`` | one analyte of one sample, with the time the result became available |
@@ -27,7 +27,7 @@ from dataclasses import astuple, fields
 from datetime import datetime
 from typing import Any
 
-from plantcraft_sdk.server.store import Store
+from plantcraft_sdk.server.store import Migration, Store, add_columns
 from plantcraft_sdk.utc import utc_iso
 
 from batchlens.batches.models import (
@@ -91,7 +91,8 @@ class BatchStore(Store):
         product TEXT NOT NULL,
         is_reference INTEGER NOT NULL,
         created_at TEXT NOT NULL,
-        provenance TEXT NOT NULL
+        provenance TEXT NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'product'
     );
     CREATE TABLE IF NOT EXISTS phase_executions (
         phase_id TEXT PRIMARY KEY,
@@ -177,6 +178,13 @@ class BatchStore(Store):
     CREATE INDEX IF NOT EXISTS corrections_batch ON corrections (batch_id, corrected_at);
     """
 
+    MIGRATIONS = (
+        # 2026-11-16: solution lots are batches of their own kind.
+        Migration(
+            "batch_kind", add_columns("batches", {"kind": "TEXT NOT NULL DEFAULT 'product'"})
+        ),
+    )
+
     def save(self, record: BatchRecord) -> None:
         """The whole aggregate, replacing what was stored under the same batch id. The
         corrections people made are a history and are kept."""
@@ -209,10 +217,13 @@ class BatchStore(Store):
                 )
 
     def summaries(self) -> list[tuple[Batch, tuple[PhaseExecution, ...]]]:
-        """Every batch with its phase executions, oldest first."""
+        """Every product batch with its phase executions, oldest first. Solution lots are not
+        listed: they are reached from the batches that drew from them."""
 
         with self._lock, self._connect() as connection:
-            batches = connection.execute("SELECT * FROM batches ORDER BY created_at, batch_id")
+            batches = connection.execute(
+                "SELECT * FROM batches WHERE kind = 'product' ORDER BY created_at, batch_id"
+            )
             phases = connection.execute("SELECT * FROM phase_executions ORDER BY start_at")
             by_batch: dict[str, list[PhaseExecution]] = {}
             for row in phases.fetchall():
@@ -253,7 +264,8 @@ class BatchStore(Store):
 
         with self._lock, self._connect() as connection:
             row = connection.execute(
-                "SELECT batch_id FROM batches WHERE is_reference = 1 ORDER BY created_at LIMIT 1"
+                "SELECT batch_id FROM batches WHERE is_reference = 1 AND kind = 'product' "
+                "ORDER BY created_at LIMIT 1"
             ).fetchone()
         return row["batch_id"] if row else None
 

@@ -9,14 +9,15 @@ import { ProcessTrain } from "./ProcessTrain";
 import { recorded, signedBetween, signedRecorded, significant } from "./format";
 import { t } from "./i18n";
 import type { BatchDetail, Downstream, Evidence, Finding, Me, Metric, Metrics, Result, Sample, Samples, Transfer, Trends } from "./types";
-import { ErrorBox, Heading, Loading, message } from "./ui";
+import { ErrorBox, Heading, Link, Loading, message } from "./ui";
 import { NotInPlantCraft, useInstallationZone, when, ZoneNote } from "./when";
-import { analyteName, metricDigits, metricName, phaseName, poolName, reasonText, roleName, statusTone, statusWord, transferName } from "./words";
+import { analyteName, metricDigits, metricName, batchKindName, phaseName, poolName, reasonText, roleName, statusTone, statusWord, transferName } from "./words";
 
 // Plotly is loaded only when a chart is drawn (@plantcraft/ui/plot).
 const TimeChart = lazy(() => import("@plantcraft/ui/plot").then((module) => ({ default: module.TimeChart })));
 
-interface Loaded { detail: BatchDetail; metrics: Metrics; samples: Samples; trends: Trends; reference: Samples | null }
+/** A solution lot has no metrics or trends: only its phases, samples and results are read. */
+interface Loaded { detail: BatchDetail; metrics: Metrics | null; samples: Samples; trends: Trends | null; reference: Samples | null }
 
 function Section({ id, title, detail, children }: { id: string; title: string; detail?: string; children: React.ReactNode }) {
   return <section data-section={id}>
@@ -195,6 +196,9 @@ function Transfers({ transfers }: { transfers: Transfer[] }) {
       { key: "transfer", label: t("Transfer"), render: (transfer) => <>{transferName(transfer.kind)}<small>{transfer.transfer_id}</small></> },
       { key: "from", label: t("From"), render: (transfer) => transfer.from_asset_id },
       { key: "to", label: t("To"), render: (transfer) => transfer.to_asset_id },
+      { key: "lot", label: t("Lot"), phone: "hide", render: (transfer) => (transfer.from_lot_id
+        ? <><Link to={`/batches/${encodeURIComponent(transfer.from_lot_id)}`}>{transfer.from_lot_id}</Link><small>{transfer.lot_solution ?? ""}{transfer.lot_age_days != null && ` · ${t("{days} days old", { days: transfer.lot_age_days.toFixed(1) })}`}</small></>
+        : "") },
       { key: "end", label: t("Ended"), render: (transfer) => (transfer.end ? when(transfer.end) : <span className="muted">{t("In progress")}</span>) },
       { key: "volume", label: t("Recorded volume"), numeric: true, render: (transfer) => (transfer.volume === null ? "" : `${recorded(transfer.volume)} ${transfer.volume_unit}`) },
       { key: "balance", label: t("Arrived, against the record"), numeric: true, render: (transfer) => (transfer.balance.value === null ? <span className="muted">{t("Not checked")}</span>
@@ -331,8 +335,13 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
   const [error, setError] = useState("");
   useEffect(() => {
     const at = asOf ?? undefined;
-    Promise.all([api.batch(batchId, at), api.metrics(batchId, at), api.samples(batchId, at), api.trends(batchId, at)])
-      .then(async ([detail, metrics, samples, trends]) => {
+    api.batch(batchId, at)
+      .then(async (detail) => {
+        if ((detail.batch.kind ?? "product") !== "product") {
+          setLoaded({ detail, metrics: null, samples: await api.samples(batchId, at), trends: null, reference: null });
+          return;
+        }
+        const [metrics, samples, trends] = await Promise.all([api.metrics(batchId, at), api.samples(batchId, at), api.trends(batchId, at)]);
         // The reference batch's samples, laid over this batch at the same culture age.
         const reference = metrics.reference_batch_id ? await api.samples(metrics.reference_batch_id, at, batchId) : null;
         setLoaded({ detail, metrics, samples, trends, reference });
@@ -343,6 +352,17 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
   if (error) return <ErrorBox text={error} />;
   if (!loaded) return <Loading />;
   const { detail, metrics, samples, trends, reference: beside } = loaded;
+  if (!metrics || !trends) return <>
+    <Heading title={t("Lot {lot}", { lot: detail.batch.batch_id })} />
+    <p className="muted" data-lot>{detail.batch.product} · {batchKindName(detail.batch.kind ?? "")} · {detail.batch.provenance}</p>
+    <ZoneNote />
+    <AsOfControl timeline={detail.timeline} asOf={asOf} onChange={setAsOf} />
+    <Section id="phases" title={t("Phase executions")} detail={t("Where the lot was prepared and held, and when. The batch that drew from it lists the draws under Transfers.")}><Phases detail={detail} /></Section>
+    <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>
+      <SamplesSection batchId={batchId} samples={samples} detail={detail} canEdit={me.can_edit && !asOf} onChanged={() => setVersion((value) => value + 1)} />
+    </Section>
+    <Section id="results" title={t("Assay results")} detail={t("Each result has two times: when its sample was collected, and when the result became available.")}><Results samples={samples} /></Section>
+  </>;
   const makeReference = async () => {
     if (!(await confirmAction(t("Compare every other batch with {batch} from now on? The change is written to PlantCraft's audit log.", { batch: batchId })))) return;
     api.setReference(batchId).then(() => setVersion((value) => value + 1)).catch((err) => setError(message(err)));

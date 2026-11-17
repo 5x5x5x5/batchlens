@@ -30,6 +30,7 @@ Done is what the tests and `docs/devlog.md` show. Everything under "Next" is a p
 | A sixth finished demo batch with a low inoculum, and a finding for a culture that began below the reference's density, with the last N-1 sample as evidence | Done, oracle-tested, on the batch page |
 | Transfers: one record per seed passage, inoculation and feed, each checked against the destination vessel's volume signal; a mis-recorded feed flagged; evidence says how long after a feed each sample was taken | Done, oracle-tested, on the batch page |
 | A set of comparable batches a person chooses (three earlier normal batches added to the demo): each metric beside the set's median and range | Done, oracle-tested, on the batch page; the findings still use the one reference batch |
+| Solution lots as batches of their own kind: feed medium and three buffers per batch, prepared, held and sampled; each feed and buffer draw names its lot and the lot's age | Done, tested, on the batch page and a page per lot |
 
 ## Next, in the intended order
 
@@ -43,10 +44,9 @@ backward (what went into each step) before the chain forward.
    labelled with them. (The record, the balance and the flag are done.)
 3. Comparable batches, the rest: findings against the set instead of the one reference
    batch; a spread that accounts for how few batches there are.
-4. Media lots, then buffer lots (one mix tank and three hold tanks: Protein A elution,
-   cation-exchange elution, diafiltration), as batches of their own kind; which lot each step
-   used, its age and volume, as evidence on the recovery findings; a benchmark score for
-   evidence (is the input that truly differs in it, and how much else).
+4. Solution lots, the rest: a recovery that depends on its buffer in the generator; which
+   lot each step used beside the reference's as evidence on the recovery findings; a
+   benchmark score for evidence (is the input that truly differs in it, and how much else).
 5. Batch context published to PlantCraft (phase executions as events on their assets), which
    lets View, Alarms and Analytics scope to a batch window. Needs a new write permission.
 6. A tolerance per purification step in place of one for all.

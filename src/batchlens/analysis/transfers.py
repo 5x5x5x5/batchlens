@@ -37,15 +37,25 @@ def windows(
     return spans
 
 
+def made_at(lot: BatchRecord) -> datetime | None:
+    """When a solution lot was made: the end of its preparation."""
+
+    prep = lot.phase("solution_prep")
+    return prep.end if prep is not None else None
+
+
 def transfers(
     record: BatchRecord,
     volumes: Mapping[str, calc.Online | calc.Reason],
+    lots: Mapping[str, BatchRecord] | None = None,
     *,
     as_of: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Every transfer that had begun, oldest first, as plain data with its ``balance``.
     ``volumes`` holds, for each destination asset, its volume signal over ``windows`` or the
-    reason it could not be read."""
+    reason it could not be read. ``lots`` holds the solution lots drawn from, by id: a
+    transfer from one says what the solution is and how old the lot was when the transfer
+    began (days since its preparation ended)."""
 
     rows = []
     for transfer in record.transfers:
@@ -68,6 +78,8 @@ def transfers(
                 as_of=as_of,
             )
         ended = as_of is None or transfer.end <= as_of
+        lot = (lots or {}).get(transfer.from_lot_id)
+        made = made_at(lot) if lot is not None else None
         rows.append(
             {
                 "transfer_id": transfer.transfer_id,
@@ -75,6 +87,10 @@ def transfers(
                 "from_asset_id": transfer.from_asset_id,
                 "to_asset_id": transfer.to_asset_id,
                 "from_lot_id": transfer.from_lot_id,
+                "lot_solution": lot.batch.product if lot is not None else None,
+                "lot_age_days": (transfer.start - made).total_seconds() / 86400
+                if made is not None
+                else None,
                 "start": calc.results.iso(transfer.start),
                 # Under way in an as-of view: its end and its volume were not known yet.
                 "end": calc.results.iso(transfer.end) if ended else None,

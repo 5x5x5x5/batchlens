@@ -199,6 +199,14 @@ def batch_samples(
     }
 
 
+def lots_of(rt: Any, record: BatchRecord) -> dict[str, BatchRecord]:
+    """The solution lots the batch drew from, by id (one that is not stored is left out)."""
+
+    ids = {transfer.from_lot_id for transfer in record.transfers if transfer.from_lot_id}
+    found = {lot_id: rt.batches.get(lot_id) for lot_id in sorted(ids)}
+    return {lot_id: lot for lot_id, lot in found.items() if lot is not None}
+
+
 def metrics_answer(
     rt: Any, user: Any, record: BatchRecord, as_of: datetime | None
 ) -> dict[str, Any]:
@@ -209,8 +217,10 @@ def metrics_answer(
     client = rt.user_client(user)
     asked, as_of = as_of, deps.horizon(record, as_of)
 
+    seen: dict[str, Any] = {}  # this request's reads of volume signals (plant.volume_between)
+
     def metrics_of(item):
-        volume = plant.volume(client, item.phase("production_culture"), as_of)
+        volume = plant.volume(client, item.phase("production_culture"), as_of, seen)
         return batch_metrics(item, volume, as_of=as_of)
 
     reference = rt.batches.reference()
@@ -233,7 +243,7 @@ def metrics_answer(
     found = findings(record, reference, results, reference_results, as_of=as_of)
     found += train.pop("findings")
     volumes = {
-        asset_id: plant.volume_between(client, asset_id, start, end)
+        asset_id: plant.volume_between(client, asset_id, start, end, seen)
         for asset_id, (start, end) in windows(record, as_of).items()
     }
     return {
@@ -246,7 +256,7 @@ def metrics_answer(
         # The purification train: step yields, recovery from harvest, pool genealogy.
         "downstream": train,
         # What was moved into which vessel, each against that vessel's volume signal.
-        "transfers": transfers(record, volumes, as_of=as_of),
+        "transfers": transfers(record, volumes, lots_of(rt, record), as_of=as_of),
     }
 
 
