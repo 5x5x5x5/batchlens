@@ -43,7 +43,8 @@ def render(result: dict[str, Any]) -> str:
         f"- Each is compared with {counts['references']} normal batches taken in turn as the reference:",
         f"  {counts['comparisons']} comparisons.",
         f"- Defaults in the app: titer tolerance {settings['titer_tolerance_default_percent']:g} %, recovery",
-        f"  tolerance {settings['recovery_tolerance_default_points']:g} points, pairing window",
+        f"  tolerance {settings['recovery_tolerance_default_points']:g} points"
+        f" ({settings['yield_tolerance_default_points']:g} for the harvest-to-load yield), pairing window",
         f"  {settings['pairing_window_hours']:g} h.",
         "",
         "## Badly recorded batches",

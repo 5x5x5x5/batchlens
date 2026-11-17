@@ -23,7 +23,7 @@ validation of anything.
 - Each is compared with 5 normal batches taken in turn as the reference:
   1900 comparisons.
 - Defaults in the app: titer tolerance 15 %, recovery
-  tolerance 10 points, pairing window
+  tolerance 5 points (10 for the harvest-to-load yield), pairing window
   6 h.
 
 ## Badly recorded batches
@@ -108,8 +108,8 @@ nothing.
 | Batches | True buffer pH | Comparisons | Shortfall found | pH shown: mean difference | pH shown: mean absolute | Conductivity shown: mean absolute |
 |---|---|---|---|---|---|---|
 | Normal | 3.5 | 100 | 0 of 100 (0.0 %) | +0.01 | 0.01 | 0.13 mS/cm |
-| Recovery set low directly | 3.5 | 300 | 191 of 300 (63.7 %) | +0.01 | 0.02 | 0.10 mS/cm |
-| Buffer lot off its pH | 3.75 | 100 | 18 of 100 (18.0 %) | +0.25 | 0.25 | 0.08 mS/cm |
+| Recovery set low directly | 3.5 | 300 | 278 of 300 (92.7 %) | +0.01 | 0.02 | 0.10 mS/cm |
+| Buffer lot off its pH | 3.75 | 100 | 100 of 100 (100.0 %) | +0.25 | 0.25 | 0.08 mS/cm |
 | Buffer lot off its pH | 3.85 | 100 | 100 of 100 (100.0 %) | +0.36 | 0.36 | 0.10 mS/cm |
 | Buffer lot off its pH | 3.95 | 100 | 100 of 100 (100.0 %) | +0.44 | 0.44 | 0.10 mS/cm |
 

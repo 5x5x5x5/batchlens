@@ -174,7 +174,7 @@ def percent(metric: str, value: float | None, status: str = "usable", inputs=("x
 
 
 def test_a_recovery_more_than_the_tolerance_below_the_reference_is_a_shortfall():
-    # 93.6 - 73.4 = 20.2 points below; the default tolerance is 10 points.
+    # 93.6 - 73.4 = 20.2 points below; a step's default tolerance is 5 points.
     result = calc.recovery_shortfall(
         percent("protein_a_recovery", 73.4, inputs=("e", "l")),
         percent("protein_a_recovery", 93.6, inputs=("re", "rl")),
@@ -185,27 +185,39 @@ def test_a_recovery_more_than_the_tolerance_below_the_reference_is_a_shortfall()
         "usable",
     )
     assert result.value == pytest.approx(20.2)
-    assert result.calculation_version == "recovery_shortfall/1"
+    assert result.calculation_version == "recovery_shortfall/2"
     [reason] = result.reasons
     assert reason.code == "below_reference"
     assert reason.values == {
         "metric": "protein_a_recovery",
         "value": 73.4,
         "reference_value": 93.6,
-        "tolerance_points": 10.0,
+        "tolerance_points": 5.0,
     }
     assert result.inputs == ("e", "l", "re", "rl")
 
 
 def test_a_recovery_within_the_tolerance_or_above_the_reference_is_no_shortfall():
-    # 97.0 - 89.4 = 7.6 points: within 10. Exactly 10 points is not "more than" 10.
-    for value, reference in ((89.4, 97.0), (86.0, 96.0), (95.0, 91.0)):
+    # 93.6 - 89.4 = 4.2 points: within 5. Exactly 5 points is not "more than" 5.
+    for value, reference in ((89.4, 93.6), (91.0, 96.0), (95.0, 91.0)):
         result = calc.recovery_shortfall(percent("y", value), percent("y", reference))
         assert (result.status, result.value) == ("usable", None)
         assert codes(result) == ["within_reference"]
-    # The tolerance is a setting: 7.6 points is a shortfall at 5.
-    tight = calc.recovery_shortfall(percent("y", 89.4), percent("y", 97.0), tolerance_points=5)
-    assert tight.value == pytest.approx(7.6)
+    # The tolerance is a setting: 4.2 points is a shortfall at 3.
+    tight = calc.recovery_shortfall(percent("y", 89.4), percent("y", 93.6), tolerance_points=3)
+    assert tight.value == pytest.approx(4.2)
+
+
+def test_each_step_has_its_own_tolerance_and_the_yield_from_one_titer_a_wider_one():
+    # 7.6 points below: a shortfall for a step measured pool to pool...
+    step = calc.recovery_shortfall(percent("ufdf_yield", 89.4), percent("ufdf_yield", 97.0))
+    assert step.value == pytest.approx(7.6)
+    assert step.reasons[0].values["tolerance_points"] == 5.0
+    # ...and within the tolerance of the harvest-to-load yield, which rests on a single titer.
+    name = "harvest_to_load_yield"
+    wide = calc.recovery_shortfall(percent(name, 89.4), percent(name, 97.0))
+    assert (wide.value, codes(wide)) == (None, ["within_reference"])
+    assert wide.reasons[0].values["tolerance_points"] == 10.0
 
 
 def test_a_recovery_without_a_value_on_either_side_cannot_be_compared():

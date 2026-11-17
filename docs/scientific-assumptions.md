@@ -54,7 +54,8 @@ found"; its reason then says so (`no_divergence`).
 | `INOCULATION_TOLERANCE_FRACTION` | 0.20 | `calc/comparison.py` | An inoculation density below the reference's by more than this fraction of the reference's is a shortfall |
 | `TRANSFER_TOLERANCE_PERCENT` | 5 % | `calc/mass.py` | The volume a vessel's signal shows arriving may differ from the recorded volume of a transfer by this much before it is `suspect` |
 | `MINIMUM_COMPARABLE` | 3 | `calc/comparison.py` | With fewer comparable batches than this that have a value, a metric is not placed among them |
-| `RECOVERY_TOLERANCE_POINTS` | 10 points | `calc/comparison.py` | A yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
+| `RECOVERY_TOLERANCE_POINTS` | 5 points | `calc/comparison.py` | A step's yield or recovery lower than the reference's by more than this many percentage points is a shortfall |
+| `TOLERANCE_POINTS_BY_METRIC` | harvest-to-load yield: 10 points | `calc/comparison.py` | A step whose tolerance is its own. The harvest-to-load yield rests on one culture titer and moves by several points with nothing wrong |
 
 ## The calculations
 
@@ -178,23 +179,28 @@ Example (`tests/test_divergence.py`), reference 1.0, 2.0, 3.0, 4.0, 5.0 g/L at d
   own peculiarities are in every comparison.
 - The comparison is plain floating-point arithmetic, with no margin added at the boundary.
 
-### 8. Step recovery shortfall against the reference batch (`recovery_shortfall/1`), `percentage points`
+### 8. Step recovery shortfall against the reference batch (`recovery_shortfall/2`), `percentage points`
 
 For the harvest-to-load yield and for the Protein A recovery: `reference - value`, when that is
-more than `RECOVERY_TOLERANCE_POINTS`; no value (`within_reference`) otherwise, also when the
-batch is above the reference.
+more than the step's tolerance; no value (`within_reference`) otherwise, also when the batch
+is above the reference. The tolerance is `RECOVERY_TOLERANCE_POINTS` (5 points) for a step
+measured pool to pool and 10 points for the harvest-to-load yield (version 2; version 1 used
+10 points for every step).
 
-Example: recovery 73.4 % against 93.6 % is 20.2 points below, a shortfall at the default of 10.
-A yield of 89.4 % against 97.0 % is 7.6 points below: within.
+Example: recovery 73.4 % against 93.6 % is 20.2 points below, a shortfall. A harvest-to-load
+yield of 89.4 % against 97.0 % is 7.6 points below: within its 10 points. The same 7.6 points
+on a UF/DF yield would be a shortfall.
 
 - `insufficient`: either value is missing. `suspect`: a shortfall is found and either value is
   `suspect`. Without a shortfall there is no value to flag, so the result is `usable` and a
   reason says an input was suspect.
-- Measured ([verification-report.md](verification-report.md)): at the default 10 points, no
-  false alarms on any step; a true Protein A recovery of 74 % is always found, 80 % in 91 % of
-  comparisons, 86 % never; a later step at 75 % of its nominal yield is always found, at 85 %
-  in 99 % of comparisons, at 92 % in 12 %; a finding never named a step other than the one
-  that lost.
+- Measured ([verification-report.md](verification-report.md)), which is where the two
+  tolerances come from. Protein A at 5 points: no false alarm in 1,300 comparisons; a true
+  recovery of 74 % or 80 % always found, 86 % in 78 % of comparisons (at 10 points: 100 %,
+  91 %, never). A later step at 5 points: false alarms in 0.4 % of step comparisons, four of
+  them naming a step other than the one that lost; a step at 92 % of its nominal yield found
+  in 91 % of comparisons (at 10 points: 12 %). The harvest-to-load yield at 5 points raises a
+  false alarm in 2.9 % of comparisons and at 10 points in none, so it keeps 10.
 - The same calculation is applied to each step after capture (viral inactivation, cation and
   anion exchange, viral filtration, UF/DF), with the mass out of that step against the
   reference's as the consequence.
