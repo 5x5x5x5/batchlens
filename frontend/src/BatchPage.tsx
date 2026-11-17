@@ -208,7 +208,7 @@ function Transfers({ transfers }: { transfers: Transfer[] }) {
         : "") },
       { key: "end", label: t("Ended"), render: (transfer) => (transfer.end ? when(transfer.end) : <span className="muted">{t("In progress")}</span>) },
       { key: "volume", label: t("Recorded volume"), numeric: true, render: (transfer) => (transfer.volume === null ? "" : `${recorded(transfer.volume)} ${transfer.volume_unit}`) },
-      { key: "balance", label: t("Arrived, against the record"), numeric: true, render: (transfer) => (transfer.balance.value === null ? <span className="muted">{t("Not checked")}</span>
+      { key: "balance", label: t("Vessels, against the record"), numeric: true, render: (transfer) => (transfer.balance.value === null ? <span className="muted">{t("Not checked")}</span>
         : `${transfer.balance.value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })} %`) },
       { key: "status", label: t("Status"), render: (transfer) => <Pill status={statusTone(transfer.balance.status)} label={statusWord(transfer.balance.status)} /> },
       { key: "why", label: t("Reasons"), phone: "hide", render: (transfer) => transfer.balance.reasons.filter((reason) => reason.code !== "transfer_balanced").map((reason, index) => <div key={index}>{reasonText(reason)}</div>) },
@@ -409,7 +409,7 @@ export function BatchPage({ batchId, me }: { batchId: string; me: Me }) {
     </Section>}
     <Section id="metrics" title={t("Metrics")} detail={t("Computed on request from the records below and PlantCraft's signals. Masses are estimates from concentration × volume.")}><MetricsTable metrics={metrics} /></Section>
     <Section id="downstream" title={t("Downstream recovery")} detail={t("Each purification step: the product mass that went in and came out, and what is left of the harvest. Where pools were merged, the merged mass is checked against the sum of its parts.")}><DownstreamSection train={metrics.downstream} /></Section>
-    <Section id="transfers" title={t("Transfers")} detail={t("What was moved into which vessel, as recorded, against the volume the vessel's own signal shows arriving. Where the two disagree the transfer is flagged; which of them is wrong is not decided.")}><Transfers transfers={metrics.transfers} /></Section>
+    <Section id="transfers" title={t("Transfers")} detail={t("What was moved into which vessel, as recorded, against what the volume signals of the vessels at both ends show arriving and leaving. Where a vessel and the record disagree the transfer is flagged; which of them is wrong is not decided.")}><Transfers transfers={metrics.transfers} /></Section>
     <Section id="pools" title={t("Pool measurements")}><Pools detail={detail} /></Section>
     <Section id="trends" title={t("Trends")} detail={t("The bioreactor's online signals over the production phase, read from PlantCraft, and the offline VCD and titer.")}><TrendCharts trends={trends} samples={samples} reference={beside} /></Section>
     <Section id="samples" title={t("Samples")} detail={t("When each sample was collected. A time recorded wrongly can be corrected by an editor; the original is kept.")}>

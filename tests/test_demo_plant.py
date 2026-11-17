@@ -19,6 +19,7 @@ from batchlens.demo.plant import (
     LOOPS,
     SOURCE_ID,
     TAGS,
+    VESSEL_TAGS,
     write_plant_files,
 )
 from tests.plant import BIO_SIGNALS, make_fake
@@ -28,14 +29,17 @@ def test_the_csv_holds_every_recorded_value_at_its_utc_time(tmp_path):
     files = write_plant_files(tmp_path)
     with files.csv.open(newline="", encoding="utf-8") as file:
         rows = list(csv.DictReader(file))
-    assert list(rows[0]) == ["time", *TAGS.values()]
+    assert list(rows[0]) == ["time", *TAGS.values(), *VESSEL_TAGS.values()]
     observations, _ = demo_campaign()
-    expected = sum(len(batch.online["volume"]) for batch in observations)
-    assert len(rows) == expected
+    # One row per instant at which any vessel of any batch recorded a value.
+    instants = {m for b in observations for points in b.online.values() for m, _ in points}
+    instants |= {m for b in observations for points in b.vessels.values() for m, _ in points}
+    assert len(rows) == len(instants)
     stamps = [row["time"] for row in rows]
     assert stamps == sorted(stamps) and len(set(stamps)) == len(stamps)
-    # PlantCraft's CSV source reads times without an offset as UTC.
-    assert stamps[0] == "2026-04-29 06:00:00"
+    # PlantCraft's CSV source reads times without an offset as UTC. The first value is the
+    # first seed reactor's, an hour before its passage, six days before the first culture.
+    assert stamps[0] == "2026-04-23 05:00:00"
     by_time = {row["time"]: row for row in rows}
     for batch in observations:
         for role, points in batch.online.items():
@@ -43,6 +47,10 @@ def test_the_csv_holds_every_recorded_value_at_its_utc_time(tmp_path):
                 assert moment.tzinfo is UTC
                 row = by_time[moment.strftime("%Y-%m-%d %H:%M:%S")]
                 assert float(row[TAGS[role]]) == value
+        for asset_id, points in batch.vessels.items():
+            moment, value = points[len(points) // 2]
+            row = by_time[moment.strftime("%Y-%m-%d %H:%M:%S")]
+            assert float(row[VESSEL_TAGS[asset_id]]) == value
 
 
 def test_the_csv_can_be_written_on_the_wall_clock_of_plantcrafts_time_zone(tmp_path):
@@ -56,8 +64,8 @@ def test_the_csv_can_be_written_on_the_wall_clock_of_plantcrafts_time_zone(tmp_p
             rows = list(csv.reader(file))
         return rows[1][0], [row[1:] for row in rows[1:]]
 
-    assert first_and_values(utc.csv)[0] == "2026-04-29 06:00:00"
-    assert first_and_values(local.csv)[0] == "2026-04-29 03:00:00"  # UTC-3
+    assert first_and_values(utc.csv)[0] == "2026-04-23 05:00:00"
+    assert first_and_values(local.csv)[0] == "2026-04-23 02:00:00"  # UTC-3
     assert first_and_values(utc.csv)[1] == first_and_values(local.csv)[1]
     with pytest.raises(ValueError, match="Mars/Olympus"):
         write_plant_files(tmp_path / "x", time_zone="Mars/Olympus")
@@ -98,8 +106,17 @@ def test_the_map_names_the_source_the_assets_and_each_signal_with_its_unit_and_r
     assert assets["U-MAB"][0] == "unit" and assets["U-MAB"][1]["parent_id"] == ""
     assert all(row["parent_id"] == "U-MAB" for kind, row in assets.values() if kind == "equipment")
     assert all("synthetic" in row["description"].lower() for _, row in assets.values())
-    signals = {row["role"]: row for row in plant_map["signals"] if row["role"]}
+    on_bioreactor = [row for row in plant_map["signals"] if row["asset_id"] == BIOREACTOR]
+    signals = {row["role"]: row for row in on_bioreactor}
     assert set(signals) == set(ONLINE_UNITS)
+    # The seed reactors and the feed tank have a volume signal each, and nothing else.
+    others = {
+        row["asset_id"]: row
+        for row in plant_map["signals"]
+        if row["role"] and row not in on_bioreactor
+    }
+    assert set(others) == {"BR-1001", "BR-1002", "MH-1201"}
+    assert all((row["role"], row["unit"]) == ("volume", "L") for row in others.values())
     for role, row in signals.items():
         assert row["tag"] == TAGS[role] and row["source_id"] == SOURCE_ID
         assert row["asset_id"] == BIOREACTOR and row["unit"] == ONLINE_UNITS[role]
@@ -156,9 +173,9 @@ def test_the_fake_plantcraft_of_the_tests_serves_the_same_plant(tmp_path):
     roles = fake[BIOREACTOR]["signals"]
     assert roles == BIO_SIGNALS
     # The bioreactor's own signals; the loops' signals have no role on it.
-    assert {row["role"]: row["tag"] for row in plant_map["signals"] if row["role"]} == {
-        role: signal_id.split(":", 1)[1] for role, signal_id in roles.items()
-    }
+    assert {
+        row["role"]: row["tag"] for row in plant_map["signals"] if row["asset_id"] == BIOREACTOR
+    } == {role: signal_id.split(":", 1)[1] for role, signal_id in roles.items()}
 
 
 def test_the_command_line_writes_the_files(tmp_path, capsys, monkeypatch):

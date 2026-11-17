@@ -33,7 +33,8 @@ from batchlens.batches.models import (
 # recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
 # 3: the seed train before the production culture. 4: transfers. 5: solution lots.
 # 6: the Protein A recovery depends on its elution buffer's pH. 7: bulk containers.
-VERSION = "synthetic-generator/7"
+# 8: volume signals of the seed reactors and the feed tank.
+VERSION = "synthetic-generator/8"
 PRODUCT = "mAb-X"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"
@@ -203,6 +204,9 @@ class Observations:
     online: dict[str, list[tuple[datetime, float]]]
     # The solution lots the batch drew from, each a record of its own kind.
     lots: tuple[BatchRecord, ...] = ()
+    # The volume signals of the other vessels the batch used (the seed reactors, the feed
+    # tank), over the time it used them: ``{asset id: [(instant, litres), ...]}``.
+    vessels: dict[str, list[tuple[datetime, float]]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -261,6 +265,45 @@ def _online(
             continue  # drawn (so the noise is the same as without a gap) but never kept
         for role, value in values.items():
             series[role].append((moment, round(value, 2 if role != "volume" else 1)))
+    return series
+
+
+def _vessels(
+    rng: random.Random, seed_phases: list[PhaseExecution], moved: list[float], start: datetime
+) -> dict[str, list[tuple[datetime, float]]]:
+    """The volume of each seed reactor and of the feed tank, every ``ONLINE_INTERVAL_SECONDS``
+    while the batch used it. A seed reactor is recorded from an hour before its passage:
+    it waits with its medium, takes the passage before in the half hour up to its start, holds
+    its working volume, and gives ``moved`` litres to the next vessel in its last half hour.
+    The feed tank is recorded from the day before the first feed and falls by a feed's volume
+    at the instant the bioreactor's rises."""
+
+    step, half_hour = timedelta(seconds=ONLINE_INTERVAL_SECONDS), timedelta(minutes=30)
+
+    def ramp(moment: datetime, end: datetime) -> float:
+        """The share of a half-hour transfer ending at ``end`` that is done at ``moment``."""
+
+        return min(1.0, max(0.0, 1 - (end - moment) / half_hour))
+
+    series: dict[str, list[tuple[datetime, float]]] = {}
+    for position, phase in enumerate(seed_phases):
+        litres = SEED_TRAIN[position][2]
+        taken = moved[position - 1] if position else 0.0  # the first vessel is seeded by hand
+        points, moment = [], phase.start - timedelta(hours=1)
+        while moment <= phase.end:
+            level = litres - taken * (1 - ramp(moment, phase.start))
+            level -= moved[position] * ramp(moment, phase.end)
+            points.append((moment, round(level + rng.gauss(0, 0.002 * litres), 1)))
+            moment += step
+        series[phase.asset_id] = points
+    feeds_begin = start + timedelta(days=FIRST_FEED_DAY)
+    points, moment = [], feeds_begin - timedelta(days=1)
+    while moment <= feeds_begin + timedelta(days=FEEDS - 1, minutes=10):
+        done = 0 if moment < feeds_begin else min(FEEDS, (moment - feeds_begin).days + 1)
+        level = FEED_LITRES * (FEEDS - done) + 50.0  # a heel of 50 L is never drawn
+        points.append((moment, round(level + rng.gauss(0, 0.3), 1)))
+        moment += step
+    series[FEED_TANK] = points
     return series
 
 
@@ -374,6 +417,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
     # Transfers, again from a generator of their own.
     moving = random.Random(f"{seed}/transfers")
     transfers: list[Transfer] = []
+    seed_moved: list[float] = []  # the litres each seed vessel truly gave to the next
 
     def moved(
         kind: str,
@@ -497,13 +541,14 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         )
         grown = first * math.exp(rate_here * SEED_DAYS)
         last = position + 1 == len(SEED_TRAIN)
+        # What reaches the target density in the next vessel, or all there is.
+        seed_moved.append(min(litres, SEED_DENSITY * next_litres / grown))
         moved(
             "inoculation" if last else "passage",
             asset_id,
             BIOREACTOR if last else SEED_TRAIN[position + 1][1],
             phase.end,
-            # What reaches the target density in the next vessel, or all there is.
-            min(litres, SEED_DENSITY * next_litres / grown) * moving.gauss(1, 0.005),
+            seed_moved[-1] * moving.gauss(1, 0.005),  # as recorded
         )
         first = min(SEED_DENSITY, grown * litres / next_litres)
         passage_start = phase.end
@@ -748,8 +793,9 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         scenario.elution_buffer_ph,
         missing,
     )
+    vessels = _vessels(random.Random(f"{seed}/vessels"), seed_phases, seed_moved, start)
     return (
-        Observations(record, _online(rng, start, scenario.online_gap_days), tuple(lots)),
+        Observations(record, _online(rng, start, scenario.online_gap_days), tuple(lots), vessels),
         truth_out,
     )
 

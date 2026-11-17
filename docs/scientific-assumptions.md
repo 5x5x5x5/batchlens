@@ -286,26 +286,29 @@ within the tolerance.
 - Consequence shown with it: the harvest mass against the reference's. Evidence shown with
   it: each batch's last sample of the N-1 seed passage. Neither is offered as the cause.
 
-### 14. Transfer balance (`transfer_balance/1`), `%`
+### 14. Transfer balance (`transfer_balance/2`), `%`
 
 `balance = 100 * (arrived - recorded) / recorded`. `recorded` is the volume written on the
-transfer; `arrived` is the destination vessel's volume signal just after the transfer minus
+transfer. `arrived` is the destination vessel's volume signal just after the transfer minus
 just before it: the last value at or before its start and the first at or after its end, each
-no further away than `VOLUME_MAX_AGE_SECONDS`.
+no further away than `VOLUME_MAX_AGE_SECONDS`. `left` is the same on the source vessel, the
+other way round, and is checked against the record in the same way (version 2). Where the
+destination has no usable values the balance is computed from `left`.
 
-Example: a feed recorded as 60.0 L; the bioreactor read 1400.5 L before and 1461.7 L after.
-`arrived = 61.2`, `balance = 100 * 1.2 / 60 = 2.0 %`. Recorded as 6.0 L with 60.0 L arriving,
-the balance is 900 % and `suspect`.
+Example: a feed recorded as 60.0 L; the bioreactor read 1400.5 L before and 1461.7 L after,
+the feed tank 650.0 L and 589.0 L. `arrived = 61.2`, `left = 61.0`, `balance = 100 * 1.2 / 60
+= 2.0 %`. Recorded as 6.0 L with 60 L arriving and leaving, the balance is 900 % and `suspect`.
 
-- `suspect`: outside `TRANSFER_TOLERANCE_PERCENT`. The record and the vessel disagree; the
-  app does not decide which is wrong and changes neither.
-- `insufficient`: the destination has no volume signal; no value close enough on either side
-  (a vessel that recorded nothing before its culture began, a hole in the historian); the
-  transfer had not ended at `as_of`; a recorded volume of zero.
-- `invalid`: a unit other than `L` on either side; a negative or non-finite value.
-- Assumptions: nothing else entered or left the vessel during the transfer (no sampling, no
-  evaporation, no base addition), and only the destination is checked: the source vessels of
-  the demo have no volume signal.
+- `suspect`: either vessel outside `TRANSFER_TOLERANCE_PERCENT` of the record. The record and
+  a vessel disagree; the app does not decide which is wrong and changes neither. Two vessels
+  that agree with each other and not with the record point at the record, and the app still
+  does not say so.
+- `insufficient`: no vessel at either end has a volume signal, or a value close enough on
+  both sides of the transfer (a vessel that recorded nothing before its culture began, a hole
+  in the historian); the transfer had not ended at `as_of`; a recorded volume of zero.
+- `invalid`: a unit other than `L` anywhere; a negative or non-finite value.
+- Assumption: nothing else entered or left either vessel during the transfer (no sampling, no
+  evaporation, no base addition).
 
 ### 15. A metric among the comparable batches (`set_position/1`), the metric's unit
 
@@ -453,6 +456,7 @@ passages of three days each: N-2 in a 50 L seed bioreactor, then N-1 in a 250 L 
 | Protein A recovery | 0.92 (x 1 ± 0.5 %) of the load mass, less 0.6 per pH unit of the elution buffer lot's true pH above 3.6 (a lot at 3.9 gives 0.74) | Eluate at about 18 g/L, as two cycle pools (48 to 52 % each) merged into one |
 | Rest of the train | Viral inactivation 0.98, cation exchange 0.90, anion exchange 0.96, viral filtration 0.98, UF/DF 0.95 (each x 1 ± 0.5 %), two hours apart | Drug substance at 50 g/L; its own random stream, so earlier values did not change |
 | Bulk containers | The drug substance less 0.5 % left in the lines, filled into containers of 50 L (the last takes the rest), each measured as filled, twenty minutes apart, with 1 % concentration noise | Its own random stream. The last container may be left out of the records; the fill itself is unchanged |
+| Vessel volumes | The two seed reactors and the feed tank each have a volume signal on the same ten-minute grid, over the time the batch used them: a seed reactor from an hour before its passage (waiting with its medium, taking the passage before in half an hour, giving to the next vessel in its last half hour), the feed tank from the day before the first feed, falling by 60 L with each feed | Its own random stream; noise 0.2 % of a seed reactor's volume, 0.3 L on the tank |
 | Online signals | One value every 10 minutes during the production phase | |
 | Record-keeping problems | A sample's collection time keyed in as the previous sample's; a stretch of culture days in which the historian kept nothing. The culture itself is unchanged | Off except in the data-problem batch |
 

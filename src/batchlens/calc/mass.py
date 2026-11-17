@@ -42,7 +42,7 @@ MERGE_VERSION = "merge_balance/1"
 SPLIT_VERSION = "split_balance/1"
 # A transfer: the volume that arrived may differ from the recorded one by this much.
 TRANSFER_TOLERANCE_PERCENT = 5.0
-TRANSFER_VERSION = "transfer_balance/1"
+TRANSFER_VERSION = "transfer_balance/2"  # 2: the source vessel too
 # All six are illustrative defaults (docs/scientific-assumptions.md), not acceptance limits.
 
 
@@ -264,20 +264,24 @@ def transfer_balance(
     transfer_id: str,
     recorded: float,
     unit: str,
-    destination: Online,
+    destination: Online | None,
     *,
     start: datetime,
     end: datetime,
+    source: Online | None = None,
     as_of: datetime | None = None,
     tolerance_percent: float = TRANSFER_TOLERANCE_PERCENT,
     volume_max_age_seconds: float = VOLUME_MAX_AGE_SECONDS,
 ) -> Result:
-    """A recorded transfer against the vessel it went into: ``100 * (arrived - recorded) /
-    recorded``, where ``arrived`` is the destination's volume signal just after the transfer
-    minus just before it (the last value at or before ``start`` and the first at or after
-    ``end``, each no further away than the maximum age). Outside the tolerance it is
-    ``suspect``: the record and the vessel disagree, and which is wrong is not decided here.
-    Without a value on either side it is ``insufficient``; nothing is interpolated."""
+    """A recorded transfer against the vessels at its two ends.
+
+    ``arrived`` is the destination's volume signal just after the transfer minus just before
+    it (the last value at or before ``start`` and the first at or after ``end``, each no
+    further away than the maximum age); ``left`` is the same on the source, the other way
+    round. The value is ``100 * (arrived - recorded) / recorded``, or with ``left`` when the
+    destination has no usable values. A side outside the tolerance makes it ``suspect``: the
+    record and a vessel disagree, and which is wrong is not decided here. With no usable
+    value on either side it is ``insufficient``; nothing is interpolated."""
 
     def missing(*reasons: Reason) -> Result:
         return insufficient("transfer_balance", "%", TRANSFER_VERSION, *reasons)
@@ -285,35 +289,45 @@ def transfer_balance(
     if as_of is not None and as_of < end:
         return missing(Reason("transfer_not_ended", {"as_of": iso(as_of)}))
     problems = value_problems(transfer_id, recorded, unit, "L")
-    if destination.unit != "L":
-        wrong = {"id": destination.signal_id, "unit": destination.unit, "expected": "L"}
-        problems.append(Reason("wrong_unit", wrong))
+    for signal in (destination, source):
+        if signal is not None and signal.unit != "L":
+            wrong = {"id": signal.signal_id, "unit": signal.unit, "expected": "L"}
+            problems.append(Reason("wrong_unit", wrong))
     if problems:
         return invalid("transfer_balance", "%", TRANSFER_VERSION, problems)
     if recorded == 0:
         return missing(Reason("zero_denominator", {"metric": "recorded_volume"}))
     reach = timedelta(seconds=volume_max_age_seconds)
     latest = end + reach if as_of is None else min(end + reach, as_of)
-    before = [value for moment, value in destination.points if start - reach <= moment <= start]
-    after = [value for moment, value in destination.points if end <= moment <= latest]
-    for side, values in (("before", before), ("after", after)):
-        if not values:
-            where = {"side": side, "max_age_seconds": volume_max_age_seconds}
-            return missing(Reason("no_volume_near_transfer", where))
-    for value in (before[-1], after[0]):
-        problems += value_problems(destination.signal_id, value, destination.unit, "L")
+    # name of the side -> the volume that arrived there or left it; or why it is not known.
+    moved: dict[str, float] = {}
+    unknown: list[Reason] = []
+    for side, signal, sign in (("arrived", destination, 1), ("left", source, -1)):
+        if signal is None:
+            continue
+        before = [value for moment, value in signal.points if start - reach <= moment <= start]
+        after = [value for moment, value in signal.points if end <= moment <= latest]
+        gap = "before" if not before else "after" if not after else None
+        if gap is not None:
+            where = {"side": gap, "max_age_seconds": volume_max_age_seconds, "vessel": side}
+            unknown.append(Reason("no_volume_near_transfer", where))
+            continue
+        for value in (before[-1], after[0]):
+            problems += value_problems(signal.signal_id, value, signal.unit, "L")
+        moved[side] = sign * (after[0] - before[-1])
     if problems:
         return invalid("transfer_balance", "%", TRANSFER_VERSION, problems)
-    arrived = after[0] - before[-1]
-    value = 100 * (arrived - recorded) / recorded
-    outside = abs(value) > tolerance_percent
-    seen = {"arrived": arrived, "recorded": recorded, "tolerance_percent": float(tolerance_percent)}
+    if not moved:
+        return missing(*unknown)
+    off = {side: 100 * (litres - recorded) / recorded for side, litres in moved.items()}
+    outside = any(abs(value) > tolerance_percent for value in off.values())
+    seen = {**moved, "recorded": recorded, "tolerance_percent": float(tolerance_percent)}
     return Result(
         "transfer_balance",
-        value,
+        off.get("arrived", off.get("left")),
         "%",
         SUSPECT if outside else USABLE,
         (Reason("outside_transfer_tolerance" if outside else "transfer_balanced", seen),),
-        (transfer_id, destination.signal_id),
+        (transfer_id, *(s.signal_id for s in (destination, source) if s is not None)),
         TRANSFER_VERSION,
     )

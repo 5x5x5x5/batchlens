@@ -20,8 +20,8 @@ REACH = timedelta(seconds=calc.VOLUME_MAX_AGE_SECONDS)
 def windows(
     record: BatchRecord, as_of: datetime | None = None
 ) -> dict[str, tuple[datetime, datetime]]:
-    """For each asset something was transferred into: the stretch of its volume signal the
-    balances need, cut at ``as_of``."""
+    """For each asset something was transferred into or out of: the stretch of its volume
+    signal the balances need, cut at ``as_of``."""
 
     spans: dict[str, tuple[datetime, datetime]] = {}
     for transfer in record.transfers:
@@ -30,10 +30,11 @@ def windows(
         start, end = transfer.start - REACH, transfer.end + REACH
         if as_of is not None:
             end = min(end, as_of)
-        known = spans.get(transfer.to_asset_id)
-        spans[transfer.to_asset_id] = (
-            (start, end) if known is None else (min(known[0], start), max(known[1], end))
-        )
+        for asset_id in (transfer.to_asset_id, transfer.from_asset_id):
+            known = spans.get(asset_id)
+            spans[asset_id] = (
+                (start, end) if known is None else (min(known[0], start), max(known[1], end))
+            )
     return spans
 
 
@@ -52,8 +53,8 @@ def transfers(
     as_of: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Every transfer that had begun, oldest first, as plain data with its ``balance``.
-    ``volumes`` holds, for each destination asset, its volume signal over ``windows`` or the
-    reason it could not be read. ``lots`` holds the solution lots drawn from, by id: a
+    ``volumes`` holds, for each asset at either end of a transfer, its volume signal over
+    ``windows`` or the reason it could not be read. ``lots`` holds the solution lots drawn from, by id: a
     transfer from one says what the solution is and how old the lot was when the transfer
     began (days since its preparation ended)."""
 
@@ -61,18 +62,23 @@ def transfers(
     for transfer in record.transfers:
         if as_of is not None and transfer.start > as_of:
             continue
-        volume = volumes.get(
-            transfer.to_asset_id,
-            calc.Reason("signal_not_found", {"asset_id": transfer.to_asset_id, "role": "volume"}),
-        )
-        if isinstance(volume, calc.Reason):
-            balance = calc.insufficient("transfer_balance", "%", TRANSFER_VERSION, volume)
+        ends = [
+            volumes.get(
+                asset_id, calc.Reason("signal_not_found", {"asset_id": asset_id, "role": "volume"})
+            )
+            for asset_id in (transfer.to_asset_id, transfer.from_asset_id)
+        ]
+        destination, source = (None if isinstance(end, calc.Reason) else end for end in ends)
+        if destination is None and source is None:
+            # Neither vessel has a volume signal that can be read: say why, for both.
+            balance = calc.insufficient("transfer_balance", "%", TRANSFER_VERSION, *ends)
         else:
             balance = calc.transfer_balance(
                 transfer.transfer_id,
                 transfer.volume,
                 transfer.volume_unit,
-                volume,
+                destination,
+                source=source,
                 start=transfer.start,
                 end=transfer.end,
                 as_of=as_of,
