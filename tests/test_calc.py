@@ -555,3 +555,38 @@ def test_too_few_comparable_batches_with_a_value_place_nothing():
     assert result.reasons[0].values == {"count": 2, "minimum": 3, "without_value": 2}
     missing = calc.set_position(recovery(None), [recovery(93.6)] * 3)
     assert (missing.status, codes(missing)) == ("insufficient", ["input_not_usable"])
+
+
+def grams(value: float | None, name: str) -> Result:
+    status = "usable" if value is not None else "insufficient"
+    return Result(f"{name}_mass", value, "g", status, (), (name,), "pool_mass/1")
+
+
+def test_split_balance_is_the_sum_of_the_parts_against_the_whole_in_percent():
+    parts = [grams(2500.0, "c1"), grams(2480.0, "c2"), grams(2970.0, "c3")]
+    result = calc.split_balance(grams(8000.0, "ds"), parts)
+    # 2500 + 2480 + 2970 = 7950; 100 * (7950 - 8000) / 8000 = -0.625 %.
+    assert (result.metric, result.unit, result.status) == ("split_balance", "%", "usable")
+    assert result.value == pytest.approx(-0.625) and result.reasons == ()
+    assert result.inputs == ("ds", "c1", "c2", "c3")
+    assert result.calculation_version == "split_balance/1"
+
+
+def test_a_split_whose_parts_do_not_add_up_is_suspect_either_way():
+    short = calc.split_balance(grams(8000.0, "ds"), [grams(2500.0, "c1"), grams(2480.0, "c2")])
+    assert short.status == "suspect" and short.value == pytest.approx(-37.75)
+    assert short.reasons[0].values == {"tolerance_percent": 3.0, "parts": 2}
+    over = calc.split_balance(grams(8000.0, "ds"), [grams(4500.0, "c1"), grams(4000.0, "c2")])
+    assert (over.status, codes(over)) == ("suspect", ["outside_split_tolerance"])
+
+
+def test_a_split_with_a_part_or_the_whole_missing_is_insufficient_never_a_partial_sum():
+    missing = calc.split_balance(grams(8000.0, "ds"), [grams(2500.0, "c1"), grams(None, "c2")])
+    assert (missing.value, missing.status, codes(missing)) == (
+        None,
+        "insufficient",
+        ["input_not_usable"],
+    )
+    assert codes(calc.split_balance(grams(None, "ds"), [grams(1.0, "c1")])) == ["input_not_usable"]
+    assert codes(calc.split_balance(grams(8000.0, "ds"), [])) == ["no_parts"]
+    assert codes(calc.split_balance(grams(0.0, "ds"), [grams(1.0, "c1")])) == ["zero_denominator"]

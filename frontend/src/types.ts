@@ -81,7 +81,7 @@ export interface Downstream {
   steps: Array<{ step: string; mass_in: Result; mass_out: Result; step_yield: Result; from_harvest: Result; reference_yield?: number | null; yield_difference?: number | null }>;
   overall: Result;
   overall_reference: number | null;
-  genealogy: Array<{ pool: string; measurement_id: string; mass: Result; sources: string[]; merge_balance: Result | null }>;
+  genealogy: Array<{ pool: string; measurement_id: string; mass: Result; sources: string[]; merge_balance: Result | null; split_balance?: Result | null }>;
 }
 
 export interface Metrics { batch_id: string; as_of: string | null; reference_batch_id: string | null; comparable_batch_ids?: string[]; metrics: Metric[]; findings: Finding[]; downstream: Downstream; transfers: Transfer[] }

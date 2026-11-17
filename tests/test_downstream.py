@@ -195,7 +195,7 @@ def test_the_metrics_route_answers_the_train_beside_the_reference(seeded, client
     assert all(abs(row["yield_difference"]) < 5 for row in answer["steps"][1:])
     assert answer["overall"]["status"] == "usable"
     assert answer["overall_reference"] > answer["overall"]["value"] + 10
-    assert len(answer["genealogy"]) == 9
+    assert len(answer["genealogy"]) == 12  # nine pools of the train and three bulk containers
     # The reference batch has no reference: its own numbers only.
     own = client.get("/api/batches/BL-0001/metrics").json()["downstream"]
     assert "reference_yield" not in own["steps"][0] and own["overall_reference"] is None
@@ -298,3 +298,61 @@ def test_a_later_step_that_yields_far_less_than_the_reference_is_a_finding():
 
 def test_without_a_reference_there_are_no_step_findings(trains):
     assert trains[0]["BL-0001"][1]["findings"] == []
+
+
+def test_the_drug_substance_divided_into_containers_is_checked_against_their_sum(trains):
+    record, answer = trains[0]["BL-0001"]
+    by_pool = {node["pool"]: node for node in answer["genealogy"]}
+    whole = by_pool["drug_substance"]
+    containers = [
+        node for pool, node in by_pool.items() if pool.startswith("drug_substance_container")
+    ]
+    assert len(containers) == 3
+    assert all(node["sources"] == [whole["measurement_id"]] for node in containers)
+    balance = whole["split_balance"]
+    total = sum(node["mass"]["value"] for node in containers)
+    assert balance["value"] == pytest.approx(
+        100 * (total - whole["mass"]["value"]) / whole["mass"]["value"]
+    )
+    # Half a percent stays in the lines; each container's concentration has 1 % assay noise.
+    assert balance["status"] == "usable" and -3 < balance["value"] < 2
+    assert balance["calculation_version"] == "split_balance/1"
+    # A pool that a step worked on is not a split, although two cycles came out of one load.
+    assert by_pool["protein_a_load"]["split_balance"] is None
+    assert by_pool["protein_a_eluate"]["split_balance"] is None
+    assert by_pool["protein_a_eluate"]["merge_balance"] is not None
+
+
+def test_a_container_that_was_never_recorded_shows_as_mass_unaccounted_for(trains):
+    made, truth = trains
+    assert truth["BL-0005"].unrecorded_container == "BL-0005-drug_substance_container_3"
+    record, answer = made["BL-0005"]
+    whole = next(node for node in answer["genealogy"] if node["pool"] == "drug_substance")
+    balance = whole["split_balance"]
+    # Two of three containers on record: about a third of the drug substance is not in them.
+    assert balance["status"] == "suspect" and -40 < balance["value"] < -25
+    assert [reason["code"] for reason in balance["reasons"]] == ["outside_split_tolerance"]
+    assert balance["reasons"][0]["values"] == {"tolerance_percent": 3.0, "parts": 2}
+    # The record is shown as it is: no container is invented, and the overall recovery stands.
+    assert "BL-0005-drug_substance_container_3" not in {p.measurement_id for p in record.pools}
+
+
+def test_a_split_waits_until_every_recorded_portion_has_been_measured(trains):
+    record, _ = trains[0]["BL-0001"]
+    containers = sorted(
+        (p for p in record.pools if p.pool.startswith("drug_substance_container")),
+        key=lambda p: p.measured_at,
+    )
+    harvest = calc.Result("harvest_mass", 10000.0, "g", "usable", (), (), "harvest_mass/1")
+    # Two containers filled, the third not yet (they are filled twenty minutes apart).
+    as_of = containers[1].measured_at + timedelta(minutes=1)
+    assert as_of < containers[2].measured_at
+    answer = downstream(record, harvest, as_of=as_of)
+    whole = next(node for node in answer["genealogy"] if node["pool"] == "drug_substance")
+    assert whole["split_balance"]["status"] == "insufficient"
+    assert whole["split_balance"]["reasons"][0]["code"] == "portions_not_measured_yet"
+    # All three filled, the last one's result still out: insufficient, never a partial sum.
+    waiting = downstream(record, harvest, as_of=containers[2].measured_at + timedelta(minutes=1))
+    whole = next(node for node in waiting["genealogy"] if node["pool"] == "drug_substance")
+    assert whole["split_balance"]["status"] == "insufficient"
+    assert whole["split_balance"]["reasons"][0]["code"] == "input_not_usable"

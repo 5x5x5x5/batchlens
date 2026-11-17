@@ -39,7 +39,10 @@ POOLS = (
     "anion_exchange_pool",
     "viral_filtrate",
     "drug_substance",
+    # The drug substance filled into bulk containers: "drug_substance_container_1", ...
+    "drug_substance_container",
 )
+LINK_KINDS = ("process", "portion")
 
 
 @dataclass(frozen=True)
@@ -105,13 +108,16 @@ class PoolMeasurement:
 @dataclass(frozen=True)
 class PoolLink:
     """Genealogy: material of one pool went into another. Several links into one pool are a
-    merge; several out of one are a split."""
+    merge; several out of one are a split. ``kind`` says what happened on the way: a step
+    worked on the material (``process``: the mass may change), or it was only divided or put
+    together (``portion``: the mass is conserved, which a balance can check)."""
 
     link_id: str
     batch_id: str
     from_pool_id: str  # a pool measurement's id
     to_pool_id: str
     provenance: str
+    kind: str = "process"
 
 
 TRANSFER_KINDS = ("passage", "inoculation", "feed", "buffer")

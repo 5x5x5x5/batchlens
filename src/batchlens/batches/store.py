@@ -144,7 +144,8 @@ class BatchStore(Store):
         batch_id TEXT NOT NULL,
         from_pool_id TEXT NOT NULL,
         to_pool_id TEXT NOT NULL,
-        provenance TEXT NOT NULL
+        provenance TEXT NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'process'
     );
     CREATE INDEX IF NOT EXISTS pool_links_batch ON pool_links (batch_id);
     CREATE TABLE IF NOT EXISTS transfers (
@@ -182,6 +183,10 @@ class BatchStore(Store):
         # 2026-11-16: solution lots are batches of their own kind.
         Migration(
             "batch_kind", add_columns("batches", {"kind": "TEXT NOT NULL DEFAULT 'product'"})
+        ),
+        # 2026-11-16: a link says whether the material was worked on or only divided.
+        Migration(
+            "pool_link_kind", add_columns("pool_links", {"kind": "TEXT NOT NULL DEFAULT 'process'"})
         ),
     )
 

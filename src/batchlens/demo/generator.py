@@ -32,8 +32,8 @@ from batchlens.batches.models import (
 # Raised when what the generator makes changes, so a database seeded by an older one is
 # recognised (demo/seed.py). 2: the rest of the purification train and the pool genealogy.
 # 3: the seed train before the production culture. 4: transfers. 5: solution lots.
-# 6: the Protein A recovery depends on its elution buffer's pH.
-VERSION = "synthetic-generator/6"
+# 6: the Protein A recovery depends on its elution buffer's pH. 7: bulk containers.
+VERSION = "synthetic-generator/7"
 PRODUCT = "mAb-X"
 # Asset ids of the synthetic plant (tests/plant.py serves them from the fake PlantCraft).
 BIOREACTOR = "BR-2001"
@@ -105,6 +105,9 @@ DOWNSTREAM = (
     ("ufdf", "UF-3501", "drug_substance", 0.95, 8),
 )
 HOLD_HOURS = 2  # between two downstream steps
+# The drug substance is filled into bulk containers of this many litres (the last one takes
+# what is left); this fraction of it stays in the lines and the filter.
+CONTAINER_LITRES, FILL_LOSS = 50.0, 0.005
 # Litres of the pool each step produces per gram of product in it (the last one is the drug
 # substance at 50 g/L).
 POOL_LITRES_PER_GRAM = {
@@ -185,6 +188,8 @@ class Scenario:
     mis_recorded_feed: int | None = None
     # Culture days between which the historian kept nothing.
     online_gap_days: tuple[float, float] | None = None
+    # The last bulk container was filled and never entered in the records.
+    unrecorded_container: bool = False
     # A purification step's nominal yield, where it is not DOWNSTREAM's: {phase kind: fraction}.
     downstream_yields: dict[str, float] = field(default_factory=dict)
 
@@ -222,6 +227,7 @@ class GroundTruth:
     inoculation_density: float = SEED_DENSITY  # 1e6 cells/mL, the production culture's start
     mis_recorded_transfer: str | None = None  # the transfer id
     elution_buffer_ph: float = ELUTION_PH  # the true pH of the Protein A elution buffer lot
+    unrecorded_container: str | None = None  # the measurement id it would have had
 
 
 def _vcd(day: float, peak: float, rate: float, first: float = SEED_DENSITY) -> float:
@@ -635,7 +641,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
     ]
     pools, links = [load, *cycles, eluate], []
 
-    def link(source: PoolMeasurement, target: PoolMeasurement) -> None:
+    def link(source: PoolMeasurement, target: PoolMeasurement, kind: str = "process") -> None:
         links.append(
             PoolLink(
                 f"{batch_id}-L{len(links) + 1:02d}",
@@ -643,12 +649,13 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
                 source.measurement_id,
                 target.measurement_id,
                 provenance,
+                kind,
             )
         )
 
     for cycle in cycles:
         link(load, cycle)
-        link(cycle, eluate)
+        link(cycle, eluate, "portion")
     true_yields = {"protein_a_capture": recovery}
     more_phases, previous, mass, clock = [], eluate, eluate_mass, capture_end
     for number, (kind, asset_id, pool_name, nominal, hours) in enumerate(DOWNSTREAM, start=4):
@@ -670,6 +677,33 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         more_phases.append(phase)
         pools.append(made)
         previous = made
+    # The drug substance filled into bulk containers, each measured as it was filled. From a
+    # generator of its own, like everything added after the first train.
+    filling = random.Random(f"{seed}/fill")
+    left = previous.volume * (1 - FILL_LOSS)
+    count, missing = math.ceil(left / CONTAINER_LITRES), None
+    for number in range(1, count + 1):
+        litres = min(CONTAINER_LITRES, left - CONTAINER_LITRES * (number - 1))
+        filled = clock + timedelta(minutes=30 + 20 * number)
+        container = PoolMeasurement(
+            f"{batch_id}-drug_substance_container_{number}",
+            batch_id,
+            previous.phase_id,
+            f"drug_substance_container_{number}",
+            round(litres, 1),
+            "L",
+            round(mass / previous.volume * filling.gauss(1, 0.01), 2),
+            "g/L",
+            POOL_METHOD,
+            filled,
+            filled + timedelta(seconds=round(filling.uniform(2, 4) * 3600)),
+            provenance,
+        )
+        if scenario.unrecorded_container and number == count:
+            missing = container.measurement_id
+            continue
+        link(previous, container, "portion")
+        pools.append(container)
     # A lot of each buffer, prepared about a day before the step that draws it.
     by_kind = {phase.kind: phase for phase in (*phases, *more_phases)}
     for suffix, (step, litres) in BUFFER_DRAWS.items():
@@ -712,6 +746,7 @@ def generate(scenario: Scenario, seed: int) -> tuple[Observations, GroundTruth]:
         first,
         mis_recorded,
         scenario.elution_buffer_ph,
+        missing,
     )
     return (
         Observations(record, _online(rng, start, scenario.online_gap_days), tuple(lots)),
@@ -804,6 +839,7 @@ def _campaign(
                 mis_keyed_sample=8,
                 mis_recorded_feed=6,
                 online_gap_days=(13.4, 14.25),
+                unrecorded_container=True,
             ),
             105,
         ),

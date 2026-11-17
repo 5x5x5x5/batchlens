@@ -3,6 +3,22 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-16: A split, with its mass balance
+
+Seventh item of the agreed order, the part that stays inside one batch.
+
+- **Built:** a link has a kind (`process` or `portion`; second migration, `pool_link_kind`);
+  `calc.split_balance`; the drug substance filled into bulk containers by the generator; a
+  Split balance column in the pool genealogy.
+- **Ruling:** a split is not inferred from the links alone. Two cycle eluates come out of one
+  Protein A load, and their sum is the load times the recovery: a balance there would cry
+  wolf on every batch. Only a link that says the material was merely divided is checked.
+- **Ruling:** `BL-0005`, the badly recorded batch, has its last container missing from the
+  records: about a third of its drug substance is unaccounted for, and the app says so and
+  invents nothing.
+- **Not done:** material carried between batches.
+- **Checked:** every earlier generated value unchanged (`synthetic-generator/7`).
+
 ## 2026-11-16: A tolerance per step
 
 Sixth item of the agreed order (the fifth needs a new write permission and waits for the

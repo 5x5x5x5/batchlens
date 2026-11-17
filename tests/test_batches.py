@@ -138,6 +138,9 @@ def test_one_batch_comes_with_its_phase_executions_and_pool_measurements(seeded,
         "anion_exchange_pool",
         "viral_filtrate",
         "drug_substance",
+        "drug_substance_container_1",
+        "drug_substance_container_2",
+        "drug_substance_container_3",
     ]
     assert {pool["volume_unit"] for pool in answer["pools"]} == {"L"}
     assert "synthetic-generator" in answer["batch"]["provenance"]
@@ -883,7 +886,7 @@ def test_an_as_of_view_does_not_know_the_future(seeded, client):
     assert detail["pools"] == []
     # After everything: all three phases with their ends, both pools.
     whole = client.get("/api/batches/BL-0003").json()
-    assert whole["as_of"] is None and len(whole["phases"]) == 10 and len(whole["pools"]) == 9
+    assert whole["as_of"] is None and len(whole["phases"]) == 10 and len(whole["pools"]) == 11
     assert all(phase["end"] for phase in whole["phases"])
     assert client.get("/api/batches/BL-0003", params={"as_of": "soon"}).status_code == 422
     # The list is not an as-of view: it has no as_of.
@@ -974,14 +977,23 @@ def test_a_database_from_before_solution_lots_is_upgraded_and_its_batches_are_pr
         old.execute(
             "INSERT INTO batches VALUES ('OLD-1', 'mAb-X', 1, '2026-01-01T00:00:00.000Z', 'p')"
         )
+        old.execute(
+            "CREATE TABLE pool_links (link_id TEXT PRIMARY KEY, batch_id TEXT NOT NULL, "
+            "from_pool_id TEXT NOT NULL, to_pool_id TEXT NOT NULL, provenance TEXT NOT NULL)"
+        )
+        old.execute("INSERT INTO pool_links VALUES ('OLD-1-L01', 'OLD-1', 'a', 'b', 'p')")
     old.close()
     runtime = make_runtime(tmp_path, make_fake())
     try:
         kept = runtime.batches.get("OLD-1")
         assert kept is not None and kept.batch.kind == "product" and kept.batch.is_reference
         assert [batch.batch_id for batch, _ in runtime.batches.summaries()] == ["OLD-1"]
+        assert [link.kind for link in kept.links] == ["process"]
         seed_demo(runtime.batches)  # and the new kind is stored beside it
         assert runtime.batches.get("BL-0001-MF").batch.kind == "medium"
+        # Links stored before they had a kind are steps; the generator's now say which.
+        kinds = {link.kind for link in runtime.batches.get("BL-0001").links}
+        assert kinds == {"process", "portion"}
     finally:
         runtime.shutdown()
 

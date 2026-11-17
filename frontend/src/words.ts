@@ -76,7 +76,10 @@ export function poolName(pool: string): string {
     case "anion_exchange_pool": return t("Anion-exchange pool");
     case "viral_filtrate": return t("Viral filtrate");
     case "drug_substance": return t("Drug substance");
-    default: return pool;
+    default: {
+      const container = /^drug_substance_container_(\d+)$/.exec(pool);
+      return container ? t("Drug substance, container {number}", { number: container[1] }) : pool;
+    }
   }
 }
 
@@ -170,6 +173,8 @@ export function reasonText(reason: Reason): string {
       : t("No volume value within {seconds} s after the transfer.", { seconds: text("max_age_seconds") });
     case "transfer_not_ended": return t("The transfer had not ended.");
     case "too_few_comparable_batches": return t("Only {count} comparable batches have a value; {minimum} are needed.", { count: text("count"), minimum: text("minimum") });
+    case "outside_split_tolerance": return t("The {parts} recorded portions differ from the pool they were divided from by more than {tolerance} %.", { parts: text("parts"), tolerance: text("tolerance_percent") });
+    case "portions_not_measured_yet": return t("Not every portion had been measured.");
     case "outside_merge_tolerance": return t("The merged pool differs from the sum of its parts by more than {tolerance} %.", { tolerance: text("tolerance_percent") });
     case "no_sources": return t("No source pools recorded.");
     case "no_divergence": return t("Titer stayed within {tolerance} % of the reference batch at the end of {pairs} compared samples.", { tolerance: text("tolerance_percent"), pairs: text("pairs") });

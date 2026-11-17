@@ -158,6 +158,13 @@ function Amount({ result, digits = 3 }: { result: Result; digits?: number }) {
   return <>{significant(result.value, digits)} {result.unit}{result.status === "suspect" && <small>{result.reasons.map(reasonText).join(" ")}</small>}</>;
 }
 
+/** A mass balance in percent (a merge's or a split's), flagged with its reason when suspect. */
+function Balance({ result }: { result?: Result | null }) {
+  if (!result) return null;
+  if (result.value === null) return <Amount result={result} />;
+  return <>{result.value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })} %{result.status === "suspect" && <small>{result.reasons.map(reasonText).join(" ")}</small>}</>;
+}
+
 /** The purification train, step by step, and what each pool was made from. */
 function DownstreamSection({ train }: { train: Downstream }) {
   return <>
@@ -182,10 +189,8 @@ function DownstreamSection({ train }: { train: Downstream }) {
         { key: "pool", label: t("Pool"), render: (node) => <>{poolName(node.pool)}<small>{node.measurement_id}</small></> },
         { key: "mass", label: t("Mass"), numeric: true, render: (node) => <Amount result={node.mass} /> },
         { key: "sources", label: t("Made from"), render: (node) => node.sources.join(", ") },
-        { key: "balance", label: t("Merge balance"), numeric: true, render: (node) => (node.merge_balance
-          ? node.merge_balance.value === null ? <Amount result={node.merge_balance} />
-            : <>{node.merge_balance.value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" })} %{node.merge_balance.status === "suspect" && <small>{node.merge_balance.reasons.map(reasonText).join(" ")}</small>}</>
-          : "") },
+        { key: "balance", label: t("Merge balance"), numeric: true, render: (node) => <Balance result={node.merge_balance} /> },
+        { key: "split", label: t("Split balance"), numeric: true, render: (node) => <Balance result={node.split_balance} /> },
       ]} />
   </>;
 }

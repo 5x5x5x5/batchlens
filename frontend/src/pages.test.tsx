@@ -382,6 +382,19 @@ describe("one batch", () => {
     expect(text).toContain("The merged pool differs from the sum of its parts by more than 3 %.");
   });
 
+  it("shows a pool divided into containers, and flags portions that do not add up to it", async () => {
+    const split = { metric: "split_balance", value: -33.9, unit: "%", status: "suspect", inputs: [], calculation_version: "split_balance/1", reasons: [{ code: "outside_split_tolerance", values: { tolerance_percent: 3, parts: 2 } }] };
+    answers.metrics = { ...METRICS, downstream: { ...DOWNSTREAM, genealogy: [
+      { pool: "drug_substance", measurement_id: "BL-0002-drug_substance", mass: result("drug_substance_mass", 8000), sources: [], merge_balance: null, split_balance: split },
+      { pool: "drug_substance_container_1", measurement_id: "BL-0002-drug_substance_container_1", mass: result("drug_substance_container_1_mass", 2500), sources: ["BL-0002-drug_substance"], merge_balance: null, split_balance: null },
+    ] } };
+    const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
+    const text = host.querySelector('[data-section="downstream"]')!.textContent ?? "";
+    expect(text).toContain("Drug substance, container 1");
+    expect(text).toContain("-33.9 %");
+    expect(text).toContain("The 2 recorded portions differ from the pool they were divided from by more than 3 %.");
+  });
+
   it("lists the transfers, flags one whose record and vessel disagree, and says why one was not checked", async () => {
     const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const rows = [...host.querySelectorAll('[data-section="transfers"] tbody tr')].map((row) => row.textContent ?? "");
