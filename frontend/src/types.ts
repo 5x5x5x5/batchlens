@@ -72,7 +72,7 @@ export interface Evidence {
   /** For a buffer lot beside the reference's: the solution, both lots, and each lot's age in
    * days when its step began to draw it. */
   solution?: string; lot_id?: string; reference_lot_id?: string; age_days?: number; reference_age_days?: number;
-  results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null }>;
+  results: Array<{ analyte: string; unit: string; result_id: string; value: number; reference_result_id: string | null; reference_value: number | null; difference: number | null; comparable?: Result | null }>;
 }
 
 /** The purification train: each step's masses and yield, the recovery from harvest, and what

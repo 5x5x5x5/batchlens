@@ -362,6 +362,10 @@ began to draw it. It is shown only with a shortfall. Nothing is computed from it
 is applied to it, and the cause of the finding stays empty. `docs/verification-report.md`
 measures what those differences are when the lot was the cause and when it was not.
 
+Beside each result, the same result of the lots the comparable batches drew for that step,
+as in section 15: their median and the range one more lot like them is expected in, with a
+mark when this lot's value is outside it. Two good lots differ too; this says by how much.
+
 ### Evidence beside a divergence
 
 When a divergence is found, the finding lists every other result of the two samples it names

@@ -1036,6 +1036,12 @@ def test_a_step_that_recovered_less_shows_the_buffer_lot_it_drew_beside_the_refe
     assert rows["ph"]["difference"] == pytest.approx(0.4, abs=0.1)
     assert abs(rows["conductivity"]["difference"]) < 0.6
     assert finding["cause"] is None
+    # Beside each, what the comparable batches' lots lead to expect: the pH is above it, and
+    # the conductivity, which differs from the reference's by as much, is not.
+    among = {analyte: row["comparable"]["reasons"][0] for analyte, row in rows.items()}
+    assert among["ph"]["code"] == "above_expected_range" and among["ph"]["values"]["count"] == 5
+    assert among["ph"]["values"]["expected_high"] < 3.7
+    assert among["conductivity"]["code"] == "within_expected_range"
     # A step within tolerance carries no lot table, and neither does another finding.
     for batch_id in ("BL-0002", "BL-0003"):
         assert finding_of(client, batch_id, "protein_a_recovery_shortfall")["evidence"] == []

@@ -105,6 +105,7 @@ function EvidenceTables({ evidence }: { evidence: Evidence[] }) {
           { key: "value", label: t("This batch"), numeric: true, render: (row) => `${recorded(row.value)} ${row.unit}` },
           { key: "reference", label: t("Reference"), numeric: true, render: (row) => (row.reference_value === null ? <span className="muted">{t("No value")}</span> : `${recorded(row.reference_value)} ${row.unit}`) },
           { key: "difference", label: t("Difference"), numeric: true, render: (row) => signedRecorded(row.difference) },
+          ...(group.results.some((row) => row.comparable) ? [{ key: "comparable", label: t("Comparable batches' lots"), numeric: true, phone: "hide" as const, render: (row: Evidence["results"][number]) => <Among result={row.comparable} digits={3} /> }] : []),
         ]} />
     </div>)}
   </>;

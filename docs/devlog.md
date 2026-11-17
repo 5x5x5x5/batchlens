@@ -3,6 +3,17 @@
 Notes on how the module changed and why, newest first: what a later contributor would need to
 know that the code and `CHANGELOG.md` do not say. One short entry per change worth explaining.
 
+## 2026-11-17: An ordinary lot-to-lot difference
+
+Remainder of the fourth item.
+
+- **Built:** each result of the lot beside a step shortfall is placed among the lots the
+  comparable batches drew for that step, with the same calculation as a metric.
+- **Why:** on `BL-0004` the conductivity differed from the reference's by 0.35 mS/cm, as
+  large to the eye as the pH's 0.45, and meant nothing. Now the pH is marked and the
+  conductivity is not.
+- **Cost:** the other batches' lots are read only when a finding was found.
+
 ## 2026-11-17: What the comparable batches lead to expect
 
 Remainder of the third and sixth items.

@@ -318,13 +318,15 @@ describe("one batch", () => {
     const short: Finding = { ...METRICS.findings[1], evidence: [{
       at: "buffer_lot", sample_id: "BL-0002-BA-S01", reference_sample_id: "BL-0001-BA-S01", culture_day: -0.01, hours_since_feed: null, reference_hours_since_feed: null,
       solution: "Protein A elution buffer", lot_id: "BL-0002-BA", reference_lot_id: "BL-0001-BA", age_days: 1, reference_age_days: 1.04,
-      results: [{ analyte: "ph", unit: "pH", result_id: "BL-0002-BA-S01-ph", value: 3.94, reference_result_id: "BL-0001-BA-S01-ph", reference_value: 3.49, difference: 0.45 }],
+      results: [{ analyte: "ph", unit: "pH", result_id: "BL-0002-BA-S01-ph", value: 3.94, reference_result_id: "BL-0001-BA-S01-ph", reference_value: 3.49, difference: 0.45,
+        comparable: { metric: "ph_among_comparable", value: 0.44, unit: "pH", status: "usable", inputs: [], calculation_version: "set_position/2", reasons: [{ code: "above_expected_range", values: { count: 5, median: 3.5, lowest: 3.48, highest: 3.52, expected_low: 3.42, expected_high: 3.58, level_percent: 99, without_value: 0 } }] } }],
     }] };
     answers.metrics = { ...METRICS, findings: [short] };
     const host = await render(<BatchPage batchId="BL-0002" me={VIEWER} />);
     const findings = host.querySelector('[data-section="findings"]')!.textContent ?? "";
     expect(findings).toContain("Protein A elution buffer: lot BL-0002-BA against the reference batch's lot BL-0001-BA (1.0 and 1.0 days old when drawn)");
     expect(findings).toContain("pH3.94 pH3.49 pH+0.45");
+    expect(findings).toContain("3.50 Aboveexpected 3.42 to 3.58 (99 %, 5 batches)");
     expect(findings).toContain("Nothing is concluded from them.");
     expect(findings).toContain("No cause is attributed");
   });

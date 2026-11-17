@@ -244,5 +244,6 @@
   "The source vessel's volume fell by {left} L against {recorded} L recorded (the tolerance is {tolerance} %).": "O volume do vaso de origem caiu {left} L contra {recorded} L registrados (a tolerância é {tolerance} %).",
   "Below": "Abaixo",
   "Above": "Acima",
-  "expected {low} to {high} ({level} %, {count} batches)": "esperado de {low} a {high} ({level} %, {count} lotes)"
+  "expected {low} to {high} ({level} %, {count} batches)": "esperado de {low} a {high} ({level} %, {count} lotes)",
+  "Comparable batches' lots": "Lotes dos lotes comparáveis"
 }
